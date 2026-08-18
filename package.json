@@ -1,0 +1,9 @@
+{
+  "name": "neonbeat",
+  "private": true,
+  "type": "module",
+  "description": "Tooling-only manifest. The game itself has NO build step: it is served as-is (vanilla ES modules). This file only lets Node run tools/build-charts.mjs.",
+  "scripts": {
+    "charts": "node tools/build-charts.mjs"
+  }
+}

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>NEONBEAT — éditeur de charts</title>
+<style>
+  body { margin:0; background:#0a0a12; color:#eef0ff; font:14px/1.5 system-ui, sans-serif; }
+  header { display:flex; gap:12px; align-items:center; padding:10px 14px; background:#12122a; flex-wrap:wrap; }
+  header label { display:flex; gap:6px; align-items:center; font-size:13px; color:#8f93b8; }
+  input, select, button { font:inherit; background:#1c1c38; color:#eef0ff; border:1px solid #33335c; border-radius:6px; padding:5px 9px; }
+  button { cursor:pointer; } button:hover { background:#26264a; }
+  #wave { display:block; width:100%; height:140px; background:#07070f; cursor:crosshair; }
+  #lanes { display:block; width:100%; height:300px; background:#0b0b18; }
+  footer { padding:10px 14px; color:#8f93b8; font-size:13px; }
+  kbd { background:#1c1c38; border:1px solid #33335c; border-radius:4px; padding:0 5px; }
+</style>
+</head>
+<body>
+<header>
+  <input type="file" id="file" accept="audio/*">
+  <label>BPM <input type="number" id="bpm" value="120" step="0.1" style="width:70px"></label>
+  <label>Offset audio (s) <input type="number" id="offset" value="0" step="0.01" style="width:70px"></label>
+  <label>Quantif.
+    <select id="quant">
+      <option value="1">1/1</option><option value="2">1/2</option>
+      <option value="4" selected>1/4</option><option value="8">1/8</option>
+    </select>
+  </label>
+  <button id="play">▶ Lecture (Espace)</button>
+  <label>Titre <input id="title" value="Sans titre" style="width:120px"></label>
+  <label>Difficulté <input id="diffname" value="NORMAL" style="width:80px"></label>
+  <button id="export">Exporter JSON</button>
+  <button id="clear">Tout effacer</button>
+  <span id="status"></span>
+</header>
+<canvas id="wave" height="140"></canvas>
+<canvas id="lanes" height="300"></canvas>
+<footer>
+  Pose des notes avec <kbd>D</kbd> <kbd>F</kbd> <kbd>J</kbd> <kbd>K</kbd> pendant la lecture
+  (quantifiées sur la grille BPM). Clic sur la waveform : déplacer la tête de lecture.
+  Clic sur une note dans la zone du bas : la supprimer. <kbd>Maj</kbd>+touche : note longue
+  (maintenir puis relâcher). Outil interne desktop — voir le brief §6.5.
+</footer>
+<script>
+const ctx = new (window.AudioContext || window.webkitAudioContext)();
+let buffer = null, source = null, startCtx = 0, startPos = 0, playing = false;
+let notes = [];                 // [lane, time, dur]
+const holds = {};               // lane → début du hold en cours
+const $ = id => document.getElementById(id);
+const wave = $('wave'), lanes = $('lanes');
+const KEYS = { KeyD:0, KeyF:1, KeyJ:2, KeyK:3 };
+const COLORS = ['#22e0c8','#8b5cff','#ff3d8b','#ffb020'];
+
+$('file').addEventListener('change', async e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  $('status').textContent = 'Décodage…';
+  buffer = await ctx.decodeAudioData(await f.arrayBuffer());
+  $('status').textContent = `${f.name} — ${buffer.duration.toFixed(1)} s`;
+  drawWave();
+});
+
+function pos() { return playing ? startPos + ctx.currentTime - startCtx : startPos; }
+
+function toggle() {
+  if (!buffer) return;
+  if (playing) {
+    startPos = pos(); source.stop(); playing = false; $('play').textContent = '▶ Lecture (Espace)';
+  } else {
+    ctx.resume();
+    source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+    startCtx = ctx.currentTime + 0.05;
+    source.start(startCtx, startPos);
+    source.onended = () => { if (playing) { playing = false; startPos = 0; $('play').textContent = '▶ Lecture (Espace)'; } };
+    playing = true; $('play').textContent = '⏸ Pause (Espace)';
+  }
+}
+$('play').addEventListener('click', toggle);
+
+function quantize(t) {
+  const bpm = +$('bpm').value || 120, q = +$('quant').value;
+  const step = 60 / bpm / q, off = +$('offset').value || 0;
+  return Math.max(0, Math.round((t - off) / step) * step + off);
+}
+
+addEventListener('keydown', e => {
+  if (e.code === 'Space') { e.preventDefault(); return toggle(); }
+  const lane = KEYS[e.code];
+  if (lane === undefined || e.repeat || !buffer) return;
+  const t = quantize(pos());
+  if (e.shiftKey) holds[lane] = t;
+  else notes.push([lane, +t.toFixed(3), 0]);
+});
+addEventListener('keyup', e => {
+  const lane = KEYS[e.code];
+  if (lane === undefined || holds[lane] === undefined) return;
+  const t0 = holds[lane]; delete holds[lane];
+  const d = Math.max(0, quantize(pos()) - t0);
+  notes.push([lane, +t0.toFixed(3), +d.toFixed(3)]);
+});
+
+wave.addEventListener('pointerdown', e => {
+  if (!buffer) return;
+  const r = wave.getBoundingClientRect();
+  startPos = (e.clientX - r.left) / r.width * buffer.duration;
+  if (playing) { source.onended = null; source.stop(); playing = false; toggle(); }
+});
+
+lanes.addEventListener('pointerdown', e => {
+  const r = lanes.getBoundingClientRect();
+  const x = (e.clientX - r.left) / r.width;
+  const view = 4, t0 = pos() - 0.5;
+  const t = t0 + x * view;
+  const lane = Math.floor((e.clientY - r.top) / r.height * 4);
+  let bi = -1, bd = 0.12;
+  notes.forEach((n, i) => { if (n[0] === lane && Math.abs(n[1] - t) < bd) { bd = Math.abs(n[1] - t); bi = i; } });
+  if (bi >= 0) notes.splice(bi, 1);
+});
+
+function drawWave() {
+  const c = wave.getContext('2d');
+  wave.width = wave.clientWidth;
+  c.fillStyle = '#07070f'; c.fillRect(0, 0, wave.width, 140);
+  if (!buffer) return;
+  const d = buffer.getChannelData(0), step = Math.ceil(d.length / wave.width);
+  c.fillStyle = '#22e0c8';
+  for (let x = 0; x < wave.width; x++) {
+    let m = 0;
+    for (let i = x * step; i < (x + 1) * step && i < d.length; i += 16) m = Math.max(m, Math.abs(d[i]));
+    c.fillRect(x, 70 - m * 66, 1, m * 132 + 1);
+  }
+}
+
+function frame() {
+  requestAnimationFrame(frame);
+  if (buffer) {
+    const c = wave.getContext('2d');
+    drawWave();
+    c.fillStyle = '#ff3d8b';
+    c.fillRect(pos() / buffer.duration * wave.width, 0, 2, 140);
+  }
+  const c = lanes.getContext('2d');
+  lanes.width = lanes.clientWidth;
+  c.fillStyle = '#0b0b18'; c.fillRect(0, 0, lanes.width, 300);
+  const view = 4, t0 = pos() - 0.5;
+  const bpm = +$('bpm').value || 120, off = +$('offset').value || 0, q = +$('quant').value;
+  const step = 60 / bpm / q;
+  c.strokeStyle = '#20204a';
+  for (let t = Math.ceil((t0 - off) / step) * step + off; t < t0 + view; t += step) {
+    const beat = Math.round((t - off) / (60 / bpm) * 1000) / 1000;
+    c.strokeStyle = beat % 4 === 0 ? '#3c3c78' : beat % 1 === 0 ? '#2c2c5c' : '#191938';
+    const x = (t - t0) / view * lanes.width;
+    c.beginPath(); c.moveTo(x, 0); c.lineTo(x, 300); c.stroke();
+  }
+  for (let l = 1; l < 4; l++) {
+    c.strokeStyle = '#20204a';
+    c.beginPath(); c.moveTo(0, l * 75); c.lineTo(lanes.width, l * 75); c.stroke();
+  }
+  for (const [lane, t, dur] of notes) {
+    if (t + dur < t0 || t > t0 + view) continue;
+    const x = (t - t0) / view * lanes.width;
+    const w = Math.max(8, dur / view * lanes.width);
+    c.fillStyle = COLORS[lane];
+    c.fillRect(x, lane * 75 + 14, dur > 0 ? w : 8, 47);
+  }
+  c.fillStyle = '#eef0ff';
+  c.fillRect(0.5 / view * lanes.width, 0, 2, 300);
+}
+frame();
+
+$('export').addEventListener('click', () => {
+  notes.sort((a, b) => a[1] - b[1] || a[0] - b[0]);
+  const id = $('title').value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'sans-titre';
+  const json = {
+    id, title: $('title').value, artist: '', license: '', sourceUrl: '',
+    audio: `tracks/${id}.m4a`,
+    bpm: +$('bpm').value, audioOffset: +$('offset').value,
+    previewStart: 0, duration: buffer ? +buffer.duration.toFixed(2) : 0,
+    difficulties: [{ name: $('diffname').value || 'NORMAL', level: 5, notes }]
+  };
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(json, null, 1)], { type: 'application/json' }));
+  a.download = id + '.json';
+  a.click();
+});
+$('clear').addEventListener('click', () => { if (confirm('Effacer toutes les notes ?')) notes = []; });
+</script>
+</body>
+</html>

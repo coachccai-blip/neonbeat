@@ -1,0 +1,119 @@
+{
+  "tracks": [
+    {
+      "id": "neon-sunrise",
+      "title": "Neon Sunrise",
+      "artist": "NEONBEAT",
+      "bpm": 100,
+      "duration": 115.2,
+      "color": "#ff7ab8",
+      "tier": 1,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 2
+        },
+        {
+          "name": "NORMAL",
+          "level": 4
+        },
+        {
+          "name": "HARD",
+          "level": 5
+        }
+      ]
+    },
+    {
+      "id": "midnight-drive",
+      "title": "Midnight Drive",
+      "artist": "NEONBEAT",
+      "bpm": 118,
+      "duration": 105.763,
+      "color": "#8b7cff",
+      "tier": 2,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 3
+        },
+        {
+          "name": "NORMAL",
+          "level": 5
+        },
+        {
+          "name": "HARD",
+          "level": 7
+        }
+      ]
+    },
+    {
+      "id": "laser-bloom",
+      "title": "Laser Bloom",
+      "artist": "NEONBEAT",
+      "bpm": 128,
+      "duration": 105,
+      "color": "#22e0c8",
+      "tier": 3,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "NORMAL",
+          "level": 6
+        },
+        {
+          "name": "HARD",
+          "level": 9
+        }
+      ]
+    },
+    {
+      "id": "circuit-storm",
+      "title": "Circuit Storm",
+      "artist": "NEONBEAT",
+      "bpm": 145,
+      "duration": 105.931,
+      "color": "#ffb020",
+      "tier": 4,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "NORMAL",
+          "level": 7
+        },
+        {
+          "name": "HARD",
+          "level": 11
+        }
+      ]
+    },
+    {
+      "id": "hyper-nova",
+      "title": "Hyper Nova",
+      "artist": "NEONBEAT",
+      "bpm": 174,
+      "duration": 104.828,
+      "color": "#ff3d6e",
+      "tier": 5,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 5
+        },
+        {
+          "name": "NORMAL",
+          "level": 9
+        },
+        {
+          "name": "HARD",
+          "level": 13
+        }
+      ]
+    }
+  ]
+}

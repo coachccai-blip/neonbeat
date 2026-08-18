@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#07070f">
+<meta name="description" content="NEONBEAT — jeu de rythme multijoueur, 4 joueurs dans le même salon, chacun sur son téléphone.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>NEONBEAT</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./assets/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./assets/icon-180.png">
+<link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+
+<div id="bg-grid" aria-hidden="true"><div class="sun"></div><div class="grid"></div></div>
+
+<!-- ─────────────────────────── ACCUEIL ─────────────────────────── -->
+<section class="screen" id="screen-home" data-screen="home">
+  <div class="wrap">
+    <h1 class="logo"><span class="logo-neon">NEON</span><span class="logo-beat">BEAT</span></h1>
+    <p class="tagline">4 joueurs · 1 salon · 4 touches</p>
+    <div class="menu">
+      <button class="btn btn-primary" id="btn-solo">JOUER EN SOLO</button>
+      <button class="btn btn-host" id="btn-create">CRÉER UNE PARTIE</button>
+      <button class="btn btn-ghost" id="btn-join">REJOINDRE UNE PARTIE</button>
+    </div>
+    <div class="menu-small">
+      <button class="btn btn-tiny" id="btn-settings">RÉGLAGES</button>
+      <button class="btn btn-tiny" id="btn-calib-home">CALIBRER</button>
+      <button class="btn btn-tiny" id="btn-credits">CRÉDITS</button>
+    </div>
+    <p class="net-note" id="net-note"></p>
+  </div>
+</section>
+
+<!-- ─────────────────────────── REJOINDRE ─────────────────────────── -->
+<section class="screen" id="screen-join" data-screen="join">
+  <div class="wrap">
+    <button class="btn-back" data-back="home">‹ RETOUR</button>
+    <h2 class="title">CODE DU SALON</h2>
+    <input id="join-code" class="code-input" maxlength="4" autocomplete="off" autocapitalize="characters"
+           spellcheck="false" inputmode="text" placeholder="····" aria-label="Code du salon, 4 lettres">
+    <p class="hint" id="join-status">Demande le code à l'hôte, ou scanne son QR code.</p>
+    <button class="btn btn-primary" id="btn-join-go">REJOINDRE</button>
+  </div>
+</section>
+
+<!-- ─────────────────────────── LOBBY ─────────────────────────── -->
+<section class="screen" id="screen-lobby" data-screen="lobby">
+  <div class="wrap wide">
+    <button class="btn-back" data-back="home">‹ QUITTER</button>
+    <div class="lobby-head">
+      <div class="room-code-block">
+        <span class="label">CODE DU SALON</span>
+        <div class="room-code" id="room-code">····</div>
+      </div>
+      <div class="qr-block" id="qr-block"><canvas id="qr-canvas" width="150" height="150"></canvas></div>
+    </div>
+    <p class="hint" id="lobby-status">Connexion…</p>
+
+    <div class="track-card" id="lobby-track">
+      <div class="track-card-main">
+        <span class="label">MORCEAU CHOISI PAR L'HÔTE</span>
+        <div class="track-title" id="lobby-track-title">—</div>
+        <div class="track-meta" id="lobby-track-meta"></div>
+      </div>
+      <button class="btn btn-small host-only" id="btn-change-track">CHANGER</button>
+    </div>
+
+    <div class="row host-only" id="audio-mode-row">
+      <span class="label">SON</span>
+      <div class="seg" role="group" aria-label="Mode audio">
+        <button class="seg-btn is-on" data-mode="shared">SALON<small>hôte seul</small></button>
+        <button class="seg-btn" data-mode="individual">CASQUES<small>chacun le sien</small></button>
+      </div>
+    </div>
+
+    <div class="players" id="players"></div>
+
+    <div class="row diff-row">
+      <span class="label">MA DIFFICULTÉ</span>
+      <div class="seg" id="lobby-diff" role="group" aria-label="Difficulté"></div>
+    </div>
+
+    <div class="lobby-actions">
+      <button class="btn btn-primary" id="btn-ready">JE SUIS PRÊT</button>
+      <button class="btn btn-host host-only" id="btn-start">LANCER LA PARTIE</button>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────────── SÉLECTION MORCEAU ─────────────────────────── -->
+<section class="screen" id="screen-select" data-screen="select">
+  <div class="wrap wide">
+    <button class="btn-back" id="select-back">‹ RETOUR</button>
+    <h2 class="title">MORCEAUX</h2>
+    <div class="track-list" id="track-list"></div>
+
+    <div class="select-foot">
+      <div class="row">
+        <span class="label">DIFFICULTÉ</span>
+        <div class="seg" id="select-diff" role="group" aria-label="Difficulté"></div>
+      </div>
+      <div class="speed-row">
+        <div class="speed-head">
+          <span class="label">VITESSE DE CHUTE</span>
+          <span class="speed-val" id="speed-val">×2.5</span>
+        </div>
+        <input type="range" id="speed-slider" min="1" max="6" step="0.25" value="2.5"
+               aria-label="Vitesse de chute des notes">
+        <p class="hint speed-hint" id="speed-hint"></p>
+      </div>
+      <button class="btn btn-primary" id="btn-play">JOUER</button>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────────── CALIBRATION ─────────────────────────── -->
+<section class="screen" id="screen-calib" data-screen="calib">
+  <div class="wrap">
+    <h2 class="title">CALIBRATION</h2>
+    <p class="hint">Tape en rythme avec le clic. 20 frappes suffisent.<br>
+      C'est ce réglage qui rend le jeu jouable sur ton téléphone.</p>
+    <div class="calib-stage" id="calib-stage">
+      <div class="pulse" id="calib-pulse"></div>
+      <div class="calib-count" id="calib-count">0<span>/20</span></div>
+    </div>
+    <p class="calib-result" id="calib-result"></p>
+    <div class="menu">
+      <button class="btn btn-primary" id="btn-calib-start">DÉMARRER</button>
+      <button class="btn btn-ghost" id="btn-calib-skip">PLUS TARD</button>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────────── CHARGEMENT ─────────────────────────── -->
+<section class="screen" id="screen-loading" data-screen="loading">
+  <div class="wrap">
+    <h2 class="title" id="loading-title">SYNTHÈSE DU MORCEAU</h2>
+    <div class="loader"><div class="loader-bar" id="loader-bar"></div></div>
+    <p class="hint" id="loading-hint">La musique est générée sur ton téléphone, note par note.</p>
+  </div>
+</section>
+
+<!-- ─────────────────────────── JEU ─────────────────────────── -->
+<section class="screen" id="screen-game" data-screen="game">
+  <canvas id="game-canvas"></canvas>
+  <div class="hud">
+    <div class="hud-top">
+      <div class="life-wrap"><div class="life" id="life-bar"></div></div>
+      <div class="hud-line">
+        <div class="song-name" id="hud-song"></div>
+        <div class="score" id="hud-score">0</div>
+      </div>
+    </div>
+    <div class="rivals" id="rivals"></div>
+    <div class="pause-hint" id="pause-overlay" hidden>
+      <div class="pause-box">
+        <h3>EN PAUSE</h3>
+        <p>La partie reprend au compte à rebours.</p>
+        <button class="btn btn-primary" id="btn-resume">REPRENDRE</button>
+        <button class="btn btn-ghost" id="btn-quit">ABANDONNER</button>
+      </div>
+    </div>
+  </div>
+  <button class="btn-pause" id="btn-pause" aria-label="Pause">II</button>
+  <div class="countdown" id="countdown" hidden></div>
+</section>
+
+<!-- ─────────────────────────── RÉSULTATS ─────────────────────────── -->
+<section class="screen" id="screen-results" data-screen="results">
+  <div class="wrap wide">
+    <div class="grade" id="res-grade">S</div>
+    <div class="res-song" id="res-song"></div>
+    <div class="res-score" id="res-score">0</div>
+    <div class="res-stats" id="res-stats"></div>
+    <div class="ranking" id="res-ranking"></div>
+    <div class="menu">
+      <button class="btn btn-primary" id="btn-again">REJOUER</button>
+      <button class="btn btn-ghost" id="btn-back-select">CHANGER DE MORCEAU</button>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────────── RÉGLAGES ─────────────────────────── -->
+<section class="screen" id="screen-settings" data-screen="settings">
+  <div class="wrap wide">
+    <button class="btn-back" data-back="home">‹ RETOUR</button>
+    <h2 class="title">RÉGLAGES</h2>
+
+    <label class="field">
+      <span class="label">PSEUDO</span>
+      <input type="text" id="set-name" maxlength="10" class="text-input" autocomplete="off">
+    </label>
+
+    <div class="field">
+      <span class="label">COULEUR</span>
+      <div class="colors" id="set-colors"></div>
+    </div>
+
+    <div class="field">
+      <div class="speed-head"><span class="label">VITESSE DE CHUTE</span><span class="speed-val" id="set-speed-val">×2.5</span></div>
+      <input type="range" id="set-speed" min="1" max="6" step="0.25">
+      <p class="hint">Plus la vitesse est haute, moins il y a de notes affichées en même temps. Les notes tombent plus vite mais l'écran reste lisible.</p>
+      <div class="speed-preview"><canvas id="speed-preview" width="240" height="150"></canvas></div>
+    </div>
+
+    <div class="field">
+      <div class="speed-head"><span class="label">OFFSET DE CALIBRATION</span><span class="speed-val" id="set-offset-val">0 ms</span></div>
+      <input type="range" id="set-offset" min="-200" max="200" step="1">
+      <button class="btn btn-small" id="btn-recalib">RELANCER LA CALIBRATION</button>
+      <p class="hint">Recalibre si tu changes de casque : le Bluetooth ajoute facilement 150 ms.</p>
+    </div>
+
+    <div class="field">
+      <div class="speed-head"><span class="label">VOLUME MUSIQUE</span><span class="speed-val" id="set-vol-val">80 %</span></div>
+      <input type="range" id="set-volume" min="0" max="100" step="1">
+    </div>
+
+    <label class="switch"><input type="checkbox" id="set-hitsound"><span></span>SON DE FRAPPE</label>
+    <label class="switch"><input type="checkbox" id="set-vibrate"><span></span>RETOUR HAPTIQUE</label>
+  </div>
+</section>
+
+<!-- ─────────────────────────── CRÉDITS ─────────────────────────── -->
+<section class="screen" id="screen-credits" data-screen="credits">
+  <div class="wrap wide">
+    <button class="btn-back" data-back="home">‹ RETOUR</button>
+    <h2 class="title">CRÉDITS</h2>
+    <div class="credits-body" id="credits-body"></div>
+  </div>
+</section>
+
+<div id="rotate" hidden><div><strong>TOURNE TON TÉLÉPHONE</strong><span>NEONBEAT se joue en mode portrait.</span></div></div>
+<div id="toast" hidden></div>
+
+<script src="./vendor/peerjs.min.js"></script>
+<script src="./vendor/qrcode.min.js"></script>
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>
