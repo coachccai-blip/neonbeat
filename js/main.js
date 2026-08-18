@@ -10,6 +10,7 @@ import { Input } from './input.js';
 import { Calibration } from './calibration.js';
 import { ClockSync } from './clock.js';
 import { Host, Client, normalizeCode, MAX_PLAYERS } from './net.js';
+import { MODS, multiplierFor, modsLabel } from './mods.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -211,10 +212,24 @@ function openSelect() {
     renderSelectDiff();
     applyAutoSpeed();
     previewTrack(t);
+  }, (trackId, diffName) => {
+    const best = storage.bestFor(trackId, diffName);
+    return best ? best.grade : null;
   });
   $('speed-slider').value = storage.get('speed');
   renderSelectDiff();
+  renderSelectMods();
   applyAutoSpeed();
+}
+
+function renderSelectMods() {
+  ui.renderModsSeg($('select-mods'), MODS, storage.get('mods') || [], (id, on) => {
+    const mods = new Set(storage.get('mods') || []);
+    if (on) mods.add(id); else mods.delete(id);
+    storage.set('mods', [...mods]);
+    ui.setModsSummary($('mods-mult'), multiplierFor([...mods]));
+  });
+  ui.setModsSummary($('mods-mult'), multiplierFor(storage.get('mods') || []));
 }
 
 function renderSelectDiff() {
@@ -225,6 +240,9 @@ function renderSelectDiff() {
     S.myDiff = name;
     storage.set('lastDiff', name);
     applyAutoSpeed();
+  }, (diffName) => {
+    const best = storage.bestFor(t.id, diffName);
+    return best ? best.grade : null;
   });
 }
 
@@ -357,7 +375,19 @@ class Game {
     this.diffName = diffName;
     this.opts = opts;
     this.diff = getDifficulty(track, diffName);
-    this.engine = new Engine(this.diff.notes);
+
+    // Effets actifs. En multijoueur, NIGHTCORE est neutralisé : en mode salon
+    // la musique accélérée d'un joueur se désynchroniserait de ce que la
+    // pièce entend, et le départ commun suppose la même durée pour tous.
+    this.mods = (storage.get('mods') || []).filter((m) => !opts.multi || m !== 'NIGHTCORE');
+    this.rate = this.mods.includes('NIGHTCORE') ? 1.25 : 1;
+    this.mult = multiplierFor(this.mods);
+
+    let notes = this.diff.notes;
+    if (this.mods.includes('MIRROR')) {
+      notes = notes.map(([lane, t, d]) => [3 - lane, t, d]);
+    }
+    this.engine = new Engine(notes);
     this.renderer = new Renderer($('game-canvas'));
     this.finished = false;
     this.paused = false;
@@ -379,6 +409,7 @@ class Game {
 
     this.renderer.setChart(this.engine.notes, track.bpm, storage.get('speed'));
     this.renderer.setWaveform(audio.waveform(track.id), track.color);
+    this.renderer.mods = { fade: this.mods.includes('FADE'), sudden: this.mods.includes('SUDDEN') };
 
     // Échap : pause / reprise (solo uniquement, comme le bouton II).
     this._onEsc = (e) => {
@@ -414,7 +445,7 @@ class Game {
         delay = 0.15;
       }
     }
-    const { perfAtStart } = audio.start(this.track.id, { delay, silent, seek: actualSeek });
+    const { perfAtStart } = audio.start(this.track.id, { delay, silent, seek: actualSeek, rate: this.rate });
     this.perfAtStart = perfAtStart;
     this.input.enabled = true;
     this.loop();
@@ -426,7 +457,8 @@ class Game {
 
   onPress(lane, timeStampMs) {
     if (this.finished || this.paused) return;
-    const t = (timeStampMs - this.perfAtStart) / 1000 - this.userOffset;
+    const age = (performance.now() - timeStampMs) / 1000;
+    const t = this.songTime() - (age + this.userOffset) * this.rate;
     const res = this.engine.press(lane, t);
     this.renderer.pressed[lane] = true;
     if (res) {
@@ -442,7 +474,8 @@ class Game {
 
   onRelease(lane, timeStampMs) {
     if (this.finished) return;
-    const t = (timeStampMs - this.perfAtStart) / 1000 - this.userOffset;
+    const age = (performance.now() - timeStampMs) / 1000;
+    const t = this.songTime() - (age + this.userOffset) * this.rate;
     const j = this.engine.release(lane, t);
     this.renderer.pressed[lane] = false;
     if (j === 'GOOD') this.renderer.label('GOOD');
@@ -475,7 +508,7 @@ class Game {
     this.renderer.draw(t);
 
     // HUD
-    $('hud-score').textContent = this.engine.score.toLocaleString('fr-FR');
+    $('hud-score').textContent = Math.round(this.engine.score * this.mult).toLocaleString('fr-FR');
     const life = $('life-bar');
     life.style.width = this.engine.life + '%';
     life.classList.toggle('low', this.engine.life < 30);
@@ -499,7 +532,9 @@ class Game {
     // Progression réseau, 4 fois par seconde
     if (this.opts.multi && t - this.lastProgressSend >= 0.25) {
       this.lastProgressSend = t;
-      sendProgress(this.engine.snapshot());
+      const snap = this.engine.snapshot();
+      snap.score = Math.round(snap.score * this.mult);
+      sendProgress(snap);
     }
 
     if (t > this.track.duration + 1.2 && !this.finished) this.finish();
@@ -524,7 +559,7 @@ class Game {
     $('pause-overlay').hidden = true;
     // Reprise 2 s en arrière, avec décompte, pour se remettre dans le rythme.
     const seek = Math.max(0, this.pausedAt - 2);
-    const { perfAtStart } = audio.start(this.track.id, { delay: 1.2, silent: this.opts.silent, seek });
+    const { perfAtStart } = audio.start(this.track.id, { delay: 1.2, silent: this.opts.silent, seek, rate: this.rate });
     this.perfAtStart = perfAtStart;
     this.paused = false;
     this.input.enabled = true;
@@ -541,7 +576,9 @@ class Game {
     this.finished = true;
     this.input.enabled = false;
     const res = this.engine.results();
+    res.score = Math.round(res.score * this.mult);
     res.diffName = this.diffName;
+    res.mods = this.mods;
     this.dispose();
     onGameFinished(res);
   }
@@ -588,13 +625,31 @@ async function withLoading(trackId) {
 
 function onGameFinished(res) {
   audio.stop();
+  // Record local : pour tous les modes, on garde le meilleur par morceau +
+  // difficulté (le grade reste basé sur la précision, effets ou non).
+  let recordInfo = null;
+  if (S.selectedTrack) {
+    recordInfo = storage.saveScore(S.selectedTrack.id, res.diffName, {
+      score: res.score,
+      grade: res.failed ? 'D' : res.grade,
+      precision: Math.round(res.precision * 10000) / 10000,
+      comboMax: res.comboMax,
+      mods: res.mods || []
+    });
+  }
   if (S.mode === 'solo') {
     ui.renderResults({ title: S.selectedTrack.title }, res, null, S.myId);
+    ui.renderLocalBoard(
+      storage.boardFor(S.selectedTrack.id, res.diffName),
+      recordInfo && recordInfo.record,
+      res.score
+    );
     ui.show('results');
   } else if (S.mode === 'client') {
     S.net.send({ t: 'FINISHED', ...publicResult(res) });
     S.myResult = res;
     ui.renderResults({ title: S.selectedTrack.title }, res, null, S.myId);
+    ui.renderLocalBoard([], false, 0);
     ui.show('results');
     ui.toast('En attente du classement…');
   } else if (S.mode === 'host') {
@@ -605,6 +660,7 @@ function onGameFinished(res) {
     // fini (hostMaybeSendResults re-peint l'écran avec le ranking). Si un
     // joueur ne rend jamais sa copie, on publie quand même au bout de 12 s.
     ui.renderResults({ title: S.selectedTrack.title }, res, null, S.myId);
+    ui.renderLocalBoard([], false, 0);
     ui.show('results');
     clearTimeout(S.resultsDeadline);
     S.resultsDeadline = setTimeout(() => hostMaybeSendResults(true), 12000);
@@ -1015,7 +1071,7 @@ function refreshLobby() {
   const t = S.selectedTrack;
   if (t) {
     if (!t.levels.some((l) => l.name === S.myDiff)) S.myDiff = t.levels[0].name;
-    ui.renderDiffSeg($('lobby-diff'), t.levels, S.myDiff, (name) => {
+    ui.renderDiffSeg($('lobby-diff'), t.levels, S.myDiff, ((name) => {
       S.myDiff = name;
       storage.set('lastDiff', name);
       applyAutoSpeed();
@@ -1028,6 +1084,9 @@ function refreshLobby() {
         hostBroadcastLobby();
         refreshLobby();
       }
+    }), (diffName) => {
+      const best = storage.bestFor(t.id, diffName);
+      return best ? best.grade : null;
     });
   }
   if (S.mode === 'host') {

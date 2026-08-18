@@ -63,7 +63,11 @@ export class Calibration {
   /** À appeler avec event.timeStamp du pointerdown. */
   tap(timeStampMs) {
     if (!this.running) return;
-    const t = (timeStampMs - this.t0Perf) / 1000;   // secondes depuis le 1er clic
+    // L'événement est daté en base performance.now() : on ne garde que son
+    // ÂGE (quelques ms), appliqué à l'horloge audio — la même base que les
+    // clics du métronome ET que le jugement en jeu.
+    const age = (performance.now() - timeStampMs) / 1000;
+    const t = (audio.context().currentTime - this.t0Ctx) - age;
     if (t < -0.3) return;
     // Écart signé au clic le plus proche : positif = le joueur tape après le son.
     const nearest = Math.round(t / INTERVAL) * INTERVAL;

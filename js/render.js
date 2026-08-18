@@ -32,6 +32,7 @@ export class Renderer {
     this.failed = false;
     this.feverLevel = 1;
     this.feverAnim = null;       // { level, t0 } — animation de montée
+    this.mods = { fade: false, sudden: false };
     // Sur PC (souris + clavier) : lettres ZEIO sur les notes et les récepteurs.
     this.showKeys = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
     this.wave = null;            // { peaks, rate } — soundwave de fond
@@ -263,6 +264,19 @@ export class Renderer {
       if (n.state === 'done' && n.judgment !== 'MISS' && n.dur === 0) continue;
 
       const y = judgeY - (n.time - songT) * pxPerSec;
+
+      // Effets optionnels : FADE efface la note avant la ligne, SUDDEN ne la
+      // révèle qu'au dernier moment. Le jugement, lui, ne change pas.
+      let modAlpha = 1;
+      if (this.mods.fade) {
+        const f0 = judgeY * 0.52, f1 = judgeY * 0.8;
+        modAlpha = y <= f0 ? 1 : y >= f1 ? 0 : 1 - (y - f0) / (f1 - f0);
+      } else if (this.mods.sudden) {
+        const s0 = judgeY * 0.5, s1 = judgeY * 0.64;
+        modAlpha = y <= s0 ? 0 : y >= s1 ? 1 : (y - s0) / (s1 - s0);
+      }
+      if (modAlpha <= 0.01) continue;
+      ctx.globalAlpha = modAlpha;
       const x = n.lane * laneW + laneW * 0.05;
       const nw = laneW * 0.90;
       const color = LANE_COLORS[n.lane];
@@ -282,6 +296,7 @@ export class Renderer {
       } else {
         this._noteRect(x, y, nw, color, n);
       }
+      ctx.globalAlpha = 1;
     }
 
     // Particules

@@ -69,13 +69,17 @@ export function describeSpeed(speed, chartInfo) {
 
 const DIFF_CLASS = { EASY: 'e', NORMAL: 'n', HARD: 'h' };
 
-export function renderDiffSeg(container, levels, active, onPick) {
+/**
+ * @param {(diffName:string)=>string|null} [gradeOf] grade local à afficher
+ */
+export function renderDiffSeg(container, levels, active, onPick, gradeOf) {
   container.innerHTML = '';
   for (const d of levels) {
     const b = document.createElement('button');
     b.className = 'seg-btn' + (d.name === active ? ' is-on' : '');
     b.dataset.diff = d.name;
-    b.innerHTML = `${d.name}<small>niv ${d.level}</small>`;
+    const grade = gradeOf ? gradeOf(d.name) : null;
+    b.innerHTML = `${d.name}<small>niv ${d.level}${grade ? ` · <b class="gr">${grade}</b>` : ''}</small>`;
     b.addEventListener('click', () => {
       container.querySelectorAll('.seg-btn').forEach((x) => x.classList.remove('is-on'));
       b.classList.add('is-on');
@@ -87,15 +91,17 @@ export function renderDiffSeg(container, levels, active, onPick) {
 
 /* ─── Liste des morceaux ─── */
 
-export function renderTrackList(tracks, activeId, onPick) {
+export function renderTrackList(tracks, activeId, onPick, gradeOf) {
   const list = $('track-list');
   list.innerHTML = '';
   tracks.forEach((t, i) => {
     const b = document.createElement('button');
     b.className = 'track-item' + (t.id === activeId ? ' is-on' : '');
     b.style.setProperty('--accent', t.color || '#22e0c8');
-    const lv = t.levels.map((l) =>
-      `<span class="lv ${DIFF_CLASS[l.name] || ''}">${l.level}</span>`).join('');
+    const lv = t.levels.map((l) => {
+      const grade = gradeOf ? gradeOf(t.id, l.name) : null;
+      return `<span class="lv ${DIFF_CLASS[l.name] || ''}">${l.level}${grade ? `<b>${grade}</b>` : ''}</span>`;
+    }).join('');
     b.innerHTML = `
       <span class="track-num">${i + 1}</span>
       <span class="track-info">
@@ -166,6 +172,57 @@ export function drawQr(canvas, text) {
       }
     }
   }
+}
+
+/* ─── Effets (mods) ─── */
+
+export function renderModsSeg(container, mods, activeIds, onToggle) {
+  container.innerHTML = '';
+  for (const m of mods) {
+    const b = document.createElement('button');
+    b.className = 'seg-btn mod-btn' + (activeIds.includes(m.id) ? ' is-on' : '');
+    b.innerHTML = `${m.name}<small>×${String(m.mult).replace('.', ',')}</small>`;
+    b.title = m.desc;
+    b.addEventListener('click', () => {
+      b.classList.toggle('is-on');
+      onToggle(m.id, b.classList.contains('is-on'));
+    });
+    container.appendChild(b);
+  }
+}
+
+export function setModsSummary(el, mult) {
+  el.textContent = mult > 1 ? `score ×${String(mult).replace('.', ',')}` : '';
+}
+
+/* ─── Leaderboard local ─── */
+
+export function renderLocalBoard(entries, isNewRecord, myScore) {
+  const banner = $('res-record');
+  const box = $('res-board');
+  if (!banner || !box) return;
+  banner.hidden = !isNewRecord;
+  box.innerHTML = '';
+  if (!entries.length) return;
+  const title = document.createElement('div');
+  title.className = 'board-title';
+  title.textContent = 'MEILLEURS SCORES LOCAUX';
+  box.appendChild(title);
+  entries.slice(0, 5).forEach((e, i) => {
+    const row = document.createElement('div');
+    row.className = 'board-row' + (e.score === myScore ? ' is-me' : '');
+    row.innerHTML = `
+      <span class="pos">${i + 1}</span>
+      <span class="bs">${e.score.toLocaleString('fr-FR')}</span>
+      <span class="bg">${e.grade}</span>
+      <span class="bm">${modsShort(e.mods)}</span>`;
+    box.appendChild(row);
+  });
+}
+
+function modsShort(ids) {
+  if (!ids || !ids.length) return 'sans effet';
+  return 'effets : ' + ids.map((id) => ({ MIRROR: 'MI', FADE: 'FD', SUDDEN: 'SU', NIGHTCORE: 'NC' }[id] || id)).join('·');
 }
 
 /* ─── Résultats ─── */

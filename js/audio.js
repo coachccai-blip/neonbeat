@@ -16,7 +16,7 @@ const buffers = new Map();   // id → AudioBuffer
 const waveforms = new Map(); // id → { peaks: Float32Array, rate }
 const gains = new Map();     // id → gain de normalisation de volume
 
-let current = null;          // { source, startAt, perfAtStart, duration, silent }
+let current = null;          // { source, startAt, seek, rate, perfAtStart }
 
 export function context() {
   if (!ctx) {
@@ -202,11 +202,12 @@ export function waveform(trackId) {
 /**
  * Lance le morceau.
  * @param {string} trackId
- * @param {object} opts { delay: secondes avant le départ, silent: bool,
- *                        seek: position de départ dans le morceau }
+ * @param {object} opts { delay: secondes avant le départ (temps réel),
+ *                        silent: bool, seek: position dans le morceau,
+ *                        rate: vitesse de lecture (nightcore = 1.25) }
  * @returns {{startAt:number, perfAtStart:number}}
  */
-export function start(trackId, { delay = 0.12, silent = false, seek = 0 } = {}) {
+export function start(trackId, { delay = 0.12, silent = false, seek = 0, rate = 1 } = {}) {
   const c = context();
   stop();
   const startAt = c.currentTime + Math.max(0.02, delay);
@@ -217,38 +218,30 @@ export function start(trackId, { delay = 0.12, silent = false, seek = 0 } = {}) 
     if (!buf) throw new Error('morceau non préparé');
     source = c.createBufferSource();
     source.buffer = buf;
+    source.playbackRate.value = rate;
     const norm = c.createGain();
     norm.gain.value = trackGain(trackId);
     source.connect(norm).connect(musicGain);
     source.start(startAt, seek);
   }
 
-  current = {
-    source,
-    startAt: startAt - seek,     // instant (horloge audio) du temps 0 du morceau
-    perfAtStart: perfTimeOf(startAt - seek),
-    silent
-  };
-  return { startAt: current.startAt, perfAtStart: current.perfAtStart };
+  current = { source, startAt, seek, rate, perfAtStart: perfTimeOf(startAt) - (seek / rate) * 1000 };
+  return { startAt, perfAtStart: current.perfAtStart };
 }
 
 /**
- * Convertit un instant de l'horloge audio en instant performance.now().
- * getOutputTimestamp donne le couple exact quand il existe ; sinon on prend
- * les deux horloges le plus près possible l'une de l'autre.
+ * Conversion horloge audio → performance.now(), par simple capture jointe.
+ * IMPORTANT : pas de getOutputTimestamp ici. Il compense la latence de sortie,
+ * mais la calibration la mesure déjà — les deux corrections s'additionnaient
+ * et décalaient le jugement, d'où des MISS sur des frappes à l'heure.
+ * perfAtStart ne sert plus qu'aux tests : le jugement passe par songTime().
  */
 function perfTimeOf(ctxTime) {
   const c = context();
-  let ctxNow = c.currentTime;
-  let perfNow = performance.now();
-  if (typeof c.getOutputTimestamp === 'function') {
-    const ts = c.getOutputTimestamp();
-    if (ts && ts.contextTime && ts.performanceTime) {
-      ctxNow = ts.contextTime;
-      perfNow = ts.performanceTime;
-    }
-  }
-  return perfNow + (ctxTime - ctxNow) * 1000;
+  const p1 = performance.now();
+  const ctxNow = c.currentTime;
+  const p2 = performance.now();
+  return (p1 + p2) / 2 + (ctxTime - ctxNow) * 1000;
 }
 
 export function stop() {
@@ -262,7 +255,12 @@ export function stop() {
 /** Position dans le morceau, en secondes. Négative pendant le décompte. */
 export function songTime() {
   if (!current) return 0;
-  return context().currentTime - current.startAt;
+  return current.seek + (context().currentTime - current.startAt) * current.rate;
+}
+
+/** Vitesse de lecture courante (1 = normale, 1.25 = nightcore). */
+export function playRate() {
+  return current ? current.rate : 1;
 }
 
 export function perfAtStart() {

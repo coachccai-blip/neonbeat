@@ -26,7 +26,7 @@ export function feverLevel(combo) {
 }
 
 export const GRADES = [
-  ['S+', 0.99], ['S', 0.95], ['A', 0.90], ['B', 0.80], ['C', 0.70], ['D', 0]
+  ['SS', 0.9995], ['S+', 0.99], ['S', 0.95], ['A', 0.90], ['B', 0.80], ['C', 0.70], ['D', 0]
 ];
 
 export function gradeFor(precision) {

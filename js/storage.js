@@ -14,7 +14,10 @@ const DEFAULTS = {
   hitsound: false,
   vibrate: false,
   lastTrack: null,
-  lastDiff: 'NORMAL'
+  lastDiff: 'NORMAL',
+  mods: [],           // effets actifs : 'MIRROR' | 'FADE' | 'SUDDEN' | 'NIGHTCORE'
+  scores: {},         // "trackId|DIFF" → meilleur { score, grade, precision, comboMax, mods }
+  board: {}           // "trackId|DIFF" → top 8 [{ score, grade, mods, name }]
 };
 
 let cache = null;
@@ -77,4 +80,43 @@ export function clampSpeed(v) {
 export function suggestSpeed(bpm, notesPerSecond) {
   if (!notesPerSecond) return 2.5;
   return clampSpeed((notesPerSecond * 240) / (bpm * 1.5));
+}
+
+/* ─── Records locaux ─────────────────────────────────────────────────── */
+
+const GRADE_ORDER = ['D', 'C', 'B', 'A', 'S', 'S+', 'SS'];
+
+/**
+ * Enregistre un résultat. Retourne { record: bool, best } — record = vrai si
+ * le score bat le meilleur local pour ce morceau + difficulté.
+ */
+export function saveScore(trackId, diffName, entry) {
+  const key = trackId + '|' + diffName;
+  const scores = { ...get('scores') };
+  const prev = scores[key];
+  const record = !prev || entry.score > prev.score;
+  if (record) {
+    scores[key] = entry;
+  } else if (GRADE_ORDER.indexOf(entry.grade) > GRADE_ORDER.indexOf(prev.grade)) {
+    // Un meilleur grade avec un moins bon score (autres effets) : on garde le
+    // meilleur des deux mondes pour l'affichage.
+    scores[key] = { ...prev, grade: entry.grade };
+  }
+  set('scores', scores);
+
+  const board = { ...get('board') };
+  const list = [...(board[key] || []), entry]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 8);
+  board[key] = list;
+  set('board', board);
+  return { record, best: scores[key] };
+}
+
+export function bestFor(trackId, diffName) {
+  return get('scores')[trackId + '|' + diffName] || null;
+}
+
+export function boardFor(trackId, diffName) {
+  return get('board')[trackId + '|' + diffName] || [];
 }
