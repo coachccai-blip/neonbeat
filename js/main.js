@@ -43,6 +43,13 @@ function displayName() {
 /* ══════════════════ Navigation & boutons ══════════════════ */
 
 function boot() {
+  // Précharge la police embarquée : le canvas ne participe pas au chargement
+  // automatique des @font-face, il faut la demander explicitement.
+  if (document.fonts && document.fonts.load) {
+    document.fonts.load('800 40px Inter');
+    document.fonts.load('700 20px Inter');
+  }
+
   // Service worker : cache des assets pour le mode installé.
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     navigator.serviceWorker.register('./sw.js').catch(() => {});

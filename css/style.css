@@ -1,3 +1,25 @@
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../assets/fonts/inter-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../assets/fonts/inter-latin-700-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('../assets/fonts/inter-latin-800-normal.woff2') format('woff2');
+}
+
 /* ══════════════════════════════════════════════════════════════════
    NEONBEAT — feuille de style unique.
    Direction artistique : néon / synthwave, fond très sombre, typo
@@ -20,9 +42,10 @@
   --radius:    14px;
   --safe-t:    env(safe-area-inset-top, 0px);
   --safe-b:    env(safe-area-inset-bottom, 0px);
-  /* Pile système sans compression : Bahnschrift (Windows) honorait
-     font-stretch:condensed et écrasait tous les textes sur PC. */
-  --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  /* Police embarquée : garantit un rendu identique et non compressé sur
+     toutes les plateformes, y compris dans le canvas (le combo et les
+     jugements étaient rendus en condensé selon la police système). */
+  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }

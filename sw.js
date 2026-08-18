@@ -1,6 +1,6 @@
 // Service worker : cache-first pour tous les assets du jeu.
 // Incrémenter VERSION à chaque déploiement pour invalider l'ancien cache.
-const VERSION = 'neonbeat-v5';
+const VERSION = 'neonbeat-v6';
 
 const CORE = [
   './',
@@ -10,6 +10,9 @@ const CORE = [
   './vendor/peerjs.min.js',
   './vendor/qrcode.min.js',
   './assets/icon.svg',
+  './assets/fonts/inter-latin-400-normal.woff2',
+  './assets/fonts/inter-latin-700-normal.woff2',
+  './assets/fonts/inter-latin-800-normal.woff2',
   './tracks/index.json',
   './tracks/CREDITS.md'
 ];

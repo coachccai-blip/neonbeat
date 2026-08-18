@@ -70,8 +70,8 @@ export class Renderer {
     this.laneW = w / LANES;
     this.judgeY = h * JUDGE_Y;
     this.noteH = Math.max(20, Math.min(36, this.laneW * 0.26));
-    this.keyFont = `800 ${Math.round(this.noteH * 0.78)}px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`;
-    this.receptorFont = `700 ${Math.round(Math.min(20, this.laneW * 0.14))}px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`;
+    this.keyFont = `800 ${Math.round(this.noteH * 0.78)}px 'Inter', 'Segoe UI', Roboto, Arial, sans-serif`;
+    this.receptorFont = `700 ${Math.round(Math.min(20, this.laneW * 0.14))}px 'Inter', 'Segoe UI', Roboto, Arial, sans-serif`;
 
     // Dégradés pré-calculés (piège n°8 : ne jamais les recréer par frame).
     this.bgGrad = this.ctx.createLinearGradient(0, 0, 0, h);
@@ -199,16 +199,27 @@ export class Renderer {
     }
     this.flashes = this.flashes.filter((f) => now - f.t0 < 180);
 
-    ctx.fillStyle = 'rgba(238,240,255,0.10)';
-    ctx.fillRect(0, judgeY - 13, w, 26);
     ctx.fillStyle = '#eef0ff';
-    ctx.fillRect(0, judgeY - 2.5, w, 5);
+    ctx.fillRect(0, judgeY - 1.5, w, 3);
+    // Marqueurs de frappe : un contour de la taille EXACTE d'une note dans
+    // chaque couloir — on appuie quand la note recouvre parfaitement le sien.
+    const hh = this.noteH;
     for (let l = 0; l < LANES; l++) {
-      ctx.fillStyle = this.pressed[l] ? LANE_COLORS[l] : 'rgba(238,240,255,0.35)';
-      ctx.beginPath();
-      ctx.arc((l + 0.5) * laneW, judgeY, this.pressed[l] ? 13 : 8, 0, Math.PI * 2);
-      ctx.fill();
+      const x = l * laneW + laneW * 0.05;
+      const nw = laneW * 0.90;
+      roundRect(ctx, x, judgeY - hh / 2, nw, hh, hh * 0.4);
+      if (this.pressed[l]) {
+        ctx.fillStyle = hexA(LANE_COLORS[l], 0.30);
+        ctx.fill();
+        ctx.strokeStyle = LANE_COLORS[l];
+        ctx.lineWidth = 3;
+      } else {
+        ctx.strokeStyle = hexA(LANE_COLORS[l], 0.55);
+        ctx.lineWidth = 2;
+      }
+      ctx.stroke();
     }
+    ctx.lineWidth = 1;
     if (this.showKeys) {
       ctx.font = this.receptorFont;
       ctx.textAlign = 'center';
@@ -279,7 +290,7 @@ export class Renderer {
       const age = (now - lab.t0) / 420;
       if (age < 1) {
         ctx.globalAlpha = age < 0.7 ? 1 : (1 - age) / 0.3;
-        ctx.font = `800 ${Math.round(w * 0.065)}px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`;
+        ctx.font = `800 ${Math.round(w * 0.065)}px 'Inter', 'Segoe UI', Roboto, Arial, sans-serif`;
         ctx.textAlign = 'center';
         ctx.fillStyle = lab.color;
         const rise = Math.min(1, age * 3) * 10;
@@ -292,11 +303,11 @@ export class Renderer {
     if (this.combo >= 2) {
       const pop = this.comboPop ? Math.max(0, 1 - (now - this.comboPop) / 200) : 0;
       const size = w * 0.13 * (1 + pop * 0.22);
-      ctx.font = `800 ${Math.round(size)}px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`;
+      ctx.font = `800 ${Math.round(size)}px 'Inter', 'Segoe UI', Roboto, Arial, sans-serif`;
       ctx.textAlign = 'center';
       ctx.fillStyle = pop > 0 ? '#ffffff' : 'rgba(238,240,255,0.92)';
       ctx.fillText(String(this.combo), w / 2, h * 0.38);
-      ctx.font = `700 ${Math.round(w * 0.03)}px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`;
+      ctx.font = `700 ${Math.round(w * 0.03)}px 'Inter', 'Segoe UI', Roboto, Arial, sans-serif`;
       ctx.fillStyle = 'rgba(143,147,184,0.9)';
       ctx.fillText('COMBO', w / 2, h * 0.38 + w * 0.045);
     }
@@ -304,7 +315,7 @@ export class Renderer {
     if (this.failed) {
       ctx.fillStyle = 'rgba(255,77,77,0.09)';
       ctx.fillRect(0, 0, w, h);
-      ctx.font = `800 ${Math.round(w * 0.05)}px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`;
+      ctx.font = `800 ${Math.round(w * 0.05)}px 'Inter', 'Segoe UI', Roboto, Arial, sans-serif`;
       ctx.textAlign = 'center';
       ctx.fillStyle = 'rgba(255,77,77,0.85)';
       ctx.fillText('FAILED — SCORE FIGÉ', w / 2, h * 0.3);
