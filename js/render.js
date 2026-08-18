@@ -11,6 +11,7 @@ import { travelTime } from './storage.js';
 const LANES = 4;
 const JUDGE_Y = 0.82;            // ligne de jugement à 18 % du bas
 const LANE_COLORS = ['#22e0c8', '#8b5cff', '#ff3d8b', '#ffb020'];
+const LANE_KEYS = ['Z', 'E', 'I', 'O'];
 const JUDGE_COLORS = { PERFECT: '#22e0c8', GREAT: '#7ce0ff', GOOD: '#ffb020', MISS: '#ff4d4d' };
 const JUDGE_LABELS = { PERFECT: 'PERFECT', GREAT: 'GREAT', GOOD: 'GOOD', MISS: 'MISS' };
 
@@ -28,6 +29,10 @@ export class Renderer {
     this.comboPop = 0;
     this.combo = 0;
     this.failed = false;
+    // Sur PC (souris + clavier) : lettres ZEIO sur les notes et les récepteurs.
+    this.showKeys = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    this.wave = null;            // { peaks, rate } — soundwave de fond
+    this.waveColor = '#8b5cff';
     this._onResize = () => this.resize();
     window.addEventListener('resize', this._onResize);
     this.resize();
@@ -35,6 +40,11 @@ export class Renderer {
 
   dispose() {
     window.removeEventListener('resize', this._onResize);
+  }
+
+  setWaveform(wave, color) {
+    this.wave = wave;
+    if (color) this.waveColor = color;
   }
 
   setChart(notes, bpm, speed) {
@@ -59,7 +69,9 @@ export class Renderer {
     this.h = h;
     this.laneW = w / LANES;
     this.judgeY = h * JUDGE_Y;
-    this.noteH = Math.max(14, Math.min(24, this.laneW * 0.16));
+    this.noteH = Math.max(14, Math.min(26, this.laneW * 0.18));
+    this.keyFont = `800 ${Math.round(this.noteH * 0.78)}px Bahnschrift, 'Roboto Condensed', sans-serif`;
+    this.receptorFont = `700 ${Math.round(Math.min(20, this.laneW * 0.14))}px Bahnschrift, 'Roboto Condensed', sans-serif`;
 
     // Dégradés pré-calculés (piège n°8 : ne jamais les recréer par frame).
     this.bgGrad = this.ctx.createLinearGradient(0, 0, 0, h);
@@ -121,6 +133,46 @@ export class Renderer {
     ctx.fillStyle = this.bgGrad;
     ctx.fillRect(0, 0, w, h);
 
+    // ─── Soundwave : enveloppe du morceau autour de la position courante ───
+    if (this.wave && songT > -1) {
+      const { peaks, rate } = this.wave;
+      const half = 1.9;                      // fenêtre affichée : ±1,9 s
+      const cy = h * 0.30;
+      const amp = h * 0.085;
+      const steps = 90;
+      ctx.beginPath();
+      for (let k = 0; k <= steps; k++) {
+        const tt = songT - half + (k / steps) * half * 2;
+        const idx = Math.floor(tt * rate);
+        const v = idx >= 0 && idx < peaks.length ? peaks[idx] : 0;
+        // atténuation vers les bords, accent au centre (le « maintenant »)
+        const edge = 1 - Math.abs(k / steps - 0.5) * 1.6;
+        const y = v * amp * Math.max(0.12, edge);
+        const x = (k / steps) * w;
+        if (k === 0) ctx.moveTo(x, cy - y);
+        else ctx.lineTo(x, cy - y);
+      }
+      for (let k = steps; k >= 0; k--) {
+        const tt = songT - half + (k / steps) * half * 2;
+        const idx = Math.floor(tt * rate);
+        const v = idx >= 0 && idx < peaks.length ? peaks[idx] : 0;
+        const edge = 1 - Math.abs(k / steps - 0.5) * 1.6;
+        const y = v * amp * Math.max(0.12, edge);
+        ctx.lineTo((k / steps) * w, cy + y);
+      }
+      ctx.closePath();
+      ctx.fillStyle = hexA(this.waveColor, 0.13);
+      ctx.fill();
+      ctx.strokeStyle = hexA(this.waveColor, 0.3);
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      // trait vertical du « maintenant », pulsé par l'amplitude courante
+      const nowIdx = Math.floor(songT * rate);
+      const nowV = nowIdx >= 0 && nowIdx < peaks.length ? peaks[nowIdx] : 0;
+      ctx.fillStyle = hexA(this.waveColor, 0.22 + nowV * 0.3);
+      ctx.fillRect(w / 2 - 1, cy - amp * 1.15, 2, amp * 2.3);
+    }
+
     // Couloirs
     for (let l = 0; l < LANES; l++) {
       if (this.pressed[l]) {
@@ -154,6 +206,16 @@ export class Renderer {
       ctx.beginPath();
       ctx.arc((l + 0.5) * laneW, judgeY, this.pressed[l] ? 9 : 6, 0, Math.PI * 2);
       ctx.fill();
+    }
+    if (this.showKeys) {
+      ctx.font = this.receptorFont;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      for (let l = 0; l < LANES; l++) {
+        ctx.fillStyle = this.pressed[l] ? LANE_COLORS[l] : 'rgba(143,147,184,0.55)';
+        ctx.fillText(LANE_KEYS[l], (l + 0.5) * laneW, judgeY + 28);
+      }
+      ctx.textBaseline = 'alphabetic';
     }
 
     // ─── Notes : fenêtre glissante ───
@@ -261,7 +323,16 @@ export class Renderer {
     ctx.fillStyle = missed ? 'rgba(143,147,184,0.4)' : color;
     roundRect(ctx, x, y - hh / 2, nw, hh, hh * 0.4);
     ctx.fill();
-    if (!missed && !isHoldHead) {
+    if (missed || isHoldHead) return;
+    if (this.showKeys) {
+      // Sur PC : la lettre à presser, écrite sur la note elle-même.
+      ctx.font = this.keyFont;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = 'rgba(7,7,15,0.82)';
+      ctx.fillText(LANE_KEYS[n.lane], x + nw / 2, y + 1);
+      ctx.textBaseline = 'alphabetic';
+    } else {
       ctx.fillStyle = 'rgba(255,255,255,0.5)';
       roundRect(ctx, x + nw * 0.1, y - hh / 2 + 2.5, nw * 0.8, 3.5, 2);
       ctx.fill();

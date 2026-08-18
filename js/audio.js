@@ -13,6 +13,7 @@ let ctx = null;
 let musicGain = null;
 let sfxGain = null;
 const buffers = new Map();   // id → AudioBuffer
+const waveforms = new Map(); // id → { peaks: Float32Array, rate }
 
 let current = null;          // { source, startAt, perfAtStart, duration, silent }
 
@@ -72,7 +73,35 @@ export async function prepare(trackId, onProgress) {
   buf.copyToChannel(left, 0);
   buf.copyToChannel(right, 1);
   buffers.set(trackId, buf);
+  computeWaveform(trackId, buf);
   return buf;
+}
+
+/* ─── Enveloppe d'amplitude, pour la soundwave animée en jeu ─── */
+
+function computeWaveform(id, buf) {
+  const rate = 40;                       // 40 points par seconde suffisent
+  const d = buf.getChannelData(0);
+  const win = Math.floor(buf.sampleRate / rate);
+  const n = Math.ceil(d.length / win);
+  const peaks = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    let m = 0;
+    const s = i * win, e = Math.min(d.length, s + win);
+    for (let j = s; j < e; j += 4) {
+      const a = Math.abs(d[j]);
+      if (a > m) m = a;
+    }
+    peaks[i] = m;
+  }
+  waveforms.set(id, { peaks, rate });
+}
+
+/** Enveloppe du morceau (null si pas encore synthétisé). */
+export function waveform(trackId) {
+  const w = waveforms.get(trackId);
+  if (!w && buffers.has(trackId)) computeWaveform(trackId, buffers.get(trackId));
+  return waveforms.get(trackId) || null;
 }
 
 /**

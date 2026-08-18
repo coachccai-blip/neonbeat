@@ -350,6 +350,16 @@ class Game {
     ui.show('game');
 
     this.renderer.setChart(this.engine.notes, track.bpm, storage.get('speed'));
+    this.renderer.setWaveform(audio.waveform(track.id), track.color);
+
+    // Échap : pause / reprise (solo uniquement, comme le bouton II).
+    this._onEsc = (e) => {
+      if (e.key !== 'Escape' || this.finished || this.opts.multi) return;
+      e.preventDefault();
+      if (this.paused) this.resume();
+      else this.pause();
+    };
+    window.addEventListener('keydown', this._onEsc);
 
     // L'écran ne doit pas s'éteindre pendant un morceau.
     this.wakeLock = null;
@@ -508,6 +518,7 @@ class Game {
 
   dispose() {
     cancelAnimationFrame(this.raf);
+    window.removeEventListener('keydown', this._onEsc);
     this.input.dispose();
     this.renderer.dispose();
     if (this.wakeLock) { this.wakeLock.release().catch(() => {}); this.wakeLock = null; }
