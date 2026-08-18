@@ -70,8 +70,8 @@ export class Renderer {
     this.laneW = w / LANES;
     this.judgeY = h * JUDGE_Y;
     this.noteH = Math.max(20, Math.min(36, this.laneW * 0.26));
-    this.keyFont = `800 ${Math.round(this.noteH * 0.78)}px Bahnschrift, 'Roboto Condensed', sans-serif`;
-    this.receptorFont = `700 ${Math.round(Math.min(20, this.laneW * 0.14))}px Bahnschrift, 'Roboto Condensed', sans-serif`;
+    this.keyFont = `800 ${Math.round(this.noteH * 0.78)}px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`;
+    this.receptorFont = `700 ${Math.round(Math.min(20, this.laneW * 0.14))}px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`;
 
     // Dégradés pré-calculés (piège n°8 : ne jamais les recréer par frame).
     this.bgGrad = this.ctx.createLinearGradient(0, 0, 0, h);
@@ -279,7 +279,7 @@ export class Renderer {
       const age = (now - lab.t0) / 420;
       if (age < 1) {
         ctx.globalAlpha = age < 0.7 ? 1 : (1 - age) / 0.3;
-        ctx.font = `800 ${Math.round(w * 0.065)}px Bahnschrift, 'Roboto Condensed', sans-serif`;
+        ctx.font = `800 ${Math.round(w * 0.065)}px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`;
         ctx.textAlign = 'center';
         ctx.fillStyle = lab.color;
         const rise = Math.min(1, age * 3) * 10;
@@ -292,11 +292,11 @@ export class Renderer {
     if (this.combo >= 2) {
       const pop = this.comboPop ? Math.max(0, 1 - (now - this.comboPop) / 200) : 0;
       const size = w * 0.13 * (1 + pop * 0.22);
-      ctx.font = `800 ${Math.round(size)}px Bahnschrift, 'Roboto Condensed', sans-serif`;
+      ctx.font = `800 ${Math.round(size)}px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`;
       ctx.textAlign = 'center';
       ctx.fillStyle = pop > 0 ? '#ffffff' : 'rgba(238,240,255,0.92)';
       ctx.fillText(String(this.combo), w / 2, h * 0.38);
-      ctx.font = `700 ${Math.round(w * 0.03)}px Bahnschrift, 'Roboto Condensed', sans-serif`;
+      ctx.font = `700 ${Math.round(w * 0.03)}px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`;
       ctx.fillStyle = 'rgba(143,147,184,0.9)';
       ctx.fillText('COMBO', w / 2, h * 0.38 + w * 0.045);
     }
@@ -304,7 +304,7 @@ export class Renderer {
     if (this.failed) {
       ctx.fillStyle = 'rgba(255,77,77,0.09)';
       ctx.fillRect(0, 0, w, h);
-      ctx.font = `800 ${Math.round(w * 0.05)}px Bahnschrift, 'Roboto Condensed', sans-serif`;
+      ctx.font = `800 ${Math.round(w * 0.05)}px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`;
       ctx.textAlign = 'center';
       ctx.fillStyle = 'rgba(255,77,77,0.85)';
       ctx.fillText('FAILED — SCORE FIGÉ', w / 2, h * 0.3);

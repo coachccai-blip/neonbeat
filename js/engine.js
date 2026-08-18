@@ -1,7 +1,9 @@
 // État de partie : jugement des frappes, combo, score, jauge de vie.
 // Aucune dépendance au rendu ni au réseau : ce module est testable seul.
 
-export const WINDOWS = { PERFECT: 0.040, GREAT: 0.080, GOOD: 0.120 };
+// Fenêtres élargies d'un cran (demande d'équilibrage) : l'ancien GREAT est
+// devenu le PERFECT, et toute l'échelle suit.
+export const WINDOWS = { PERFECT: 0.080, GREAT: 0.120, GOOD: 0.160 };
 export const WEIGHTS = { PERFECT: 1, GREAT: 0.75, GOOD: 0.40, MISS: 0 };
 const LIFE_DELTA = { PERFECT: 0.6, GREAT: 0.6, GOOD: 0, MISS: -3 };
 const HOLD_TOLERANCE = 0.1;    // relâchement anticipé toléré, en secondes
