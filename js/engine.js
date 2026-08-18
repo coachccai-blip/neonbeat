@@ -15,7 +15,7 @@ const HOLD_TOLERANCE = 0.1;    // relâchement anticipé toléré, en secondes
    reste sur 1 000 000 et comparable entre joueurs — mais casser son combo
    tôt coûte la rampe de fever, pas seulement le bonus de combo.          */
 
-export const FEVER_STEPS = [0, 10, 25, 45, 70];   // combo requis pour ×1…×5
+export const FEVER_STEPS = [0, 25, 50, 100, 150];   // combo requis pour ×1…×5
 
 export function feverLevel(combo) {
   let lv = 1;
