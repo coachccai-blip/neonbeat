@@ -73,8 +73,8 @@ export function clampSpeed(v) {
   return Math.max(SPEED_MIN, Math.min(SPEED_MAX, Math.round(s * 100) / 100));
 }
 
-/** Vitesse conseillée pour garder ~4,5 notes à l'écran sur cette chart. */
+/** Vitesse conseillée pour cette chart : vise 1,5 note affichée à la fois. */
 export function suggestSpeed(bpm, notesPerSecond) {
   if (!notesPerSecond) return 2.5;
-  return clampSpeed((notesPerSecond * 240) / (bpm * 4.5));
+  return clampSpeed((notesPerSecond * 240) / (bpm * 1.5));
 }

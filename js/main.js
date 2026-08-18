@@ -209,12 +209,12 @@ function openSelect() {
     S.selectedTrack = t;
     storage.set('lastTrack', t.id);
     renderSelectDiff();
-    updateSpeedHint();
+    applyAutoSpeed();
     previewTrack(t);
   });
   $('speed-slider').value = storage.get('speed');
   renderSelectDiff();
-  updateSpeedHint();
+  applyAutoSpeed();
 }
 
 function renderSelectDiff() {
@@ -224,7 +224,7 @@ function renderSelectDiff() {
   ui.renderDiffSeg($('select-diff'), t.levels, S.myDiff, (name) => {
     S.myDiff = name;
     storage.set('lastDiff', name);
-    updateSpeedHint();
+    applyAutoSpeed();
   });
 }
 
@@ -235,6 +235,26 @@ function updateSpeedHint() {
   loadTrack(t.id).then((track) => {
     ui.describeSpeed(speed, { bpm: track.bpm, nps: density(track, S.myDiff) });
   }).catch(() => ui.describeSpeed(speed, null));
+}
+
+/**
+ * À chaque sélection de morceau ou de difficulté, la vitesse de chute est
+ * recalée d'office pour n'afficher qu'entre 1 et 1,5 note à la fois.
+ * Le joueur peut ensuite l'ajuster au slider : son choix tient jusqu'à la
+ * prochaine sélection.
+ */
+function applyAutoSpeed() {
+  const t = S.selectedTrack;
+  if (!t) return;
+  loadTrack(t.id).then((track) => {
+    const nps = density(track, S.myDiff);
+    const v = storage.suggestSpeed(track.bpm, nps);
+    storage.set('speed', v);
+    const slider = $('speed-slider');
+    if (slider) slider.value = v;
+    ui.refreshSettings();
+    ui.describeSpeed(v, { bpm: track.bpm, nps });
+  }).catch(() => {});
 }
 
 let previewToken = 0;
@@ -726,6 +746,7 @@ function hostOnMessage(peerId, msg) {
 function hostPickTrack(trackId) {
   const t = S.tracks.find((x) => x.id === trackId) || S.tracks[0];
   S.selectedTrack = t;
+  applyAutoSpeed();
   loadTrack(t.id).then((track) => ui.setLobbyTrack(track));
   S.net.broadcast({ t: 'TRACK', trackId: t.id });
   hostBroadcastLobby();
@@ -915,6 +936,7 @@ function clientOnMessage(msg) {
       const t = S.tracks.find((x) => x.id === msg.trackId);
       if (t) {
         S.selectedTrack = t;
+        applyAutoSpeed();
         loadTrack(t.id).then((track) => {
           ui.setLobbyTrack(track);
           audio.prepare(t.id, null, track.audio).catch(() => {});
@@ -994,6 +1016,7 @@ function refreshLobby() {
     ui.renderDiffSeg($('lobby-diff'), t.levels, S.myDiff, (name) => {
       S.myDiff = name;
       storage.set('lastDiff', name);
+      applyAutoSpeed();
       if (S.mode === 'client' && S.net) {
         const me = S.players.get(S.myId);
         S.net.send({ t: 'READY', ready: !!(me && me.ready), difficulty: name });
