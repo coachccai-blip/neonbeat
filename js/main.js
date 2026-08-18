@@ -232,11 +232,12 @@ function updateSpeedHint() {
 
 let previewToken = 0;
 function previewTrack(t) {
-  // Pré-lance la synthèse en arrière-plan : le bouton JOUER sera instantané.
+  // Pré-lance la préparation en arrière-plan : le bouton JOUER sera instantané.
   const token = ++previewToken;
-  audio.prepare(t.id).then(() => {
-    if (token !== previewToken) return;
-  }).catch(() => {});
+  loadTrack(t.id)
+    .then((track) => audio.prepare(t.id, null, track.audio))
+    .then(() => { if (token !== previewToken) return; })
+    .catch(() => {});
 }
 
 /* ══════════════════ Calibration ══════════════════ */
@@ -543,13 +544,16 @@ async function startSolo() {
 
 async function withLoading(trackId) {
   ui.show('loading');
-  $('loading-title').textContent = 'SYNTHÈSE DU MORCEAU';
-  $('loading-hint').textContent = 'La musique est générée sur ton téléphone, note par note.';
   $('loader-bar').style.width = '0%';
   const track = await loadTrack(trackId);
+  const imported = !!track.audio;
+  $('loading-title').textContent = imported ? 'CHARGEMENT DU MORCEAU' : 'SYNTHÈSE DU MORCEAU';
+  $('loading-hint').textContent = imported
+    ? 'Téléchargement et décodage de la piste audio…'
+    : 'La musique est générée sur ton téléphone, note par note.';
   await audio.prepare(trackId, (p) => {
     $('loader-bar').style.width = Math.round(p * 100) + '%';
-  });
+  }, track.audio);
   return track;
 }
 
@@ -718,7 +722,7 @@ function hostPickTrack(trackId) {
   loadTrack(t.id).then((track) => ui.setLobbyTrack(track));
   S.net.broadcast({ t: 'TRACK', trackId: t.id });
   hostBroadcastLobby();
-  audio.prepare(t.id).catch(() => {});     // pré-synthèse pendant le lobby
+  loadTrack(t.id).then((tr) => audio.prepare(t.id, null, tr.audio)).catch(() => {});
   refreshLobby();
 }
 
@@ -904,8 +908,10 @@ function clientOnMessage(msg) {
       const t = S.tracks.find((x) => x.id === msg.trackId);
       if (t) {
         S.selectedTrack = t;
-        loadTrack(t.id).then((track) => ui.setLobbyTrack(track));
-        audio.prepare(t.id).catch(() => {});   // pré-synthèse pendant le lobby
+        loadTrack(t.id).then((track) => {
+          ui.setLobbyTrack(track);
+          audio.prepare(t.id, null, track.audio).catch(() => {});
+        });
       }
       break;
     }

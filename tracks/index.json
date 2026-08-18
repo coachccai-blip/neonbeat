@@ -114,6 +114,121 @@
           "level": 13
         }
       ]
+    },
+    {
+      "id": "verrouille",
+      "title": "Tout est verrouillé",
+      "artist": "Piste importée",
+      "bpm": 94.25,
+      "duration": 114,
+      "color": "#c77dff",
+      "tier": 2,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 3
+        },
+        {
+          "name": "NORMAL",
+          "level": 5
+        },
+        {
+          "name": "HARD",
+          "level": 7
+        }
+      ]
+    },
+    {
+      "id": "dan-dan-kokoro",
+      "title": "Dan Dan Kokoro",
+      "artist": "Piste importée",
+      "bpm": 131,
+      "duration": 129.1,
+      "color": "#ff8c42",
+      "tier": 3,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "NORMAL",
+          "level": 6
+        },
+        {
+          "name": "HARD",
+          "level": 9
+        }
+      ]
+    },
+    {
+      "id": "let-it-go",
+      "title": "Let It Go",
+      "artist": "Piste importée",
+      "bpm": 134.25,
+      "duration": 220.03,
+      "color": "#7cd7ff",
+      "tier": 3,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "NORMAL",
+          "level": 6
+        },
+        {
+          "name": "HARD",
+          "level": 9
+        }
+      ]
+    },
+    {
+      "id": "sushi-club",
+      "title": "Sushi Club",
+      "artist": "Piste importée",
+      "bpm": 138,
+      "duration": 175.1,
+      "color": "#6bffb0",
+      "tier": 4,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "NORMAL",
+          "level": 7
+        },
+        {
+          "name": "HARD",
+          "level": 11
+        }
+      ]
+    },
+    {
+      "id": "butterfly",
+      "title": "Butterfly",
+      "artist": "Piste importée",
+      "bpm": 164.5,
+      "duration": 92.26,
+      "color": "#ffd166",
+      "tier": 4,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 5
+        },
+        {
+          "name": "NORMAL",
+          "level": 7
+        },
+        {
+          "name": "HARD",
+          "level": 11
+        }
+      ]
     }
   ]
 }

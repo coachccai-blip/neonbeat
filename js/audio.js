@@ -56,25 +56,73 @@ export function isReady(trackId) {
 }
 
 /**
- * Synthétise le morceau (ou le récupère du cache).
+ * Prépare le morceau : synthèse pour les pistes internes, téléchargement +
+ * décodage pour les pistes audio importées. Résultat mis en cache.
  * @param {string} trackId
  * @param {(p:number)=>void} onProgress
+ * @param {string} [audioUrl]  chemin du fichier audio (pistes importées)
  */
-export async function prepare(trackId, onProgress) {
+export async function prepare(trackId, onProgress, audioUrl) {
   if (buffers.has(trackId)) {
     if (onProgress) onProgress(1);
     return buffers.get(trackId);
   }
-  const song = SONGS_BY_ID[trackId];
-  if (!song) throw new Error(`morceau inconnu : ${trackId}`);
   const c = context();
-  const { left, right, sampleRate } = await renderSong(song, c.sampleRate, onProgress);
-  const buf = c.createBuffer(2, left.length, sampleRate);
-  buf.copyToChannel(left, 0);
-  buf.copyToChannel(right, 1);
+  const song = SONGS_BY_ID[trackId];
+  let buf;
+  if (song) {
+    const { left, right, sampleRate } = await renderSong(song, c.sampleRate, onProgress);
+    buf = c.createBuffer(2, left.length, sampleRate);
+    buf.copyToChannel(left, 0);
+    buf.copyToChannel(right, 1);
+  } else {
+    if (!audioUrl) throw new Error(`morceau inconnu : ${trackId}`);
+    const data = await fetchWithProgress(audioUrl, onProgress);
+    // decodeAudioData veut un ArrayBuffer « frais » sur certains Safari.
+    buf = await c.decodeAudioData(data);
+  }
+  evictIfNeeded(trackId);
   buffers.set(trackId, buf);
   computeWaveform(trackId, buf);
+  if (onProgress) onProgress(1);
   return buf;
+}
+
+/** Téléchargement avec progression (le décodage compte pour les 15 % restants). */
+async function fetchWithProgress(url, onProgress) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`audio introuvable : ${url}`);
+  const total = parseInt(res.headers.get('content-length') || '0', 10);
+  if (!res.body || !total) return res.arrayBuffer();
+  const reader = res.body.getReader();
+  const chunks = [];
+  let got = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    got += value.length;
+    if (onProgress) onProgress((got / total) * 0.85);
+  }
+  const out = new Uint8Array(got);
+  let off = 0;
+  for (const ch of chunks) { out.set(ch, off); off += ch.length; }
+  return out.buffer;
+}
+
+/**
+ * Un AudioBuffer stéréo de 2 minutes pèse ~40 Mo : on ne garde que les
+ * 3 morceaux les plus récents pour ne pas saturer la mémoire d'un iPhone.
+ */
+const lru = [];
+function evictIfNeeded(incoming) {
+  const i = lru.indexOf(incoming);
+  if (i >= 0) lru.splice(i, 1);
+  lru.push(incoming);
+  while (lru.length > 3) {
+    const old = lru.shift();
+    buffers.delete(old);
+  }
 }
 
 /* ─── Enveloppe d'amplitude, pour la soundwave animée en jeu ─── */

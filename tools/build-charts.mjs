@@ -1,7 +1,7 @@
 // Génère tracks/*.json et tracks/index.json à partir des partitions musicales
 // de js/songs/. À relancer après toute modification d'un morceau :
 //     node tools/build-charts.mjs
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { SONGS } from '../js/songs/index.js';
@@ -31,6 +31,29 @@ for (const song of SONGS) {
     .join('   |   ');
   console.log(`${track.id.padEnd(15)} ${String(track.bpm).padStart(3)}bpm ${track.duration.toFixed(1)}s   ${line}`);
 }
+
+// Pistes audio importées (tools/import-audio.mjs) : ajoutées à la suite,
+// classées par tier croissant.
+const synthIds = new Set(index.map((t) => t.id));
+const imported = [];
+for (const f of readdirSync(out)) {
+  if (!f.endsWith('.json') || f === 'index.json') continue;
+  const track = JSON.parse(readFileSync(join(out, f)));
+  if (synthIds.has(track.id) || !track.audio) continue;
+  imported.push({
+    id: track.id,
+    title: track.title,
+    artist: track.artist,
+    bpm: track.bpm,
+    duration: track.duration,
+    color: track.color,
+    tier: track.tier,
+    levels: track.difficulties.map((d) => ({ name: d.name, level: d.level }))
+  });
+  console.log(`+ piste importée : ${track.id} (${track.bpm} BPM, tier ${track.tier})`);
+}
+imported.sort((a, b) => a.tier - b.tier || a.bpm - b.bpm);
+index.push(...imported);
 
 writeFileSync(join(out, 'index.json'), JSON.stringify({ tracks: index }, null, 2) + '\n');
 console.log(`\n→ ${index.length} morceaux écrits dans tracks/`);

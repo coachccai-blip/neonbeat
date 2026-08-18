@@ -17,6 +17,22 @@ garantit une synchronisation exacte entre les notes et la musique.
 | **Circuit Storm** | NEONBEAT | 145 | `js/songs/circuit-storm.js` | CC0-1.0 |
 | **Hyper Nova** | NEONBEAT | 174 | `js/songs/hyper-nova.js` | CC0-1.0 |
 
+## Pistes importées par le propriétaire du site
+
+Les pistes suivantes ont été **fournies par le propriétaire du site** (fichiers
+MP3 déposés tels quels dans `tracks/`). Elles ne sont pas des créations
+NEONBEAT : **la vérification et la détention des droits de diffusion relèvent
+de la responsabilité du propriétaire du site**. Les partitions jouables ont
+été générées par analyse du signal (`tools/import-audio.mjs`).
+
+| Titre | Fichier | BPM détecté | Licence |
+|---|---|---|---|
+| Tout est verrouillé | `verrouille.mp3` | 94 | fournie par l'utilisateur — droits à sa charge |
+| Let It Go | `let-it-go.mp3` | 134 | fournie par l'utilisateur — droits à sa charge |
+| Dan Dan Kokoro | `dan-dan-kokoro.mp3` | 131 | fournie par l'utilisateur — droits à sa charge |
+| Sushi Club | `sushi-club.mp3` | 138 | fournie par l'utilisateur — droits à sa charge |
+| Butterfly | `butterfly.mp3` | 164 | fournie par l'utilisateur — droits à sa charge |
+
 ## Bibliothèques embarquées
 
 | Lib | Usage | Licence |

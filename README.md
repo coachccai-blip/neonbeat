@@ -40,6 +40,11 @@ synchronisation notes/musique est donc exacte par construction.
 Trois difficultés par morceau (EASY / NORMAL / HARD), 4 couloirs, notes
 simples et notes longues, multi-touch (accords jusqu'à 4 doigts).
 
+**Pistes importées** : le jeu lit aussi des fichiers MP3/M4A placés dans
+`tracks/` (voir `tools/import-audio.mjs`, qui analyse le signal — BPM, onsets
+par bandes — et génère les charts calées sur la grille rythmique). Chaque
+piste importée doit être documentée dans `tracks/CREDITS.md`.
+
 ## Développement
 
 Aucun build : vanilla HTML/CSS/JS en modules ES, servi tel quel.
