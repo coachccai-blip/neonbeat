@@ -14,6 +14,7 @@ let musicGain = null;
 let sfxGain = null;
 const buffers = new Map();   // id → AudioBuffer
 const waveforms = new Map(); // id → { peaks: Float32Array, rate }
+const gains = new Map();     // id → gain de normalisation de volume
 
 let current = null;          // { source, startAt, perfAtStart, duration, silent }
 
@@ -84,8 +85,47 @@ export async function prepare(trackId, onProgress, audioUrl) {
   evictIfNeeded(trackId);
   buffers.set(trackId, buf);
   computeWaveform(trackId, buf);
+  computeGain(trackId, buf);
   if (onProgress) onProgress(1);
   return buf;
+}
+
+/* ─── Normalisation de volume ────────────────────────────────────────
+   Les pistes importées sont masterisées bien plus fort que les pistes
+   synthétisées : sans compensation, il faudrait toucher le volume à chaque
+   changement de morceau. On mesure le niveau des passages forts (90e
+   percentile du RMS par fenêtres de 400 ms) et on applique un gain pour
+   ramener toutes les pistes au même niveau perçu.                       */
+
+const TARGET_LEVEL = 0.16;          // ≈ −16 dBFS sur les passages forts
+
+function computeGain(id, buf) {
+  const d = buf.getChannelData(0);
+  const win = Math.floor(buf.sampleRate * 0.4);
+  const levels = [];
+  let peak = 0;
+  for (let start = 0; start + win <= d.length; start += win) {
+    let sum = 0;
+    for (let i = start; i < start + win; i += 4) {
+      const v = d[i];
+      sum += v * v;
+      const a = v < 0 ? -v : v;
+      if (a > peak) peak = a;
+    }
+    const rms = Math.sqrt(sum / (win / 4));
+    if (rms > 0.008) levels.push(rms);   // on ignore les silences
+  }
+  if (!levels.length || peak === 0) { gains.set(id, 1); return; }
+  levels.sort((a, b) => a - b);
+  const loud = levels[Math.floor(levels.length * 0.9)];
+  // Borné par la crête : on monte autant qu'il faut (certains fichiers
+  // arrivent à −35 dB), la saturation reste impossible.
+  const g = Math.max(0.3, Math.min(TARGET_LEVEL / loud, 0.97 / peak, 10));
+  gains.set(id, g);
+}
+
+export function trackGain(id) {
+  return gains.get(id) || 1;
 }
 
 /** Téléchargement avec progression (le décodage compte pour les 15 % restants). */
@@ -128,11 +168,12 @@ function evictIfNeeded(incoming) {
 /* ─── Enveloppe d'amplitude, pour la soundwave animée en jeu ─── */
 
 function computeWaveform(id, buf) {
-  const rate = 40;                       // 40 points par seconde suffisent
+  const rate = 60;
   const d = buf.getChannelData(0);
   const win = Math.floor(buf.sampleRate / rate);
   const n = Math.ceil(d.length / win);
   const peaks = new Float32Array(n);
+  let max = 0;
   for (let i = 0; i < n; i++) {
     let m = 0;
     const s = i * win, e = Math.min(d.length, s + win);
@@ -141,6 +182,12 @@ function computeWaveform(id, buf) {
       if (a > m) m = a;
     }
     peaks[i] = m;
+    if (m > max) max = m;
+  }
+  // Normalisation + courbe de contraste : un master très compressé (tout
+  // proche de la crête) garderait sinon une silhouette plate et terne.
+  if (max > 0) {
+    for (let i = 0; i < n; i++) peaks[i] = Math.pow(peaks[i] / max, 1.8);
   }
   waveforms.set(id, { peaks, rate });
 }
@@ -170,7 +217,9 @@ export function start(trackId, { delay = 0.12, silent = false, seek = 0 } = {}) 
     if (!buf) throw new Error('morceau non préparé');
     source = c.createBufferSource();
     source.buffer = buf;
-    source.connect(musicGain);
+    const norm = c.createGain();
+    norm.gain.value = trackGain(trackId);
+    source.connect(norm).connect(musicGain);
     source.start(startAt, seek);
   }
 
@@ -250,6 +299,46 @@ export function scheduleClick(at) {
   g.gain.value = 0.6;
   s.connect(g).connect(c.destination);
   s.start(at);
+}
+
+/** Riser de montée de fever : balayage ascendant + ping final, par palier. */
+export function feverSound(level) {
+  const c = context();
+  const t = c.currentTime;
+  const base = 200 * Math.pow(1.26, level);
+
+  const g = c.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.5, t + 0.03);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.42);
+  g.connect(sfxGain);
+
+  const o1 = c.createOscillator();
+  o1.type = 'sawtooth';
+  o1.frequency.setValueAtTime(base, t);
+  o1.frequency.exponentialRampToValueAtTime(base * 2, t + 0.3);
+  o1.connect(g);
+  o1.start(t); o1.stop(t + 0.45);
+
+  const o2 = c.createOscillator();
+  o2.type = 'square';
+  o2.frequency.setValueAtTime(base * 1.5, t);
+  o2.frequency.exponentialRampToValueAtTime(base * 3, t + 0.3);
+  const g2 = c.createGain();
+  g2.gain.value = 0.28;
+  o2.connect(g2).connect(g);
+  o2.start(t); o2.stop(t + 0.45);
+
+  // ping de confirmation en haut du balayage
+  const ping = c.createOscillator();
+  const gp = c.createGain();
+  ping.type = 'sine';
+  ping.frequency.value = base * 4;
+  gp.gain.setValueAtTime(0.0001, t + 0.26);
+  gp.gain.exponentialRampToValueAtTime(0.4, t + 0.28);
+  gp.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+  ping.connect(gp).connect(sfxGain);
+  ping.start(t + 0.26); ping.stop(t + 0.6);
 }
 
 export function hitSound() {

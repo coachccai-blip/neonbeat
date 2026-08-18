@@ -453,19 +453,21 @@ class Game {
     if (this.paused) return;
     const t = this.songTime();
 
-    const before = this.engine.judged;
     this.engine.update(t);
-    // Les MISS détectés par l'avancée du temps déclenchent aussi le feedback.
-    if (this.engine.judged > before) {
-      for (const ev of this.engine.events.splice(0)) {
-        if (ev.type === 'judge' && ev.judgment === 'MISS') {
-          this.renderer.label('MISS');
-          this.renderer.setCombo(0);
-        }
+    // Événements du moteur : MISS détectés par l'avancée du temps (les autres
+    // jugements ont déjà eu leur feedback à la frappe) et montées de fever.
+    for (const ev of this.engine.events.splice(0)) {
+      if (ev.type === 'judge' && ev.judgment === 'MISS') {
+        this.renderer.label('MISS');
+        this.renderer.setCombo(0);
+      } else if (ev.type === 'fever') {
+        this.renderer.feverUp(ev.level);
+        audio.feverSound(ev.level);
+        if (storage.get('vibrate') && navigator.vibrate) navigator.vibrate([25, 30, 25]);
       }
-    } else {
-      this.engine.events.length = 0;
     }
+    // Le badge suit le niveau réel (retombe à ×1 quand le combo casse).
+    this.renderer.feverLevel = this.engine.fever;
 
     this.renderer.pressed = this.input.pressedLanes();
     this.renderer.setCombo(this.engine.combo);

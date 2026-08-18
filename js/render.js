@@ -13,6 +13,7 @@ const JUDGE_Y = 0.82;            // ligne de jugement à 18 % du bas
 const LANE_COLORS = ['#22e0c8', '#8b5cff', '#ff3d8b', '#ffb020'];
 const LANE_KEYS = ['Z', 'E', 'I', 'O'];
 const JUDGE_COLORS = { PERFECT: '#22e0c8', GREAT: '#7ce0ff', GOOD: '#ffb020', MISS: '#ff4d4d' };
+const FEVER_COLORS = { 2: '#22e0c8', 3: '#8b5cff', 4: '#ff3d8b', 5: '#ffb020' };
 const JUDGE_LABELS = { PERFECT: 'PERFECT', GREAT: 'GREAT', GOOD: 'GOOD', MISS: 'MISS' };
 
 export class Renderer {
@@ -29,6 +30,8 @@ export class Renderer {
     this.comboPop = 0;
     this.combo = 0;
     this.failed = false;
+    this.feverLevel = 1;
+    this.feverAnim = null;       // { level, t0 } — animation de montée
     // Sur PC (souris + clavier) : lettres ZEIO sur les notes et les récepteurs.
     this.showKeys = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
     this.wave = null;            // { peaks, rate } — soundwave de fond
@@ -100,11 +103,12 @@ export class Renderer {
     this.flashes.push({ lane, t0: performance.now(), judgment });
     if (judgment && judgment !== 'MISS') {
       const cx = (lane + 0.5) * this.laneW;
-      for (let i = 0; i < 6; i++) {
+      const count = 5 + this.feverLevel * 2;
+      for (let i = 0; i < count; i++) {
         this.particles.push({
           x: cx, y: this.judgeY,
-          vx: (Math.random() - 0.5) * 260,
-          vy: -80 - Math.random() * 240,
+          vx: (Math.random() - 0.5) * (260 + this.feverLevel * 60),
+          vy: -80 - Math.random() * (240 + this.feverLevel * 70),
           t0: performance.now(),
           color: JUDGE_COLORS[judgment]
         });
@@ -115,6 +119,23 @@ export class Renderer {
   label(judgment) {
     this.labels.push({ text: JUDGE_LABELS[judgment], color: JUDGE_COLORS[judgment], t0: performance.now() });
     if (this.labels.length > 3) this.labels.splice(0, this.labels.length - 3);
+  }
+
+  /** Montée de fever : grosse annonce + explosion de particules. */
+  feverUp(level) {
+    this.feverLevel = level;
+    this.feverAnim = { level, t0: performance.now() };
+    const color = FEVER_COLORS[level] || '#ffb020';
+    for (let i = 0; i < 26; i++) {
+      this.particles.push({
+        x: (i / 26) * this.w + this.laneW * 0.1,
+        y: this.judgeY,
+        vx: (Math.random() - 0.5) * 200,
+        vy: -180 - Math.random() * 420,
+        t0: performance.now(),
+        color: Math.random() < 0.5 ? color : '#eef0ff'
+      });
+    }
   }
 
   setCombo(c) {
@@ -133,44 +154,37 @@ export class Renderer {
     ctx.fillStyle = this.bgGrad;
     ctx.fillRect(0, 0, w, h);
 
-    // ─── Soundwave : enveloppe du morceau autour de la position courante ───
+    // ─── Soundwave : grandes barres verticales autour de la position courante ───
     if (this.wave && songT > -1) {
       const { peaks, rate } = this.wave;
-      const half = 1.9;                      // fenêtre affichée : ±1,9 s
+      const half = 2.1;                    // fenêtre affichée : ±2,1 s
       const cy = h * 0.30;
-      const amp = h * 0.085;
-      const steps = 90;
-      ctx.beginPath();
-      for (let k = 0; k <= steps; k++) {
-        const tt = songT - half + (k / steps) * half * 2;
-        const idx = Math.floor(tt * rate);
-        const v = idx >= 0 && idx < peaks.length ? peaks[idx] : 0;
-        // atténuation vers les bords, accent au centre (le « maintenant »)
-        const edge = 1 - Math.abs(k / steps - 0.5) * 1.6;
-        const y = v * amp * Math.max(0.12, edge);
-        const x = (k / steps) * w;
-        if (k === 0) ctx.moveTo(x, cy - y);
-        else ctx.lineTo(x, cy - y);
-      }
-      for (let k = steps; k >= 0; k--) {
-        const tt = songT - half + (k / steps) * half * 2;
-        const idx = Math.floor(tt * rate);
-        const v = idx >= 0 && idx < peaks.length ? peaks[idx] : 0;
-        const edge = 1 - Math.abs(k / steps - 0.5) * 1.6;
-        const y = v * amp * Math.max(0.12, edge);
-        ctx.lineTo((k / steps) * w, cy + y);
-      }
-      ctx.closePath();
-      ctx.fillStyle = hexA(this.waveColor, 0.13);
-      ctx.fill();
-      ctx.strokeStyle = hexA(this.waveColor, 0.3);
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      // trait vertical du « maintenant », pulsé par l'amplitude courante
       const nowIdx = Math.floor(songT * rate);
       const nowV = nowIdx >= 0 && nowIdx < peaks.length ? peaks[nowIdx] : 0;
-      ctx.fillStyle = hexA(this.waveColor, 0.22 + nowV * 0.3);
-      ctx.fillRect(w / 2 - 1, cy - amp * 1.15, 2, amp * 2.3);
+      const amp = h * 0.15 * (1 + nowV * 0.18);   // respire sur les coups
+      const bars = 64;
+      const bw = w / bars;
+      for (let k = 0; k < bars; k++) {
+        const frac = k / (bars - 1);
+        const tt = songT + (frac - 0.5) * half * 2;
+        const idx = Math.floor(tt * rate);
+        const v = idx >= 0 && idx < peaks.length ? peaks[idx] : 0;
+        const dist = Math.abs(frac - 0.5) * 2;     // 0 au centre → 1 aux bords
+        const edge = 1 - dist * dist * 0.8;
+        const bh = Math.max(3, v * amp * edge);
+        const x = k * bw + bw * 0.2;
+        const alpha = 0.55 - dist * 0.38;
+        // halo large puis cœur de barre : effet néon sans shadowBlur (coûteux)
+        ctx.fillStyle = hexA(this.waveColor, alpha * 0.30);
+        ctx.fillRect(x - bw * 0.14, cy - bh * 1.22, bw * 0.88, bh * 2.44);
+        ctx.fillStyle = hexA(this.waveColor, alpha);
+        ctx.fillRect(x, cy - bh, bw * 0.6, bh * 2);
+      }
+      // fine ligne médiane + curseur du « maintenant »
+      ctx.fillStyle = hexA(this.waveColor, 0.28);
+      ctx.fillRect(0, cy - 0.5, w, 1);
+      ctx.fillStyle = hexA('#eef0ff', 0.35 + nowV * 0.45);
+      ctx.fillRect(w / 2 - 1.5, cy - amp * 1.1, 3, amp * 2.2);
     }
 
     // Couloirs
@@ -310,6 +324,45 @@ export class Renderer {
       ctx.font = `700 ${Math.round(w * 0.03)}px 'Inter', 'Segoe UI', Roboto, Arial, sans-serif`;
       ctx.fillStyle = 'rgba(143,147,184,0.9)';
       ctx.fillText('COMBO', w / 2, h * 0.38 + w * 0.045);
+    }
+
+    // ─── FEVER ───
+    if (this.feverLevel >= 2) {
+      const color = FEVER_COLORS[this.feverLevel];
+      const pulse = 1 + 0.045 * Math.sin(now / 150);
+      ctx.font = `800 ${Math.round(w * 0.052 * pulse)}px 'Inter', 'Segoe UI', Roboto, Arial, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillStyle = hexA(color, 0.28);
+      ctx.fillText(`FEVER ×${this.feverLevel}`, w / 2 + 1.5, h * 0.475 + 1.5);
+      ctx.fillStyle = color;
+      ctx.fillText(`FEVER ×${this.feverLevel}`, w / 2, h * 0.475);
+    }
+    if (this.feverAnim) {
+      const age = (now - this.feverAnim.t0) / 850;
+      if (age >= 1) {
+        this.feverAnim = null;
+      } else {
+        const color = FEVER_COLORS[this.feverAnim.level] || '#ffb020';
+        const ease = 1 - Math.pow(1 - Math.min(1, age * 1.6), 3);
+        const scale = 2.3 - 1.3 * ease;
+        const alpha = age < 0.7 ? 1 : (1 - age) / 0.3;
+        // onde de choc
+        ctx.strokeStyle = hexA(color, (1 - age) * 0.5);
+        ctx.lineWidth = 3 + (1 - age) * 5;
+        ctx.beginPath();
+        ctx.arc(w / 2, h * 0.42, w * (0.12 + age * 0.55), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.lineWidth = 1;
+        // annonce
+        ctx.globalAlpha = alpha;
+        ctx.font = `800 ${Math.round(w * 0.11 * scale)}px 'Inter', 'Segoe UI', Roboto, Arial, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = hexA(color, 0.4);
+        ctx.fillText(`FEVER ×${this.feverAnim.level}`, w / 2 + 3, h * 0.42 + 3);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(`FEVER ×${this.feverAnim.level}`, w / 2, h * 0.42);
+        ctx.globalAlpha = 1;
+      }
     }
 
     if (this.failed) {

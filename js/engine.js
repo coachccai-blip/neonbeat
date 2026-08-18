@@ -8,6 +8,23 @@ export const WEIGHTS = { PERFECT: 1, GREAT: 0.75, GOOD: 0.40, MISS: 0 };
 const LIFE_DELTA = { PERFECT: 0.6, GREAT: 0.6, GOOD: 0, MISS: -3 };
 const HOLD_TOLERANCE = 0.1;    // relâchement anticipé toléré, en secondes
 
+/* ─── Fever ───────────────────────────────────────────────────────────
+   Façon DJ Max : enchaîner les combos monte automatiquement un
+   multiplicateur ×2 → ×5. Chaque note jugée rapporte poids × fever, et le
+   score est normalisé par le maximum atteignable (chaîne parfaite) : il
+   reste sur 1 000 000 et comparable entre joueurs — mais casser son combo
+   tôt coûte la rampe de fever, pas seulement le bonus de combo.          */
+
+export const FEVER_STEPS = [0, 10, 25, 45, 70];   // combo requis pour ×1…×5
+
+export function feverLevel(combo) {
+  let lv = 1;
+  for (let i = 1; i < FEVER_STEPS.length; i++) {
+    if (combo >= FEVER_STEPS[i]) lv = i + 1;
+  }
+  return lv;
+}
+
 export const GRADES = [
   ['S+', 0.99], ['S', 0.95], ['A', 0.90], ['B', 0.80], ['C', 0.70], ['D', 0]
 ];
@@ -40,6 +57,11 @@ export class Engine {
 
     this.counts = { PERFECT: 0, GREAT: 0, GOOD: 0, MISS: 0 };
     this.weightSum = 0;
+    this.feverSum = 0;
+    this.fever = 1;
+    // Somme de fever d'une partie parfaite : sert de dénominateur au score.
+    this.maxFeverSum = 0;
+    for (let i = 1; i <= this.total; i++) this.maxFeverSum += feverLevel(i);
     this.combo = 0;
     this.comboMax = 0;
     this.life = 70;
@@ -141,13 +163,25 @@ export class Engine {
 
   _apply(judgment, note, lane) {
     this.counts[judgment]++;
-    if (!this.failed) this.weightSum += WEIGHTS[judgment];
 
     if (judgment === 'MISS') {
       this.combo = 0;
     } else {
       this.combo++;
       if (this.combo > this.comboMax) this.comboMax = this.combo;
+    }
+
+    // La note est payée au niveau de fever ATTEINT PAR elle (le combo qu'elle
+    // vient de faire) — la chaîne parfaite colle ainsi au dénominateur.
+    const lv = feverLevel(this.combo);
+    if (!this.failed) {
+      this.weightSum += WEIGHTS[judgment];
+      this.feverSum += WEIGHTS[judgment] * lv;
+    }
+    const prevFever = this.fever;
+    this.fever = lv;
+    if (lv > prevFever) {
+      this.events.push({ type: 'fever', level: lv });
     }
 
     this.life = Math.max(0, Math.min(100, this.life + LIFE_DELTA[judgment]));
@@ -160,7 +194,10 @@ export class Engine {
     if (note.judgment === judgment) return;
     this.counts[note.judgment]--;
     this.counts[judgment]++;
-    if (!this.failed) this.weightSum += WEIGHTS[judgment] - WEIGHTS[note.judgment];
+    if (!this.failed) {
+      this.weightSum += WEIGHTS[judgment] - WEIGHTS[note.judgment];
+      this.feverSum += (WEIGHTS[judgment] - WEIGHTS[note.judgment]) * this.fever;
+    }
     note.judgment = judgment;
   }
 
@@ -170,7 +207,8 @@ export class Engine {
 
   get score() {
     if (!this.total) return 0;
-    return Math.round(900000 * this.precision + 100000 * (this.comboMax / this.total));
+    const feverPart = this.maxFeverSum ? this.feverSum / this.maxFeverSum : 0;
+    return Math.round(900000 * feverPart + 100000 * (this.comboMax / this.total));
   }
 
   get judged() {
@@ -195,6 +233,7 @@ export class Engine {
     return {
       score: this.score,
       combo: this.combo,
+      fever: this.fever,
       precision: Math.round(this.precision * 1000) / 1000,
       life: Math.round(this.life)
     };
