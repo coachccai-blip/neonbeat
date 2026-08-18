@@ -27,7 +27,6 @@ de la responsabilité du propriétaire du site**. Les partitions jouables ont
 
 | Titre | Fichier | BPM détecté | Licence |
 |---|---|---|---|
-| Tout est verrouillé | `verrouille.mp3` | 94 | fournie par l'utilisateur — droits à sa charge |
 | Laissez aller | `laissez-aller.mp3` | 134 | fournie par l'utilisateur — droits à sa charge |
 | DBZGT | `dbzgt.mp3` | 131 | fournie par l'utilisateur — droits à sa charge |
 | Sushi Club | `sushi-club.mp3` | 138 | fournie par l'utilisateur — droits à sa charge |
@@ -37,6 +36,11 @@ de la responsabilité du propriétaire du site**. Les partitions jouables ont
 | Terre de magie | `terre-de-magie.mp3` | 142 | fournie par l'utilisateur — droits à sa charge |
 | L'histoire de la life | `histoire-de-la-life.mp3` | 170 | fournie par l'utilisateur — droits à sa charge |
 | Jusqu'où je peux aller | `jusquou-je-peux-aller.mp3` | 164 | fournie par l'utilisateur — droits à sa charge |
+| Au sommet du Mont Blanc | `mont-blanc.mp3` | 88 | fournie par l'utilisateur — droits à sa charge |
+| Pecs comme des boulets | `pecs-boulets.mp3` | 97 | fournie par l'utilisateur — droits à sa charge |
+| Best Teacher | `best-teacher.mp3` | 86 | fournie par l'utilisateur — droits à sa charge |
+| 10 000 Rêves en Marche | `dix-mille-reves.mp3` | 128 | fournie par l'utilisateur — droits à sa charge |
+| Opposant | `opposant.mp3` | 153 | fournie par l'utilisateur — droits à sa charge |
 
 ## Bibliothèques embarquées
 
