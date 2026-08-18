@@ -139,6 +139,29 @@
       ]
     },
     {
+      "id": "doree",
+      "title": "Dorée",
+      "artist": "Piste importée",
+      "bpm": 121.75,
+      "duration": 193.93,
+      "color": "#e8c547",
+      "tier": 2,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 3
+        },
+        {
+          "name": "NORMAL",
+          "level": 5
+        },
+        {
+          "name": "HARD",
+          "level": 7
+        }
+      ]
+    },
+    {
       "id": "dbzgt",
       "title": "DBZGT",
       "artist": "Piste importée",
@@ -185,12 +208,81 @@
       ]
     },
     {
+      "id": "terre-de-magie",
+      "title": "Terre de magie",
+      "artist": "Piste importée",
+      "bpm": 141.75,
+      "duration": 189.86,
+      "color": "#52d1a4",
+      "tier": 3,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "NORMAL",
+          "level": 6
+        },
+        {
+          "name": "HARD",
+          "level": 9
+        }
+      ]
+    },
+    {
+      "id": "depart-cdg",
+      "title": "Départ CDG",
+      "artist": "Piste importée",
+      "bpm": 159.25,
+      "duration": 80.27,
+      "color": "#f45b69",
+      "tier": 3,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "NORMAL",
+          "level": 6
+        },
+        {
+          "name": "HARD",
+          "level": 9
+        }
+      ]
+    },
+    {
       "id": "sushi-club",
       "title": "Sushi Club",
       "artist": "Piste importée",
       "bpm": 138,
       "duration": 175.1,
       "color": "#6bffb0",
+      "tier": 4,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "NORMAL",
+          "level": 7
+        },
+        {
+          "name": "HARD",
+          "level": 11
+        }
+      ]
+    },
+    {
+      "id": "jusquou-je-peux-aller",
+      "title": "Jusqu'où je peux aller",
+      "artist": "Piste importée",
+      "bpm": 164.25,
+      "duration": 151.9,
+      "color": "#ff9ecd",
       "tier": 4,
       "levels": [
         {
@@ -219,6 +311,29 @@
         {
           "name": "EASY",
           "level": 5
+        },
+        {
+          "name": "NORMAL",
+          "level": 7
+        },
+        {
+          "name": "HARD",
+          "level": 11
+        }
+      ]
+    },
+    {
+      "id": "histoire-de-la-life",
+      "title": "L'histoire de la life",
+      "artist": "Piste importée",
+      "bpm": 169.5,
+      "duration": 142.65,
+      "color": "#9d8cff",
+      "tier": 4,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
         },
         {
           "name": "NORMAL",

@@ -204,18 +204,14 @@ async function analyze(path) {
 
 function chooseBpm(cands, forced) {
   if (forced) return parseFloat(forced);
-  // Ramène tout dans [85, 180] (un 70 BPM détecté est souvent un 140 réel)
-  const score = new Map();
-  for (const { bpm, s } of cands) {
-    for (const mult of [0.5, 1, 2]) {
-      const b = Math.round(bpm * mult * 4) / 4;
-      if (b < 70 || b > 190) continue;
-      score.set(b, (score.get(b) || 0) + s * (mult === 1 ? 1 : 0.6));
-    }
-  }
-  let best = null;
-  for (const [bpm, s] of score) if (!best || s > best.s) best = { bpm, s };
-  return best ? best.bpm : cands[0].bpm;
+  // Le meilleur candidat de l'autocorrélation est généralement le tempo perçu
+  // ou son double. On le garde tel quel s'il est dans une plage jouable ;
+  // sinon on le ramène par octaves. (Ne PAS additionner les moitiés de
+  // candidats voisins : leurs arrondis s'agglutinent et gagnent à tort.)
+  let bpm = cands[0].bpm;
+  while (bpm > 185) bpm /= 2;
+  while (bpm < 85) bpm *= 2;
+  return Math.round(bpm * 4) / 4;
 }
 
 /* ─── 3. Génération des charts à partir des onsets ─── */

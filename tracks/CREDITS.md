@@ -32,6 +32,11 @@ de la responsabilité du propriétaire du site**. Les partitions jouables ont
 | DBZGT | `dbzgt.mp3` | 131 | fournie par l'utilisateur — droits à sa charge |
 | Sushi Club | `sushi-club.mp3` | 138 | fournie par l'utilisateur — droits à sa charge |
 | Papillon | `papillon.mp3` | 164 | fournie par l'utilisateur — droits à sa charge |
+| Dorée | `doree.mp3` | 122 | fournie par l'utilisateur — droits à sa charge |
+| Départ CDG | `depart-cdg.mp3` | 159 | fournie par l'utilisateur — droits à sa charge |
+| Terre de magie | `terre-de-magie.mp3` | 142 | fournie par l'utilisateur — droits à sa charge |
+| L'histoire de la life | `histoire-de-la-life.mp3` | 170 | fournie par l'utilisateur — droits à sa charge |
+| Jusqu'où je peux aller | `jusquou-je-peux-aller.mp3` | 164 | fournie par l'utilisateur — droits à sa charge |
 
 ## Bibliothèques embarquées
 
