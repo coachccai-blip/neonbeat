@@ -6,7 +6,10 @@
 //  - listeners en { passive:false } + preventDefault pour tuer scroll et zoom ;
 //  - suivi des pointerId : un accord à 4 doigts = 4 pointers simultanés.
 
-const KEY_LANES = { KeyD: 0, KeyF: 1, KeyJ: 2, KeyK: 3 };
+// Mapping par LETTRE (event.key) et non par position physique (event.code) :
+// « Z » désigne ainsi la touche marquée Z, sur AZERTY comme sur QWERTY.
+// Deux dispositions au choix : Z E I O (deux mains) ou D F J K.
+const KEY_LANES = { z: 0, e: 1, i: 2, o: 3, d: 0, f: 1, j: 2, k: 3 };
 
 export class Input {
   /**
@@ -18,7 +21,7 @@ export class Input {
     this.surface = surface;
     this.handlers = handlers;
     this.pointers = new Map();     // pointerId → lane
-    this.keys = new Map();         // code → lane (clavier, pour le test desktop)
+    this.keys = new Map();         // lettre → lane (jeu au clavier sur PC)
     this.enabled = false;
 
     this._down = (e) => {
@@ -38,16 +41,18 @@ export class Input {
     };
     this._keydown = (e) => {
       if (!this.enabled || e.repeat) return;
-      const lane = KEY_LANES[e.code];
+      const key = (e.key || '').toLowerCase();
+      const lane = KEY_LANES[key];
       if (lane === undefined) return;
       e.preventDefault();
-      this.keys.set(e.code, lane);
+      this.keys.set(key, lane);
       handlers.onPress(lane, e.timeStamp);
     };
     this._keyup = (e) => {
-      const lane = this.keys.get(e.code);
+      const key = (e.key || '').toLowerCase();
+      const lane = this.keys.get(key);
       if (lane === undefined) return;
-      this.keys.delete(e.code);
+      this.keys.delete(key);
       handlers.onRelease(lane, e.timeStamp);
     };
 

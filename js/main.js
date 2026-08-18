@@ -288,7 +288,19 @@ function startCalibration() {
     e.preventDefault();
     calib.tap(e.timeStamp);
   };
+  // Sur PC, la calibration s'effectue aussi au clavier : la latence clavier
+  // diffère de la latence tactile, il faut mesurer avec ce qui servira à jouer.
+  const onKeyDown = (e) => {
+    if (e.repeat || !calib) return;
+    if (['z', 'e', 'i', 'o', 'd', 'f', 'j', 'k', ' '].includes((e.key || '').toLowerCase())) {
+      e.preventDefault();
+      calib.tap(e.timeStamp);
+    }
+  };
   stage.addEventListener('pointerdown', onTapDown, { passive: false });
+  window.addEventListener('keydown', onKeyDown);
+  const oldStop = calib.stop.bind(calib);
+  calib.stop = () => { window.removeEventListener('keydown', onKeyDown); oldStop(); };
   calib.start();
 }
 
