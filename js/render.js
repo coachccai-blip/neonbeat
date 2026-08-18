@@ -69,7 +69,7 @@ export class Renderer {
     this.h = h;
     this.laneW = w / LANES;
     this.judgeY = h * JUDGE_Y;
-    this.noteH = Math.max(14, Math.min(26, this.laneW * 0.18));
+    this.noteH = Math.max(20, Math.min(36, this.laneW * 0.26));
     this.keyFont = `800 ${Math.round(this.noteH * 0.78)}px Bahnschrift, 'Roboto Condensed', sans-serif`;
     this.receptorFont = `700 ${Math.round(Math.min(20, this.laneW * 0.14))}px Bahnschrift, 'Roboto Condensed', sans-serif`;
 
@@ -195,16 +195,18 @@ export class Renderer {
       if (age >= 1) continue;
       const a = (1 - age) * 0.55;
       ctx.fillStyle = hexA(JUDGE_COLORS[f.judgment] || LANE_COLORS[f.lane], a);
-      ctx.fillRect(f.lane * laneW, judgeY - 26, laneW, 52);
+      ctx.fillRect(f.lane * laneW, judgeY - 34, laneW, 68);
     }
     this.flashes = this.flashes.filter((f) => now - f.t0 < 180);
 
+    ctx.fillStyle = 'rgba(238,240,255,0.10)';
+    ctx.fillRect(0, judgeY - 13, w, 26);
     ctx.fillStyle = '#eef0ff';
-    ctx.fillRect(0, judgeY - 1.5, w, 3);
+    ctx.fillRect(0, judgeY - 2.5, w, 5);
     for (let l = 0; l < LANES; l++) {
       ctx.fillStyle = this.pressed[l] ? LANE_COLORS[l] : 'rgba(238,240,255,0.35)';
       ctx.beginPath();
-      ctx.arc((l + 0.5) * laneW, judgeY, this.pressed[l] ? 9 : 6, 0, Math.PI * 2);
+      ctx.arc((l + 0.5) * laneW, judgeY, this.pressed[l] ? 13 : 8, 0, Math.PI * 2);
       ctx.fill();
     }
     if (this.showKeys) {
@@ -213,7 +215,7 @@ export class Renderer {
       ctx.textBaseline = 'middle';
       for (let l = 0; l < LANES; l++) {
         ctx.fillStyle = this.pressed[l] ? LANE_COLORS[l] : 'rgba(143,147,184,0.55)';
-        ctx.fillText(LANE_KEYS[l], (l + 0.5) * laneW, judgeY + 28);
+        ctx.fillText(LANE_KEYS[l], (l + 0.5) * laneW, judgeY + 34);
       }
       ctx.textBaseline = 'alphabetic';
     }
@@ -236,8 +238,8 @@ export class Renderer {
       if (n.state === 'done' && n.judgment !== 'MISS' && n.dur === 0) continue;
 
       const y = judgeY - (n.time - songT) * pxPerSec;
-      const x = n.lane * laneW + laneW * 0.08;
-      const nw = laneW * 0.84;
+      const x = n.lane * laneW + laneW * 0.05;
+      const nw = laneW * 0.90;
       const color = LANE_COLORS[n.lane];
 
       if (n.dur > 0) {
@@ -248,7 +250,7 @@ export class Renderer {
         if (bottom > top) {
           ctx.fillStyle = n.state === 'done' && n.judgment === 'GOOD'
             ? 'rgba(139,146,184,0.25)' : this.holdGrads[n.lane];
-          ctx.fillRect(x + nw * 0.22, top, nw * 0.56, bottom - top);
+          ctx.fillRect(x + nw * 0.18, top, nw * 0.64, bottom - top);
         }
         if (n.state !== 'held') this._noteRect(x, y, nw, color, n);
         this._noteRect(x, yEnd, nw, color, n, true);
