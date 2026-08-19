@@ -65,7 +65,7 @@ export function describeSpeed(speed, chartInfo) {
 
 /* ─── Sélecteurs segmentés (difficulté) ─── */
 
-const DIFF_CLASS = { EASY: 'e', NORMAL: 'n', HARD: 'h' };
+const DIFF_CLASS = { EASY: 'e', 'EASY+': 'e', NORMAL: 'n', 'NORMAL+': 'n', HARD: 'h' };
 
 /**
  * @param {(diffName:string)=>string|null} [gradeOf] grade local à afficher
@@ -171,6 +171,23 @@ export function drawQr(canvas, text) {
         ctx.fillRect(Math.floor((c + 1) * cell), Math.floor((r + 1) * cell), Math.ceil(cell), Math.ceil(cell));
       }
     }
+  }
+}
+
+/* ─── Mode de touches (4 keys / 2 keys) ─── */
+
+export function renderKeysSeg(container, active, onPick) {
+  container.innerHTML = '';
+  for (const k of ['4', '2']) {
+    const b = document.createElement('button');
+    b.className = 'seg-btn' + (k === active ? ' is-on' : '');
+    b.innerHTML = `${k} KEYS<small>${k === '4' ? 'Z E I O' : 'E I'}</small>`;
+    b.addEventListener('click', () => {
+      container.querySelectorAll('.seg-btn').forEach((x) => x.classList.remove('is-on'));
+      b.classList.add('is-on');
+      onPick(k);
+    });
+    container.appendChild(b);
   }
 }
 

@@ -8,8 +8,11 @@
 
 // Mapping par LETTRE (event.key) et non par position physique (event.code) :
 // « Z » désigne ainsi la touche marquée Z, sur AZERTY comme sur QWERTY.
-// Deux dispositions au choix : Z E I O (deux mains) ou D F J K.
-const KEY_LANES = { z: 0, e: 1, i: 2, o: 3, d: 0, f: 1, j: 2, k: 3 };
+// 4 keys : Z E I O (ou D F J K). 2 keys : E I (tout le bloc gauche/droit marche).
+const KEY_MAPS = {
+  4: { z: 0, e: 1, i: 2, o: 3, d: 0, f: 1, j: 2, k: 3 },
+  2: { z: 0, e: 0, d: 0, f: 0, i: 1, o: 1, j: 1, k: 1 }
+};
 
 export class Input {
   /**
@@ -23,6 +26,7 @@ export class Input {
     this.pointers = new Map();     // pointerId → lane
     this.keys = new Map();         // lettre → lane (jeu au clavier sur PC)
     this.enabled = false;
+    this.lanes = 4;
 
     this._down = (e) => {
       if (!this.enabled) return;
@@ -42,7 +46,7 @@ export class Input {
     this._keydown = (e) => {
       if (!this.enabled || e.repeat) return;
       const key = (e.key || '').toLowerCase();
-      const lane = KEY_LANES[key];
+      const lane = KEY_MAPS[this.lanes][key];
       if (lane === undefined) return;
       e.preventDefault();
       this.keys.set(key, lane);
@@ -67,7 +71,7 @@ export class Input {
     const r = this.surface.getBoundingClientRect();
     const x = (e.clientX - r.left) / r.width;
     if (x < 0 || x > 1) return -1;
-    return Math.min(3, Math.floor(x * 4));
+    return Math.min(this.lanes - 1, Math.floor(x * this.lanes));
   }
 
   /** Couloirs actuellement enfoncés (pour l'éclairage des couloirs). */

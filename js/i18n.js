@@ -79,7 +79,8 @@ const STRINGS = {
     ver_offline: 'Impossible de vérifier la version (hors ligne ?)',
     calib_or: 'ou règle ta latence à la main :',
     calib_manual: 'OFFSET MANUEL',
-    calib_use: 'UTILISER CET OFFSET'
+    calib_use: 'UTILISER CET OFFSET',
+    mode_label: 'MODE'
   },
 
   en: {
@@ -156,7 +157,8 @@ const STRINGS = {
     ver_offline: 'Could not check the version (offline?)',
     calib_or: 'or set your latency manually:',
     calib_manual: 'MANUAL OFFSET',
-    calib_use: 'USE THIS OFFSET'
+    calib_use: 'USE THIS OFFSET',
+    mode_label: 'MODE'
   },
 
   zh: {
@@ -233,7 +235,8 @@ const STRINGS = {
     ver_offline: '无法检查版本（离线？）',
     calib_or: '或手动设置延迟：',
     calib_manual: '手动偏移',
-    calib_use: '使用此偏移'
+    calib_use: '使用此偏移',
+    mode_label: '模式'
   }
 };
 

@@ -214,9 +214,12 @@ body { overflow: hidden; }
 .seg-btn small { font-size: 9px; letter-spacing: .06em; opacity: .8; font-weight: 400; }
 .seg-btn.is-on { color: #080812; background: var(--cyan); border-color: var(--cyan); }
 .seg-btn.is-on small { opacity: .75; }
-.seg-btn[data-diff="EASY"].is-on   { background: var(--cyan); }
-.seg-btn[data-diff="NORMAL"].is-on { background: var(--amber); }
-.seg-btn[data-diff="HARD"].is-on   { background: var(--magenta); color: #fff; }
+.seg-btn[data-diff="EASY"].is-on    { background: var(--cyan); }
+.seg-btn[data-diff="EASY+"].is-on   { background: #7ce38b; }
+.seg-btn[data-diff="NORMAL"].is-on  { background: var(--amber); }
+.seg-btn[data-diff="NORMAL+"].is-on { background: #ff8c42; }
+.seg-btn[data-diff="HARD"].is-on    { background: var(--magenta); color: #fff; }
+.keys-seg .seg-btn { min-width: 80px; flex: 0 1 auto; }
 
 /* ─── Liste des morceaux ─── */
 .track-list { display: flex; flex-direction: column; gap: 10px; }

@@ -42,9 +42,11 @@ function hashString(str) {
  *               morceau. C'est elle qui pilote réellement la difficulté.
  */
 export const DIFFICULTIES = [
-  { name: 'EASY',   grid: 2, minGap: 0.26, maxChord: 1, holdMin: 6, nps: (t) => 0.70 + 0.26 * t },
-  { name: 'NORMAL', grid: 1, minGap: 0.14, maxChord: 2, holdMin: 5, nps: (t) => (0.70 + 0.26 * t) * 2.05 },
-  { name: 'HARD',   grid: 1, minGap: 0.085, maxChord: 3, holdMin: 4, nps: (t) => (0.70 + 0.26 * t) * 3.30 }
+  { name: 'EASY',    grid: 2, minGap: 0.26,  maxChord: 1, holdMin: 6, nps: (t) => 0.70 + 0.26 * t },
+  { name: 'EASY+',   grid: 2, minGap: 0.20,  maxChord: 1, holdMin: 6, nps: (t) => (0.70 + 0.26 * t) * 1.50 },
+  { name: 'NORMAL',  grid: 1, minGap: 0.14,  maxChord: 2, holdMin: 5, nps: (t) => (0.70 + 0.26 * t) * 2.05 },
+  { name: 'NORMAL+', grid: 1, minGap: 0.11,  maxChord: 2, holdMin: 5, nps: (t) => (0.70 + 0.26 * t) * 2.65 },
+  { name: 'HARD',    grid: 1, minGap: 0.085, maxChord: 3, holdMin: 4, nps: (t) => (0.70 + 0.26 * t) * 3.30 }
 ];
 
 // Hiérarchie musicale : ce qu'on garde en premier quand il faut alléger.

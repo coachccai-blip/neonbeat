@@ -8,10 +8,11 @@
 
 import { travelTime } from './storage.js';
 
-const LANES = 4;
 const JUDGE_Y = 0.82;            // ligne de jugement à 18 % du bas
-const LANE_COLORS = ['#22e0c8', '#8b5cff', '#ff3d8b', '#ffb020'];
-const LANE_KEYS = ['Z', 'E', 'I', 'O'];
+const LANE_SETS = {
+  4: { colors: ['#22e0c8', '#8b5cff', '#ff3d8b', '#ffb020'], keys: ['Z', 'E', 'I', 'O'] },
+  2: { colors: ['#22e0c8', '#ff3d8b'], keys: ['E', 'I'] }
+};
 const JUDGE_COLORS = { PERFECT: '#22e0c8', GREAT: '#7ce0ff', GOOD: '#ffb020', MISS: '#ff4d4d' };
 const FEVER_COLORS = { 2: '#22e0c8', 3: '#8b5cff', 4: '#ff3d8b', 5: '#ffb020' };
 const JUDGE_LABELS = { PERFECT: 'PERFECT', GREAT: 'GREAT', GOOD: 'GOOD', MISS: 'MISS' };
@@ -33,6 +34,7 @@ export class Renderer {
     this.feverLevel = 1;
     this.feverAnim = null;       // { level, t0 } — animation de montée
     this.mods = { fade: false, sudden: false };
+    this.lanes = 4;
     // Sur PC (souris + clavier) : lettres ZEIO sur les notes et les récepteurs.
     this.showKeys = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
     this.wave = null;            // { peaks, rate } — soundwave de fond
@@ -51,7 +53,9 @@ export class Renderer {
     if (color) this.waveColor = color;
   }
 
-  setChart(notes, bpm, speed) {
+  setChart(notes, bpm, speed, lanes = 4) {
+    this.lanes = lanes;
+    this.resize();                 // recalcul de laneW et des dégradés
     this.notes = notes;
     this.headIndex = 0;
     this.travel = travelTime(bpm, speed);
@@ -71,7 +75,7 @@ export class Renderer {
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.w = w;
     this.h = h;
-    this.laneW = w / LANES;
+    this.laneW = w / this.lanes;
     this.judgeY = h * JUDGE_Y;
     this.noteH = Math.max(20, Math.min(36, this.laneW * 0.26));
     this.keyFont = `800 ${Math.round(this.noteH * 0.78)}px 'Inter', 'Segoe UI', Roboto, Arial, sans-serif`;
@@ -83,18 +87,21 @@ export class Renderer {
     this.bgGrad.addColorStop(0.75, '#0b0b1a');
     this.bgGrad.addColorStop(1, '#12122a');
 
+    const set = LANE_SETS[this.lanes];
+    this.laneColors = set.colors;
+    this.laneKeys = set.keys;
     this.laneGrads = [];
     this.holdGrads = [];
-    for (let l = 0; l < LANES; l++) {
+    for (let l = 0; l < this.lanes; l++) {
       const x = l * this.laneW;
       const g = this.ctx.createLinearGradient(x, 0, x, this.judgeY);
       g.addColorStop(0, 'rgba(255,255,255,0)');
-      g.addColorStop(1, hexA(LANE_COLORS[l], 0.16));
+      g.addColorStop(1, hexA(this.laneColors[l], 0.16));
       this.laneGrads.push(g);
       const hg = this.ctx.createLinearGradient(x, 0, x + this.laneW, 0);
-      hg.addColorStop(0, hexA(LANE_COLORS[l], 0.14));
-      hg.addColorStop(0.5, hexA(LANE_COLORS[l], 0.42));
-      hg.addColorStop(1, hexA(LANE_COLORS[l], 0.14));
+      hg.addColorStop(0, hexA(this.laneColors[l], 0.14));
+      hg.addColorStop(0.5, hexA(this.laneColors[l], 0.42));
+      hg.addColorStop(1, hexA(this.laneColors[l], 0.14));
       this.holdGrads.push(hg);
     }
   }
@@ -189,7 +196,7 @@ export class Renderer {
     }
 
     // Couloirs
-    for (let l = 0; l < LANES; l++) {
+    for (let l = 0; l < this.lanes; l++) {
       if (this.pressed[l]) {
         ctx.fillStyle = this.laneGrads[l];
         ctx.fillRect(l * laneW, 0, laneW, judgeY);
@@ -198,7 +205,7 @@ export class Renderer {
     ctx.strokeStyle = 'rgba(139,92,255,0.22)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    for (let l = 1; l < LANES; l++) {
+    for (let l = 1; l < this.lanes; l++) {
       ctx.moveTo(l * laneW + 0.5, 0);
       ctx.lineTo(l * laneW + 0.5, h);
     }
@@ -209,7 +216,7 @@ export class Renderer {
       const age = (now - f.t0) / 180;
       if (age >= 1) continue;
       const a = (1 - age) * 0.55;
-      ctx.fillStyle = hexA(JUDGE_COLORS[f.judgment] || LANE_COLORS[f.lane], a);
+      ctx.fillStyle = hexA(JUDGE_COLORS[f.judgment] || this.laneColors[f.lane], a);
       ctx.fillRect(f.lane * laneW, judgeY - 34, laneW, 68);
     }
     this.flashes = this.flashes.filter((f) => now - f.t0 < 180);
@@ -219,17 +226,17 @@ export class Renderer {
     // Marqueurs de frappe : un contour de la taille EXACTE d'une note dans
     // chaque couloir — on appuie quand la note recouvre parfaitement le sien.
     const hh = this.noteH;
-    for (let l = 0; l < LANES; l++) {
+    for (let l = 0; l < this.lanes; l++) {
       const x = l * laneW + laneW * 0.05;
       const nw = laneW * 0.90;
       roundRect(ctx, x, judgeY - hh / 2, nw, hh, hh * 0.4);
       if (this.pressed[l]) {
-        ctx.fillStyle = hexA(LANE_COLORS[l], 0.30);
+        ctx.fillStyle = hexA(this.laneColors[l], 0.30);
         ctx.fill();
-        ctx.strokeStyle = LANE_COLORS[l];
+        ctx.strokeStyle = this.laneColors[l];
         ctx.lineWidth = 3;
       } else {
-        ctx.strokeStyle = hexA(LANE_COLORS[l], 0.55);
+        ctx.strokeStyle = hexA(this.laneColors[l], 0.55);
         ctx.lineWidth = 2;
       }
       ctx.stroke();
@@ -239,9 +246,9 @@ export class Renderer {
       ctx.font = this.receptorFont;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      for (let l = 0; l < LANES; l++) {
-        ctx.fillStyle = this.pressed[l] ? LANE_COLORS[l] : 'rgba(143,147,184,0.55)';
-        ctx.fillText(LANE_KEYS[l], (l + 0.5) * laneW, judgeY + 34);
+      for (let l = 0; l < this.lanes; l++) {
+        ctx.fillStyle = this.pressed[l] ? this.laneColors[l] : 'rgba(143,147,184,0.55)';
+        ctx.fillText(this.laneKeys[l], (l + 0.5) * laneW, judgeY + 34);
       }
       ctx.textBaseline = 'alphabetic';
     }
@@ -279,7 +286,7 @@ export class Renderer {
       ctx.globalAlpha = modAlpha;
       const x = n.lane * laneW + laneW * 0.05;
       const nw = laneW * 0.90;
-      const color = LANE_COLORS[n.lane];
+      const color = this.laneColors[n.lane];
 
       if (n.dur > 0) {
         // Corps du hold
@@ -411,7 +418,7 @@ export class Renderer {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = 'rgba(7,7,15,0.82)';
-      ctx.fillText(LANE_KEYS[n.lane], x + nw / 2, y + 1);
+      ctx.fillText(this.laneKeys[n.lane], x + nw / 2, y + 1);
       ctx.textBaseline = 'alphabetic';
     } else {
       ctx.fillStyle = 'rgba(255,255,255,0.5)';

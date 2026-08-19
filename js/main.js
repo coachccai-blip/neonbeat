@@ -3,7 +3,7 @@
 import * as storage from './storage.js';
 import * as audio from './audio.js';
 import * as ui from './ui.js';
-import { loadIndex, loadTrack, getDifficulty, density } from './chart.js';
+import { loadIndex, loadTrack, getDifficulty, density, to2Keys } from './chart.js';
 import { Engine } from './engine.js';
 import { Renderer } from './render.js';
 import { Input } from './input.js';
@@ -333,16 +333,38 @@ function openSelect() {
 }
 
 /** Fenêtre de paramétrage : réglages + JOUER, préversion à l'ouverture. */
+function renderKeysChips(containerId, refresh) {
+  const el = $(containerId);
+  if (!el) return;
+  ui.renderKeysSeg(el, storage.get('keys') || '4', (k) => {
+    storage.set('keys', k);
+    refresh();
+  });
+}
+
 function openSheet(t) {
   $('sheet-title').textContent = t.title;
   $('sheet-meta').textContent = `${t.artist} · ${t.bpm} BPM · ${Math.floor(t.duration / 60)}:${String(Math.round(t.duration % 60)).padStart(2, '0')}`;
   $('sheet-backdrop').hidden = false;
   $('select-sheet').hidden = false;
   $('speed-slider').value = storage.get('speed');
+  renderKeysChips('select-keys', () => { renderSelectDiff(); refreshTrackListGrades(); });
   renderSelectDiff();
   renderSelectMods();
   applyAutoSpeed();
   previewTrack(t);
+}
+
+/** Re-rend la liste des morceaux avec les grades du mode courant. */
+function refreshTrackListGrades() {
+  ui.renderTrackList(S.tracks, S.selectedTrack && S.selectedTrack.id, (t) => {
+    S.selectedTrack = t;
+    storage.set('lastTrack', t.id);
+    openSheet(t);
+  }, (trackId, diffName) => {
+    const best = storage.bestFor(trackId, diffName, storage.get('keys'));
+    return best ? best.grade : null;
+  });
 }
 
 function closeSheet() {
@@ -371,7 +393,7 @@ function renderSelectDiff() {
     storage.set('lastDiff', name);
     applyAutoSpeed();
   }, (diffName) => {
-    const best = storage.bestFor(t.id, diffName);
+    const best = storage.bestFor(t.id, diffName, storage.get('keys'));
     return best ? best.grade : null;
   });
 }
@@ -518,10 +540,14 @@ class Game {
     this.rate = this.mods.includes('NIGHTCORE') ? 1.25 : 1;
     this.mult = multiplierFor(this.mods);
 
+    this.keysMode = storage.get('keys') || '4';
+    this.laneCount = this.keysMode === '2' ? 2 : 4;
+
     let notes = this.diff.notes;
     if (this.mods.includes('MIRROR')) {
       notes = notes.map(([lane, t, d]) => [3 - lane, t, d]);
     }
+    if (this.keysMode === '2') notes = to2Keys(notes);
     this.engine = new Engine(notes);
     this.renderer = new Renderer($('game-canvas'));
     this.finished = false;
@@ -533,6 +559,7 @@ class Game {
       onPress: (lane, ts) => this.onPress(lane, ts),
       onRelease: (lane, ts) => this.onRelease(lane, ts)
     });
+    this.input.lanes = this.laneCount;
 
     $('hud-song').textContent = `${track.title} — ${diffName}`;
     $('hud-score').textContent = '0';
@@ -542,7 +569,7 @@ class Game {
     $('rivals').innerHTML = '';
     ui.show('game');
 
-    this.renderer.setChart(this.engine.notes, track.bpm, storage.get('speed'));
+    this.renderer.setChart(this.engine.notes, track.bpm, storage.get('speed'), this.laneCount);
     this.renderer.setWaveform(audio.waveform(track.id), track.color);
     this.renderer.mods = { fade: this.mods.includes('FADE'), sudden: this.mods.includes('SUDDEN') };
     this.renderer.failedText = t('game_failed');
@@ -744,6 +771,7 @@ class Game {
     res.score = Math.round(res.score * this.mult);
     res.diffName = this.diffName;
     res.mods = this.mods;
+    res.keysMode = this.keysMode;
     this.dispose();
     onGameFinished(res);
   }
@@ -798,12 +826,12 @@ function onGameFinished(res) {
       precision: Math.round(res.precision * 10000) / 10000,
       comboMax: res.comboMax,
       mods: res.mods || []
-    });
+    }, res.keysMode || '4');
   }
   if (S.mode === 'solo') {
     ui.renderResults({ title: S.selectedTrack.title }, res, null, S.myId);
     ui.renderLocalBoard(
-      storage.boardFor(S.selectedTrack.id, res.diffName),
+      storage.boardFor(S.selectedTrack.id, res.diffName, res.keysMode || '4'),
       recordInfo && recordInfo.record,
       res.score
     );
@@ -1238,6 +1266,7 @@ function clientStart(msg) {
 /* ══════════════════ Lobby (rendu commun) ══════════════════ */
 
 function refreshLobby() {
+  renderKeysChips('lobby-keys', refreshLobby);
   const playing = S.mode === 'host' ? !!S.game : S.roomState === 'playing';
   const players = lobbyPlayersArray().map((p) => {
     if (playing && S.liveScores && S.liveScores[p.id]) {
@@ -1266,7 +1295,7 @@ function refreshLobby() {
         refreshLobby();
       }
     }), (diffName) => {
-      const best = storage.bestFor(t.id, diffName);
+      const best = storage.bestFor(t.id, diffName, storage.get('keys'));
       return best ? best.grade : null;
     });
   }

@@ -14,7 +14,15 @@
           "level": 2
         },
         {
+          "name": "EASY+",
+          "level": 3
+        },
+        {
           "name": "NORMAL",
+          "level": 4
+        },
+        {
+          "name": "NORMAL+",
           "level": 4
         },
         {
@@ -37,8 +45,16 @@
           "level": 3
         },
         {
+          "name": "EASY+",
+          "level": 4
+        },
+        {
           "name": "NORMAL",
           "level": 5
+        },
+        {
+          "name": "NORMAL+",
+          "level": 6
         },
         {
           "name": "HARD",
@@ -60,8 +76,16 @@
           "level": 4
         },
         {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
           "name": "NORMAL",
           "level": 6
+        },
+        {
+          "name": "NORMAL+",
+          "level": 7
         },
         {
           "name": "HARD",
@@ -83,8 +107,16 @@
           "level": 4
         },
         {
+          "name": "EASY+",
+          "level": 6
+        },
+        {
           "name": "NORMAL",
           "level": 7
+        },
+        {
+          "name": "NORMAL+",
+          "level": 9
         },
         {
           "name": "HARD",
@@ -106,8 +138,16 @@
           "level": 5
         },
         {
+          "name": "EASY+",
+          "level": 7
+        },
+        {
           "name": "NORMAL",
           "level": 9
+        },
+        {
+          "name": "NORMAL+",
+          "level": 10
         },
         {
           "name": "HARD",
@@ -129,7 +169,15 @@
           "level": 2
         },
         {
+          "name": "EASY+",
+          "level": 3
+        },
+        {
           "name": "NORMAL",
+          "level": 4
+        },
+        {
+          "name": "NORMAL+",
           "level": 4
         },
         {
@@ -152,8 +200,16 @@
           "level": 3
         },
         {
+          "name": "EASY+",
+          "level": 4
+        },
+        {
           "name": "NORMAL",
           "level": 5
+        },
+        {
+          "name": "NORMAL+",
+          "level": 6
         },
         {
           "name": "HARD",
@@ -175,8 +231,16 @@
           "level": 3
         },
         {
+          "name": "EASY+",
+          "level": 4
+        },
+        {
           "name": "NORMAL",
           "level": 5
+        },
+        {
+          "name": "NORMAL+",
+          "level": 6
         },
         {
           "name": "HARD",
@@ -198,8 +262,16 @@
           "level": 3
         },
         {
+          "name": "EASY+",
+          "level": 4
+        },
+        {
           "name": "NORMAL",
           "level": 5
+        },
+        {
+          "name": "NORMAL+",
+          "level": 6
         },
         {
           "name": "HARD",
@@ -221,8 +293,16 @@
           "level": 4
         },
         {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
           "name": "NORMAL",
           "level": 6
+        },
+        {
+          "name": "NORMAL+",
+          "level": 7
         },
         {
           "name": "HARD",
@@ -244,8 +324,16 @@
           "level": 4
         },
         {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
           "name": "NORMAL",
           "level": 6
+        },
+        {
+          "name": "NORMAL+",
+          "level": 7
         },
         {
           "name": "HARD",
@@ -267,8 +355,16 @@
           "level": 4
         },
         {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
           "name": "NORMAL",
           "level": 6
+        },
+        {
+          "name": "NORMAL+",
+          "level": 7
         },
         {
           "name": "HARD",
@@ -290,8 +386,16 @@
           "level": 4
         },
         {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
           "name": "NORMAL",
           "level": 6
+        },
+        {
+          "name": "NORMAL+",
+          "level": 7
         },
         {
           "name": "HARD",
@@ -313,8 +417,16 @@
           "level": 4
         },
         {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
           "name": "NORMAL",
           "level": 6
+        },
+        {
+          "name": "NORMAL+",
+          "level": 7
         },
         {
           "name": "HARD",
@@ -336,8 +448,16 @@
           "level": 4
         },
         {
+          "name": "EASY+",
+          "level": 6
+        },
+        {
           "name": "NORMAL",
           "level": 7
+        },
+        {
+          "name": "NORMAL+",
+          "level": 9
         },
         {
           "name": "HARD",
@@ -359,8 +479,16 @@
           "level": 4
         },
         {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
           "name": "NORMAL",
           "level": 7
+        },
+        {
+          "name": "NORMAL+",
+          "level": 9
         },
         {
           "name": "HARD",
@@ -382,8 +510,16 @@
           "level": 4
         },
         {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
           "name": "NORMAL",
           "level": 7
+        },
+        {
+          "name": "NORMAL+",
+          "level": 9
         },
         {
           "name": "HARD",
@@ -405,8 +541,16 @@
           "level": 5
         },
         {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
           "name": "NORMAL",
           "level": 7
+        },
+        {
+          "name": "NORMAL+",
+          "level": 9
         },
         {
           "name": "HARD",
@@ -428,8 +572,16 @@
           "level": 4
         },
         {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
           "name": "NORMAL",
           "level": 7
+        },
+        {
+          "name": "NORMAL+",
+          "level": 9
         },
         {
           "name": "HARD",

@@ -16,6 +16,7 @@ const DEFAULTS = {
   lastTrack: null,
   lastDiff: 'NORMAL',
   lang: 'fr',
+  keys: '4',          // mode de jeu : '4' (ZEIO) ou '2' (EI)
   mods: []            // effets actifs : 'MIRROR' | 'FADE' | 'SUDDEN' | 'NIGHTCORE'
 };
 
@@ -122,9 +123,15 @@ function writeScores() {
  * Enregistre un résultat. Retourne { record: bool, best } — record = vrai si
  * le score bat le meilleur local pour ce morceau + difficulté.
  */
-export function saveScore(trackId, diffName, entry) {
+/* Le mode 2 keys a ses propres records : clé suffixée « |2K ».
+   Les scores 4 keys gardent la clé historique (aucune migration). */
+function scoreKey(trackId, diffName, keysMode) {
+  return trackId + '|' + diffName + (keysMode === '2' ? '|2K' : '');
+}
+
+export function saveScore(trackId, diffName, entry, keysMode = '4') {
   const store = readScores();
-  const key = trackId + '|' + diffName;
+  const key = scoreKey(trackId, diffName, keysMode);
   const prev = store.scores[key];
   const record = !prev || entry.score > prev.score;
   if (record) {
@@ -141,10 +148,10 @@ export function saveScore(trackId, diffName, entry) {
   return { record, best: store.scores[key] };
 }
 
-export function bestFor(trackId, diffName) {
-  return readScores().scores[trackId + '|' + diffName] || null;
+export function bestFor(trackId, diffName, keysMode = '4') {
+  return readScores().scores[scoreKey(trackId, diffName, keysMode)] || null;
 }
 
-export function boardFor(trackId, diffName) {
-  return readScores().board[trackId + '|' + diffName] || [];
+export function boardFor(trackId, diffName, keysMode = '4') {
+  return readScores().board[scoreKey(trackId, diffName, keysMode)] || [];
 }

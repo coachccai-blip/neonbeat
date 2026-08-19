@@ -261,9 +261,11 @@ function makeRng(seed) {
 }
 
 const DIFFS = [
-  { name: 'EASY',   grid: 2, minGap: 0.26, maxChord: 1, nps: (t) => 0.70 + 0.26 * t },
-  { name: 'NORMAL', grid: 1, minGap: 0.14, maxChord: 2, nps: (t) => (0.70 + 0.26 * t) * 2.05 },
-  { name: 'HARD',   grid: 1, minGap: 0.085, maxChord: 3, nps: (t) => (0.70 + 0.26 * t) * 3.30 }
+  { name: 'EASY',    grid: 2, minGap: 0.26,  maxChord: 1, nps: (t) => 0.70 + 0.26 * t },
+  { name: 'EASY+',   grid: 2, minGap: 0.20,  maxChord: 1, nps: (t) => (0.70 + 0.26 * t) * 1.50 },
+  { name: 'NORMAL',  grid: 1, minGap: 0.14,  maxChord: 2, nps: (t) => (0.70 + 0.26 * t) * 2.05 },
+  { name: 'NORMAL+', grid: 1, minGap: 0.11,  maxChord: 2, nps: (t) => (0.70 + 0.26 * t) * 2.65 },
+  { name: 'HARD',    grid: 1, minGap: 0.085, maxChord: 3, nps: (t) => (0.70 + 0.26 * t) * 3.30 }
 ];
 
 function buildCandidates(analysis, bpm, phase) {

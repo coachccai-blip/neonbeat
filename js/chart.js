@@ -54,3 +54,28 @@ export function density(track, diffName) {
   const d = getDifficulty(track, diffName);
   return d.notes.length / track.duration;
 }
+
+/**
+ * Réduit une chart 4 couloirs en 2 couloirs (mode « 2 keys »).
+ * Couloirs 0-1 → gauche, 2-3 → droite, avec bascule sur l'autre couloir si
+ * le préféré est occupé (hold en cours ou note trop proche) : les trilles
+ * gauche-gauche deviennent des alternances jouables au lieu d'un martèlement.
+ */
+export function to2Keys(raw) {
+  const MIN_GAP = 0.09;
+  const laneEnd = [-1e9, -1e9];
+  const lastAt = [-1e9, -1e9];
+  const out = [];
+  for (const [lane, t, dur] of raw) {
+    const pref = lane < 2 ? 0 : 1;
+    let chosen = -1;
+    for (const c of [pref, 1 - pref]) {
+      if (t >= laneEnd[c] && t - lastAt[c] >= MIN_GAP) { chosen = c; break; }
+    }
+    if (chosen < 0) continue;               // accord à 3-4 notes : surplus retiré
+    lastAt[chosen] = t;
+    laneEnd[chosen] = t + dur + (dur > 0 ? 0.05 : 0);
+    out.push([chosen, t, dur]);
+  }
+  return out;
+}
