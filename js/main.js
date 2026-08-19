@@ -162,6 +162,7 @@ function boot() {
   // Jeu
   $('btn-pause').addEventListener('click', () => S.game && S.game.pause());
   $('btn-resume').addEventListener('click', () => S.game && S.game.resume());
+  $('btn-restart').addEventListener('click', () => S.game && S.game.restart());
   $('btn-quit').addEventListener('click', () => S.game && S.game.quit());
 
   // Résultats
@@ -798,6 +799,15 @@ class Game {
     this.resumeTarget = this.pausedAt;
     this.paused = false;
     this.input.enabled = true;
+  }
+
+  /** Recommence le morceau du début, mêmes réglages (solo uniquement). */
+  restart() {
+    const track = this.track;
+    const diffName = this.diffName;
+    this.dispose();
+    audio.stop();
+    S.game = new Game(track, diffName, { multi: false });
   }
 
   quit() {
