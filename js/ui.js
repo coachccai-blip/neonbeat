@@ -3,6 +3,7 @@
 
 import * as storage from './storage.js';
 import { travelTime, notesOnScreen, clampSpeed } from './storage.js';
+import { t } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -57,12 +58,9 @@ export function describeSpeed(speed, chartInfo) {
   if (!chartInfo) { el.textContent = ''; return; }
   const on = notesOnScreen(chartInfo.bpm, speed, chartInfo.nps);
   const ms = Math.round(travelTime(chartInfo.bpm, speed) * 1000);
-  let verdict;
-  if (on > 7) verdict = 'écran chargé — monte la vitesse pour espacer les notes';
-  else if (on > 4.5) verdict = 'lecture dense';
-  else if (on > 2) verdict = 'lecture confortable';
-  else verdict = 'très aéré';
-  el.textContent = `≈ ${on.toFixed(1)} notes affichées à la fois · ${ms} ms de chute · ${verdict}`;
+  const verdict = on > 7 ? t('speed_v_packed') : on > 4.5 ? t('speed_v_dense')
+    : on > 2 ? t('speed_v_comfy') : t('speed_v_airy');
+  el.textContent = t('speed_hint', { n: on.toFixed(1), ms, verdict });
 }
 
 /* ─── Sélecteurs segmentés (difficulté) ─── */
@@ -79,7 +77,7 @@ export function renderDiffSeg(container, levels, active, onPick, gradeOf) {
     b.className = 'seg-btn' + (d.name === active ? ' is-on' : '');
     b.dataset.diff = d.name;
     const grade = gradeOf ? gradeOf(d.name) : null;
-    b.innerHTML = `${d.name}<small>niv ${d.level}${grade ? ` · <b class="gr">${grade}</b>` : ''}</small>`;
+    b.innerHTML = `${d.name}<small>${t('level_abbr')} ${d.level}${grade ? ` · <b class="gr">${grade}</b>` : ''}</small>`;
     b.addEventListener('click', () => {
       container.querySelectorAll('.seg-btn').forEach((x) => x.classList.remove('is-on'));
       b.classList.add('is-on');
@@ -141,11 +139,11 @@ export function renderPlayers(players, myId) {
     div.style.borderLeftColor = p.color;
     div.innerHTML = `
       <span class="dot" style="background:${p.color}"></span>
-      <span class="pname">${esc(p.name)}${p.id === myId ? ' (toi)' : ''}</span>
+      <span class="pname">${esc(p.name)}${p.id === myId ? t('player_you') : ''}</span>
       <span class="pdiff">${p.difficulty || ''}</span>
-      <span class="pready">${p.off ? 'DÉCONNECTÉ'
+      <span class="pready">${p.off ? t('player_off')
         : p.liveScore !== undefined ? p.liveScore.toLocaleString('fr-FR')
-        : p.ready ? 'PRÊT' : '…'}</span>`;
+        : p.ready ? t('player_ready') : t('player_wait')}</span>`;
     box.appendChild(div);
   }
 }
@@ -208,7 +206,7 @@ export function renderLocalBoard(entries, isNewRecord, myScore) {
   if (!entries.length) return;
   const title = document.createElement('div');
   title.className = 'board-title';
-  title.textContent = 'MEILLEURS SCORES LOCAUX';
+  title.textContent = t('board_title');
   box.appendChild(title);
   entries.slice(0, 5).forEach((e, i) => {
     const row = document.createElement('div');
@@ -223,8 +221,8 @@ export function renderLocalBoard(entries, isNewRecord, myScore) {
 }
 
 function modsShort(ids) {
-  if (!ids || !ids.length) return 'sans effet';
-  return 'effets : ' + ids.map((id) => ({ MIRROR: 'MI', FADE: 'FD', SUDDEN: 'SU', NIGHTCORE: 'NC' }[id] || id)).join('·');
+  if (!ids || !ids.length) return t('board_nomods');
+  return t('board_mods') + ids.map((id) => ({ MIRROR: 'MI', FADE: 'FD', SUDDEN: 'SU', NIGHTCORE: 'NC' }[id] || id)).join('·');
 }
 
 /* ─── Résultats ─── */
@@ -239,17 +237,17 @@ export function renderResults(track, res, ranking, myId) {
     <div class="stat great"><div class="v">${res.counts.GREAT}</div><div class="k">GREAT</div></div>
     <div class="stat good"><div class="v">${res.counts.GOOD}</div><div class="k">GOOD</div></div>
     <div class="stat miss"><div class="v">${res.counts.MISS}</div><div class="k">MISS</div></div>
-    <div class="stat"><div class="v">${res.comboMax}</div><div class="k">COMBO MAX</div></div>
-    <div class="stat"><div class="v">${(res.precision * 100).toFixed(1)}%</div><div class="k">PRÉCISION</div></div>`;
+    <div class="stat"><div class="v">${res.comboMax}</div><div class="k">${t('res_combo_max')}</div></div>
+    <div class="stat"><div class="v">${(res.precision * 100).toFixed(1)}%</div><div class="k">${t('res_precision')}</div></div>`;
 
   const timingEl = $('res-timing');
   if (timingEl) {
     const tm = res.timing;
     if (tm && (tm.earlyPct || tm.latePct)) {
-      const lean = tm.avgMs > 0 ? 'en retard' : 'en avance';
-      let txt = `Frappes : ${tm.earlyPct} % en avance · ${tm.latePct} % en retard · moyenne ${tm.avgMs > 0 ? '+' : ''}${tm.avgMs} ms`;
+      const avg = (tm.avgMs > 0 ? '+' : '') + tm.avgMs;
+      let txt = t('res_timing', { early: tm.earlyPct, late: tm.latePct, avg });
       if (Math.abs(tm.avgMs) >= 25) {
-        txt += `<br><strong>Conseil : tu tapes surtout ${lean} — recalibre ou ajuste ton offset de ${tm.avgMs > 0 ? '+' : ''}${tm.avgMs} ms.</strong>`;
+        txt += `<br><strong>${t(tm.avgMs > 0 ? 'res_advice_late' : 'res_advice_early', { avg })}</strong>`;
       }
       timingEl.innerHTML = txt;
     } else {
@@ -266,7 +264,7 @@ export function renderResults(track, res, ranking, myId) {
       row.innerHTML = `
         <span class="pos">${i + 1}</span>
         <span class="dot" style="width:10px;height:10px;border-radius:50%;background:${r.color};flex:none"></span>
-        <span class="rn">${esc(r.name)}${r.id === myId ? ' (toi)' : ''}${r.off ? ' · déconnecté' : ''}</span>
+        <span class="rn">${esc(r.name)}${r.id === myId ? t('player_you') : ''}${r.off ? t('rank_off') : ''}</span>
         <span class="rs">${(r.score || 0).toLocaleString('fr-FR')}</span>
         <span class="rg">${r.grade || ''}</span>`;
       box.appendChild(row);

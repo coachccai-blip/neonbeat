@@ -15,6 +15,7 @@ const DEFAULTS = {
   vibrate: false,
   lastTrack: null,
   lastDiff: 'NORMAL',
+  lang: 'fr',
   mods: [],           // effets actifs : 'MIRROR' | 'FADE' | 'SUDDEN' | 'NIGHTCORE'
   scores: {},         // "trackId|DIFF" → meilleur { score, grade, precision, comboMax, mods }
   board: {}           // "trackId|DIFF" → top 8 [{ score, grade, mods, name }]

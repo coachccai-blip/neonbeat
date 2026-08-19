@@ -386,7 +386,7 @@ export class Renderer {
       ctx.font = `800 ${Math.round(w * 0.05)}px 'Inter', 'Segoe UI', Roboto, Arial, sans-serif`;
       ctx.textAlign = 'center';
       ctx.fillStyle = 'rgba(255,77,77,0.85)';
-      ctx.fillText('FAILED — SCORE FIGÉ', w / 2, h * 0.3);
+      ctx.fillText(this.failedText || 'FAILED', w / 2, h * 0.3);
     }
 
     // Décompte avant le début du morceau

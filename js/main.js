@@ -11,6 +11,8 @@ import { Calibration } from './calibration.js';
 import { ClockSync } from './clock.js';
 import { Host, Client, normalizeCode, MAX_PLAYERS } from './net.js';
 import { MODS, multiplierFor, modsLabel } from './mods.js';
+import * as i18n from './i18n.js';
+const { t } = i18n;
 
 const $ = (id) => document.getElementById(id);
 
@@ -44,6 +46,7 @@ function displayName() {
 /* ══════════════════ Navigation & boutons ══════════════════ */
 
 function boot() {
+  i18n.init();
   // Précharge la police embarquée : le canvas ne participe pas au chargement
   // automatique des @font-face, il faut la demander explicitement.
   if (document.fonts && document.fonts.load) {
@@ -73,14 +76,14 @@ function boot() {
 
   $('btn-create').addEventListener('click', () => {
     audio.unlock();
-    if (!window.Peer) return ui.toast('Multijoueur indisponible (PeerJS non chargé)');
+    if (!window.Peer) return ui.toast(t('net_nopeer'));
     if (!storage.get('calibrated')) return goCalibrate('create');
     createRoom();
   });
 
   $('btn-join').addEventListener('click', () => {
     audio.unlock();
-    if (!window.Peer) return ui.toast('Multijoueur indisponible (PeerJS non chargé)');
+    if (!window.Peer) return ui.toast(t('net_nopeer'));
     ui.show('join');
     $('join-code').focus();
   });
@@ -162,6 +165,23 @@ function boot() {
   });
   $('btn-recalib').addEventListener('click', () => goCalibrate('settings'));
 
+  // Langue : FR / EN / 中文, appliquée immédiatement à toute l'interface.
+  const langBox = $('set-lang');
+  const renderLangs = () => {
+    langBox.innerHTML = '';
+    for (const l of i18n.LANGS) {
+      const b = document.createElement('button');
+      b.className = 'seg-btn' + (i18n.current() === l.id ? ' is-on' : '');
+      b.textContent = l.name;
+      b.addEventListener('click', () => {
+        i18n.setLang(l.id);
+        renderLangs();
+      });
+      langBox.appendChild(b);
+    }
+  };
+  renderLangs();
+
   ui.onScreenChange((name) => {
     if (name === 'settings') ui.startSpeedPreview();
     else ui.stopSpeedPreview();
@@ -201,7 +221,7 @@ function boot() {
   }
 
   if (!window.Peer) {
-    $('net-note').textContent = 'Multijoueur indisponible — le solo reste jouable.';
+    $('net-note').textContent = t('net_unavailable');
     $('btn-create').disabled = true;
     $('btn-join').disabled = true;
   }
@@ -211,7 +231,7 @@ function boot() {
     const last = tracks.find((t) => t.id === storage.get('lastTrack'));
     S.selectedTrack = last || tracks[0];
   }).catch(() => {
-    ui.toast('Impossible de charger la liste des morceaux');
+    ui.toast(t('tracks_error'));
   });
 }
 
@@ -220,7 +240,7 @@ function boot() {
 function openSelect() {
   ui.show('select');
   closeSheet();
-  $('btn-play').textContent = S.selectPurpose === 'lobby' ? 'CHOISIR CE MORCEAU' : 'JOUER';
+  $('btn-play').textContent = S.selectPurpose === 'lobby' ? t('select_pick') : t('select_play');
   ui.renderTrackList(S.tracks, S.selectedTrack && S.selectedTrack.id, (t) => {
     S.selectedTrack = t;
     storage.set('lastTrack', t.id);
@@ -326,7 +346,7 @@ function goCalibrate(returnTo) {
   S.pendingCalibReturn = returnTo;
   $('calib-result').textContent = '';
   $('calib-count').innerHTML = '0<span>/20</span>';
-  $('btn-calib-start').textContent = 'DÉMARRER';
+  $('btn-calib-start').textContent = t('calib_start');
   ui.show('calib');
 }
 
@@ -350,14 +370,13 @@ function startCalibration() {
       stage.removeEventListener('pointerdown', onTapDown);
       $('btn-calib-start').disabled = false;
       if (r.unstable) {
-        $('calib-result').textContent =
-          `Ta latence : ${r.offset} ms — mais l'écart-type est de ${r.deviation} ms. Recommence pour un meilleur réglage.`;
-        $('btn-calib-start').textContent = 'RECOMMENCER';
+        $('calib-result').textContent = t('calib_unstable', { off: r.offset, dev: r.deviation });
+        $('btn-calib-start').textContent = t('calib_retry');
         return;
       }
       storage.set('offset', r.offset);
       storage.set('calibrated', true);
-      $('calib-result').textContent = `Ta latence : ${r.offset} ms (écart-type ${r.deviation} ms). Réglage enregistré !`;
+      $('calib-result').textContent = t('calib_done', { off: r.offset, dev: r.deviation });
       ui.refreshSettings();
       setTimeout(afterCalibration, 1100);
     }
@@ -443,6 +462,7 @@ class Game {
     this.renderer.setChart(this.engine.notes, track.bpm, storage.get('speed'));
     this.renderer.setWaveform(audio.waveform(track.id), track.color);
     this.renderer.mods = { fade: this.mods.includes('FADE'), sudden: this.mods.includes('SUDDEN') };
+    this.renderer.failedText = t('game_failed');
 
     // Échap : pause / reprise (solo uniquement, comme le bouton II).
     this._onEsc = (e) => {
@@ -593,7 +613,7 @@ class Game {
   onHidden() {
     if (this.finished) return;
     if (!this.opts.multi) this.pause();
-    else ui.toast('Tu as quitté le jeu — les notes ont continué sans toi');
+    else ui.toast(t('game_hidden'));
   }
 
   resume() {
@@ -644,7 +664,7 @@ async function startSolo() {
     const track = await withLoading(t.id);
     S.game = new Game(track, S.myDiff, { multi: false });
   } catch (e) {
-    ui.toast('Erreur au chargement du morceau');
+    ui.toast(t('loading_error'));
     ui.show('select');
   }
 }
@@ -654,10 +674,8 @@ async function withLoading(trackId) {
   $('loader-bar').style.width = '0%';
   const track = await loadTrack(trackId);
   const imported = !!track.audio;
-  $('loading-title').textContent = imported ? 'CHARGEMENT DU MORCEAU' : 'SYNTHÈSE DU MORCEAU';
-  $('loading-hint').textContent = imported
-    ? 'Téléchargement et décodage de la piste audio…'
-    : 'La musique est générée sur ton téléphone, note par note.';
+  $('loading-title').textContent = t(imported ? 'loading_load' : 'loading_synth');
+  $('loading-hint').textContent = t(imported ? 'loading_load_hint' : 'loading_synth_hint');
   await audio.prepare(trackId, (p) => {
     $('loader-bar').style.width = Math.round(p * 100) + '%';
   }, track.audio);
@@ -692,7 +710,7 @@ function onGameFinished(res) {
     ui.renderResults({ title: S.selectedTrack.title }, res, null, S.myId);
     ui.renderLocalBoard([], false, 0);
     ui.show('results');
-    ui.toast('En attente du classement…');
+    ui.toast(t('res_waiting_rank'));
   } else if (S.mode === 'host') {
     S.myResult = res;
     const me = S.players.get(HOST_ID);
@@ -761,7 +779,7 @@ function createRoom() {
   S.myId = HOST_ID;
   document.body.classList.add('is-host');
   ui.show('lobby');
-  $('lobby-status').textContent = 'Ouverture du salon…';
+  $('lobby-status').textContent = t('lobby_opening');
   $('room-code').textContent = '····';
 
   S.players.set(HOST_ID, {
@@ -777,12 +795,12 @@ function createRoom() {
       const url = location.origin + location.pathname + '#' + code;
       ui.drawQr($('qr-canvas'), url);
       history.replaceState(null, '', '#' + code);
-      $('lobby-status').textContent = 'Partage le code ou fais scanner le QR.';
+      $('lobby-status').textContent = t('lobby_share');
       hostPickTrack((S.selectedTrack || S.tracks[0]).id);
     },
     onError: (err) => {
-      $('lobby-status').textContent = 'Salon impossible à ouvrir (' + err + '). Le solo reste jouable.';
-      ui.toast('Broker PeerJS injoignable');
+      $('lobby-status').textContent = t('lobby_open_fail', { err });
+      ui.toast(t('net_broker'));
     },
     onJoin: (peerId) => {
       // Le joueur enverra JOIN {name,color} ; on l'inscrit dès sa connexion
@@ -817,7 +835,7 @@ function hostOnMessage(peerId, msg) {
       p.off = false;
       refreshLobby();
       hostBroadcastLobby();
-      ui.toast(`${p.name} a rejoint le salon`);
+      ui.toast(t('lobby_joined', { name: p.name }));
       break;
     case 'READY':
       p.ready = !!msg.ready;
@@ -890,7 +908,7 @@ async function hostStartGame() {
   if (S.mode !== 'host' || !S.selectedTrack || S.game) return;
   const others = [...S.players.entries()].filter(([id]) => id !== HOST_ID);
   const notReady = others.filter(([, p]) => !p.ready && !p.off);
-  if (notReady.length) return ui.toast('Tout le monde doit être prêt');
+  if (notReady.length) return ui.toast(t('lobby_all_ready'));
 
   // Phase de chargement : chacun synthétise le morceau, puis LOADED.
   S.resultsSent = false;
@@ -900,9 +918,9 @@ async function hostStartGame() {
 
   try {
     await withLoading(S.selectedTrack.id);
-    $('loading-hint').textContent = 'Chaque téléphone génère la musique de son côté…';
+    $('loading-hint').textContent = t('loading_others');
   } catch {
-    ui.toast('Erreur de chargement');
+    ui.toast(t('loading_error'));
     return ui.show('lobby');
   }
   const me = S.players.get(HOST_ID);
@@ -965,7 +983,7 @@ function hostMaybeSendResults(force = false) {
 
 function joinRoom() {
   const code = normalizeCode($('join-code').value);
-  if (!code) return ui.toast('Le code fait 4 lettres');
+  if (!code) return ui.toast(t('join_code4'));
   audio.unlock();
   S.joinCode = code;
   if (!storage.get('calibrated')) return goCalibrate('join');
@@ -976,7 +994,7 @@ function clientEnterLobby() {
   leaveRoom();
   S.mode = 'client';
   S.myId = null;
-  $('join-status').textContent = 'Connexion…';
+  $('join-status').textContent = t('join_connecting');
   ui.show('join');
 
   S.net = new Client({
@@ -987,7 +1005,7 @@ function clientEnterLobby() {
       $('room-code').textContent = S.joinCode;
       const url = location.origin + location.pathname + '#' + S.joinCode;
       ui.drawQr($('qr-canvas'), url);
-      $('lobby-status').textContent = 'Connecté ! Choisis ta difficulté et appuie sur PRÊT.';
+      $('lobby-status').textContent = t('lobby_connected');
       // Sync d'horloge : indispensable au mode salon, relancée toutes les 15 s.
       S.clock = new ClockSync();
       const sync = () => S.clock.run((m) => S.net && S.net.send(m));
@@ -996,9 +1014,7 @@ function clientEnterLobby() {
     },
     onMessage: clientOnMessage,
     onError: (err) => {
-      $('join-status').textContent = err === 'not-found'
-        ? 'Aucun salon avec ce code. Vérifie les 4 lettres.'
-        : 'Connexion impossible. Réessaie.';
+      $('join-status').textContent = t(err === 'not-found' ? 'join_notfound' : 'join_failed');
       ui.show('join');
     },
     onClose: () => {
@@ -1006,9 +1022,9 @@ function clientEnterLobby() {
       if (S.game) {
         // L'hôte a quitté : la partie se termine en solo (§7.6).
         S.hostLeft = true;
-        ui.toast("L'hôte a quitté — termine ton morceau !");
+        ui.toast(t('host_left'));
       } else if (ui.screen() === 'lobby' || ui.screen() === 'results') {
-        ui.toast("La connexion au salon est perdue");
+        ui.toast(t('lobby_lost'));
         leaveRoom();
         ui.show('home');
       }
@@ -1071,7 +1087,7 @@ function clientOnMessage(msg) {
       ui.show('results');
       break;
     case 'KICK':
-      ui.toast(msg.reason === 'full' ? 'Salon complet (4 joueurs max)' : 'Exclu du salon');
+      ui.toast(t(msg.reason === 'full' ? 'room_full' : 'room_kicked'));
       leaveRoom();
       ui.show('home');
       break;
@@ -1088,9 +1104,9 @@ async function clientLoad(msg) {
   try {
     await withLoading(msg.trackId);
     S.net.send({ t: 'LOADED' });
-    $('loading-hint').textContent = 'Prêt ! En attente des autres joueurs…';
+    $('loading-hint').textContent = t('loading_waiting');
   } catch {
-    ui.toast('Erreur de chargement du morceau');
+    ui.toast(t('loading_error'));
   }
 }
 
@@ -1106,7 +1122,7 @@ function clientStart(msg) {
       startPerf = performance.now() + 3200;
     } else {
       startPerf = performance.now() + 3200;
-      ui.toast('Sync d\'horloge indisponible — le rythme peut flotter');
+      ui.toast(t('sync_warn'));
     }
     const me = S.players.get(S.myId);
     S.game = new Game(track, (me && me.difficulty) || S.myDiff, {
@@ -1127,7 +1143,7 @@ function refreshLobby() {
   });
   ui.renderPlayers(players, S.myId);
   if (playing && S.mode === 'client' && !S.game) {
-    $('lobby-status').textContent = 'Partie en cours — tu joueras au prochain morceau.';
+    $('lobby-status').textContent = t('lobby_playing');
   }
   const t = S.selectedTrack;
   if (t) {
@@ -1158,7 +1174,7 @@ function refreshLobby() {
   } else {
     $('btn-ready').style.display = '';
     const me = S.players.get(S.myId);
-    $('btn-ready').textContent = me && me.ready ? 'PAS ENCORE…' : 'JE SUIS PRÊT';
+    $('btn-ready').textContent = t(me && me.ready ? 'lobby_unready' : 'lobby_ready');
   }
 }
 
@@ -1186,7 +1202,7 @@ async function openCredits() {
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\n\n/g, '<br><br>');
   } catch {
-    box.textContent = 'Crédits indisponibles hors ligne.';
+    box.textContent = t('credits_offline');
   }
 }
 

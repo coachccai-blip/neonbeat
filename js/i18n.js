@@ -1,0 +1,252 @@
+// Internationalisation : français (défaut), anglais, chinois simplifié.
+// Les termes de jeu de rythme (PERFECT, COMBO, FEVER, EASY…) restent en
+// anglais dans toutes les langues, comme dans DJ Max.
+
+import * as storage from './storage.js';
+
+const STRINGS = {
+  fr: {
+    tagline: '4 joueurs · 1 salon · 4 touches',
+    pc_hint: 'Sur PC : touches <kbd>Z</kbd><kbd>E</kbd><kbd>I</kbd><kbd>O</kbd> (ou <kbd>D</kbd><kbd>F</kbd><kbd>J</kbd><kbd>K</kbd>)',
+    home_solo: 'JOUER EN SOLO', home_create: 'CRÉER UNE PARTIE', home_join: 'REJOINDRE UNE PARTIE',
+    home_settings: 'RÉGLAGES', home_calib: 'CALIBRER', home_credits: 'CRÉDITS',
+    back: '‹ RETOUR', quit: '‹ QUITTER',
+    join_title: 'CODE DU SALON', join_hint: 'Demande le code à l’hôte, ou scanne son QR code.',
+    join_go: 'REJOINDRE', join_placeholder: '····',
+    join_connecting: 'Connexion…', join_notfound: 'Aucun salon avec ce code. Vérifie les 4 lettres.',
+    join_failed: 'Connexion impossible. Réessaie.', join_code4: 'Le code fait 4 lettres',
+    lobby_code: 'CODE DU SALON', lobby_share: 'Partage le code ou fais scanner le QR.',
+    lobby_track: 'MORCEAU CHOISI PAR L’HÔTE', lobby_change: 'CHANGER',
+    lobby_sound: 'SON', lobby_shared: 'SALON', lobby_shared_sub: 'hôte seul',
+    lobby_individual: 'CASQUES', lobby_individual_sub: 'chacun le sien',
+    lobby_mydiff: 'MA DIFFICULTÉ', lobby_ready: 'JE SUIS PRÊT', lobby_unready: 'PAS ENCORE…',
+    lobby_start: 'LANCER LA PARTIE', lobby_opening: 'Ouverture du salon…',
+    lobby_open_fail: 'Salon impossible à ouvrir ({err}). Le solo reste jouable.',
+    lobby_connected: 'Connecté ! Choisis ta difficulté et appuie sur PRÊT.',
+    lobby_joined: '{name} a rejoint le salon', lobby_all_ready: 'Tout le monde doit être prêt',
+    lobby_playing: 'Partie en cours — tu joueras au prochain morceau.',
+    lobby_lost: 'La connexion au salon est perdue',
+    select_title: 'MORCEAUX', select_diff: 'DIFFICULTÉ', select_mods: 'EFFETS',
+    select_speed: 'VITESSE DE CHUTE', select_play: 'JOUER', select_pick: 'CHOISIR CE MORCEAU',
+    level_abbr: 'niv',
+    speed_hint: '≈ {n} notes affichées à la fois · {ms} ms de chute · {verdict}',
+    speed_v_packed: 'écran chargé — monte la vitesse pour espacer les notes',
+    speed_v_dense: 'lecture dense', speed_v_comfy: 'lecture confortable', speed_v_airy: 'très aéré',
+    calib_title: 'CALIBRATION',
+    calib_hint: 'Tape en rythme avec le clic. 20 frappes suffisent.\nC’est ce réglage qui rend le jeu jouable sur ton téléphone.',
+    calib_start: 'DÉMARRER', calib_retry: 'RECOMMENCER', calib_later: 'PLUS TARD',
+    calib_unstable: 'Ta latence : {off} ms — mais l’écart-type est de {dev} ms. Recommence pour un meilleur réglage.',
+    calib_done: 'Ta latence : {off} ms (écart-type {dev} ms). Réglage enregistré !',
+    loading_synth: 'SYNTHÈSE DU MORCEAU', loading_load: 'CHARGEMENT DU MORCEAU',
+    loading_synth_hint: 'La musique est générée sur ton téléphone, note par note.',
+    loading_load_hint: 'Téléchargement et décodage de la piste audio…',
+    loading_others: 'Chaque téléphone génère la musique de son côté…',
+    loading_waiting: 'Prêt ! En attente des autres joueurs…',
+    loading_error: 'Erreur au chargement du morceau',
+    pause_title: 'EN PAUSE', pause_hint: 'La partie reprend au compte à rebours.',
+    pause_resume: 'REPRENDRE', pause_quit: 'ABANDONNER',
+    game_failed: 'FAILED — SCORE FIGÉ',
+    game_hidden: 'Tu as quitté le jeu — les notes ont continué sans toi',
+    res_again: 'REJOUER', res_change: 'CHANGER DE MORCEAU', res_record: 'NOUVEAU RECORD !',
+    res_combo_max: 'COMBO MAX', res_precision: 'PRÉCISION',
+    res_timing: 'Frappes : {early} % en avance · {late} % en retard · moyenne {avg} ms',
+    res_advice_late: 'Conseil : tu tapes surtout en retard — recalibre ou ajuste ton offset de {avg} ms.',
+    res_advice_early: 'Conseil : tu tapes surtout en avance — recalibre ou ajuste ton offset de {avg} ms.',
+    res_waiting_rank: 'En attente du classement…',
+    board_title: 'MEILLEURS SCORES LOCAUX', board_nomods: 'sans effet', board_mods: 'effets : ',
+    player_you: ' (toi)', player_ready: 'PRÊT', player_off: 'DÉCONNECTÉ', player_wait: '…',
+    rank_off: ' · déconnecté',
+    set_title: 'RÉGLAGES', set_name: 'PSEUDO', set_color: 'COULEUR', set_lang: 'LANGUE',
+    set_speed_hint: 'Plus la vitesse est haute, moins il y a de notes affichées en même temps. Les notes tombent plus vite mais l’écran reste lisible.',
+    set_offset: 'OFFSET DE CALIBRATION', set_recalib: 'RELANCER LA CALIBRATION',
+    set_bt_hint: 'Recalibre si tu changes de casque : le Bluetooth ajoute facilement 150 ms.',
+    set_volume: 'VOLUME MUSIQUE', set_hitsound: 'SON DE FRAPPE', set_vibrate: 'RETOUR HAPTIQUE',
+    credits_title: 'CRÉDITS', credits_offline: 'Crédits indisponibles hors ligne.',
+    rotate_title: 'TOURNE TON TÉLÉPHONE', rotate_hint: 'NEONBEAT se joue en mode portrait.',
+    net_unavailable: 'Multijoueur indisponible — le solo reste jouable.',
+    net_nopeer: 'Multijoueur indisponible (PeerJS non chargé)',
+    net_broker: 'Broker PeerJS injoignable',
+    room_full: 'Salon complet (4 joueurs max)', room_kicked: 'Exclu du salon',
+    host_left: 'L’hôte a quitté — termine ton morceau !',
+    sync_warn: 'Sync d’horloge indisponible — le rythme peut flotter',
+    tracks_error: 'Impossible de charger la liste des morceaux'
+  },
+
+  en: {
+    tagline: '4 players · 1 room · 4 keys',
+    pc_hint: 'On PC: keys <kbd>Z</kbd><kbd>E</kbd><kbd>I</kbd><kbd>O</kbd> (or <kbd>D</kbd><kbd>F</kbd><kbd>J</kbd><kbd>K</kbd>)',
+    home_solo: 'PLAY SOLO', home_create: 'CREATE A ROOM', home_join: 'JOIN A ROOM',
+    home_settings: 'SETTINGS', home_calib: 'CALIBRATE', home_credits: 'CREDITS',
+    back: '‹ BACK', quit: '‹ LEAVE',
+    join_title: 'ROOM CODE', join_hint: 'Ask the host for the code, or scan their QR code.',
+    join_go: 'JOIN', join_placeholder: '····',
+    join_connecting: 'Connecting…', join_notfound: 'No room with this code. Check the 4 letters.',
+    join_failed: 'Could not connect. Try again.', join_code4: 'The code is 4 letters',
+    lobby_code: 'ROOM CODE', lobby_share: 'Share the code or let friends scan the QR.',
+    lobby_track: 'TRACK PICKED BY THE HOST', lobby_change: 'CHANGE',
+    lobby_sound: 'SOUND', lobby_shared: 'PARTY', lobby_shared_sub: 'host only',
+    lobby_individual: 'HEADPHONES', lobby_individual_sub: 'each their own',
+    lobby_mydiff: 'MY DIFFICULTY', lobby_ready: 'I’M READY', lobby_unready: 'NOT YET…',
+    lobby_start: 'START GAME', lobby_opening: 'Opening the room…',
+    lobby_open_fail: 'Could not open the room ({err}). Solo still works.',
+    lobby_connected: 'Connected! Pick your difficulty and press READY.',
+    lobby_joined: '{name} joined the room', lobby_all_ready: 'Everyone must be ready',
+    lobby_playing: 'Game in progress — you’ll play the next track.',
+    lobby_lost: 'Connection to the room was lost',
+    select_title: 'TRACKS', select_diff: 'DIFFICULTY', select_mods: 'MODIFIERS',
+    select_speed: 'FALL SPEED', select_play: 'PLAY', select_pick: 'PICK THIS TRACK',
+    level_abbr: 'lv',
+    speed_hint: '≈ {n} notes on screen · {ms} ms fall time · {verdict}',
+    speed_v_packed: 'crowded — raise the speed to space notes out',
+    speed_v_dense: 'dense reading', speed_v_comfy: 'comfortable', speed_v_airy: 'very airy',
+    calib_title: 'CALIBRATION',
+    calib_hint: 'Tap along with the click. 20 taps are enough.\nThis setting is what makes the game playable on your device.',
+    calib_start: 'START', calib_retry: 'RETRY', calib_later: 'LATER',
+    calib_unstable: 'Your latency: {off} ms — but the deviation is {dev} ms. Try again for a better result.',
+    calib_done: 'Your latency: {off} ms (deviation {dev} ms). Saved!',
+    loading_synth: 'SYNTHESIZING TRACK', loading_load: 'LOADING TRACK',
+    loading_synth_hint: 'The music is generated on your device, note by note.',
+    loading_load_hint: 'Downloading and decoding the audio…',
+    loading_others: 'Each phone is generating the music on its own…',
+    loading_waiting: 'Ready! Waiting for the other players…',
+    loading_error: 'Failed to load the track',
+    pause_title: 'PAUSED', pause_hint: 'The game resumes with a countdown.',
+    pause_resume: 'RESUME', pause_quit: 'GIVE UP',
+    game_failed: 'FAILED — SCORE FROZEN',
+    game_hidden: 'You left the game — the notes kept going without you',
+    res_again: 'PLAY AGAIN', res_change: 'CHANGE TRACK', res_record: 'NEW RECORD!',
+    res_combo_max: 'MAX COMBO', res_precision: 'ACCURACY',
+    res_timing: 'Hits: {early}% early · {late}% late · average {avg} ms',
+    res_advice_late: 'Tip: you mostly hit late — recalibrate or adjust your offset by {avg} ms.',
+    res_advice_early: 'Tip: you mostly hit early — recalibrate or adjust your offset by {avg} ms.',
+    res_waiting_rank: 'Waiting for the ranking…',
+    board_title: 'LOCAL BEST SCORES', board_nomods: 'no modifiers', board_mods: 'modifiers: ',
+    player_you: ' (you)', player_ready: 'READY', player_off: 'DISCONNECTED', player_wait: '…',
+    rank_off: ' · disconnected',
+    set_title: 'SETTINGS', set_name: 'NICKNAME', set_color: 'COLOR', set_lang: 'LANGUAGE',
+    set_speed_hint: 'The higher the speed, the fewer notes are shown at once. Notes fall faster but the screen stays readable.',
+    set_offset: 'CALIBRATION OFFSET', set_recalib: 'RUN CALIBRATION AGAIN',
+    set_bt_hint: 'Recalibrate when you switch headphones: Bluetooth easily adds 150 ms.',
+    set_volume: 'MUSIC VOLUME', set_hitsound: 'HIT SOUND', set_vibrate: 'HAPTIC FEEDBACK',
+    credits_title: 'CREDITS', credits_offline: 'Credits unavailable offline.',
+    rotate_title: 'ROTATE YOUR PHONE', rotate_hint: 'NEONBEAT is played in portrait mode.',
+    net_unavailable: 'Multiplayer unavailable — solo still works.',
+    net_nopeer: 'Multiplayer unavailable (PeerJS not loaded)',
+    net_broker: 'PeerJS broker unreachable',
+    room_full: 'Room is full (4 players max)', room_kicked: 'Removed from the room',
+    host_left: 'The host left — finish your track!',
+    sync_warn: 'Clock sync unavailable — timing may drift',
+    tracks_error: 'Could not load the track list'
+  },
+
+  zh: {
+    tagline: '4名玩家 · 1个房间 · 4个按键',
+    pc_hint: '电脑按键：<kbd>Z</kbd><kbd>E</kbd><kbd>I</kbd><kbd>O</kbd>（或 <kbd>D</kbd><kbd>F</kbd><kbd>J</kbd><kbd>K</kbd>）',
+    home_solo: '单人游戏', home_create: '创建房间', home_join: '加入房间',
+    home_settings: '设置', home_calib: '校准', home_credits: '制作名单',
+    back: '‹ 返回', quit: '‹ 退出',
+    join_title: '房间代码', join_hint: '向房主索取代码，或扫描房主的二维码。',
+    join_go: '加入', join_placeholder: '····',
+    join_connecting: '连接中…', join_notfound: '没有找到该代码的房间。请检查这4个字母。',
+    join_failed: '无法连接，请重试。', join_code4: '代码为4个字母',
+    lobby_code: '房间代码', lobby_share: '分享代码或让朋友扫描二维码。',
+    lobby_track: '房主选择的歌曲', lobby_change: '更换',
+    lobby_sound: '声音', lobby_shared: '聚会模式', lobby_shared_sub: '仅房主播放',
+    lobby_individual: '耳机模式', lobby_individual_sub: '各自播放',
+    lobby_mydiff: '我的难度', lobby_ready: '准备好了', lobby_unready: '还没好…',
+    lobby_start: '开始游戏', lobby_opening: '正在创建房间…',
+    lobby_open_fail: '无法创建房间（{err}）。单人模式仍然可用。',
+    lobby_connected: '已连接！选择难度并点击「准备」。',
+    lobby_joined: '{name} 加入了房间', lobby_all_ready: '所有人都必须准备好',
+    lobby_playing: '游戏进行中——你将参加下一首歌。',
+    lobby_lost: '与房间的连接已断开',
+    select_title: '歌曲列表', select_diff: '难度', select_mods: '效果',
+    select_speed: '下落速度', select_play: '开始', select_pick: '选择这首歌',
+    level_abbr: 'Lv',
+    speed_hint: '≈ 同屏 {n} 个音符 · 下落 {ms} 毫秒 · {verdict}',
+    speed_v_packed: '屏幕太满——提高速度让音符更稀疏',
+    speed_v_dense: '密集', speed_v_comfy: '舒适', speed_v_airy: '非常宽松',
+    calib_title: '校准',
+    calib_hint: '跟着节拍声点击，20次即可。\n这个设置决定了游戏在你设备上的手感。',
+    calib_start: '开始', calib_retry: '重新校准', calib_later: '稍后再说',
+    calib_unstable: '你的延迟：{off} 毫秒——但标准差为 {dev} 毫秒。建议重新校准。',
+    calib_done: '你的延迟：{off} 毫秒（标准差 {dev} 毫秒）。已保存！',
+    loading_synth: '正在合成音乐', loading_load: '正在加载歌曲',
+    loading_synth_hint: '音乐正在你的设备上逐音符生成。',
+    loading_load_hint: '正在下载并解码音频…',
+    loading_others: '每台手机正在各自生成音乐…',
+    loading_waiting: '准备完毕！等待其他玩家…',
+    loading_error: '歌曲加载失败',
+    pause_title: '已暂停', pause_hint: '游戏将在倒计时后继续。',
+    pause_resume: '继续', pause_quit: '放弃',
+    game_failed: 'FAILED — 分数已冻结',
+    game_hidden: '你离开了游戏——音符没有等你',
+    res_again: '再玩一次', res_change: '换一首歌', res_record: '新纪录！',
+    res_combo_max: '最大连击', res_precision: '准确率',
+    res_timing: '击打：{early}% 偏早 · {late}% 偏晚 · 平均 {avg} 毫秒',
+    res_advice_late: '建议：你的击打偏晚——重新校准或将偏移调整 {avg} 毫秒。',
+    res_advice_early: '建议：你的击打偏早——重新校准或将偏移调整 {avg} 毫秒。',
+    res_waiting_rank: '等待排名…',
+    board_title: '本地最高分', board_nomods: '无效果', board_mods: '效果：',
+    player_you: '（你）', player_ready: '已准备', player_off: '已断线', player_wait: '…',
+    rank_off: ' · 已断线',
+    set_title: '设置', set_name: '昵称', set_color: '颜色', set_lang: '语言',
+    set_speed_hint: '速度越高，同屏音符越少。音符下落更快，但画面更清晰。',
+    set_offset: '校准偏移', set_recalib: '重新校准',
+    set_bt_hint: '更换耳机后请重新校准：蓝牙很容易增加150毫秒延迟。',
+    set_volume: '音乐音量', set_hitsound: '击打音效', set_vibrate: '振动反馈',
+    credits_title: '制作名单', credits_offline: '离线时无法显示制作名单。',
+    rotate_title: '请旋转手机', rotate_hint: 'NEONBEAT 需要竖屏游玩。',
+    net_unavailable: '多人模式不可用——单人模式仍然可玩。',
+    net_nopeer: '多人模式不可用（PeerJS 未加载）',
+    net_broker: '无法连接 PeerJS 服务器',
+    room_full: '房间已满（最多4名玩家）', room_kicked: '已被移出房间',
+    host_left: '房主已离开——打完这首歌吧！',
+    sync_warn: '时钟同步不可用——节奏可能漂移',
+    tracks_error: '无法加载歌曲列表'
+  }
+};
+
+export const LANGS = [
+  { id: 'fr', name: 'Français' },
+  { id: 'en', name: 'English' },
+  { id: 'zh', name: '中文' }
+];
+
+let lang = 'fr';
+
+export function current() {
+  return lang;
+}
+
+export function t(key, vars) {
+  let s = (STRINGS[lang] && STRINGS[lang][key]) || STRINGS.fr[key] || key;
+  if (vars) {
+    for (const [k, v] of Object.entries(vars)) s = s.split('{' + k + '}').join(v);
+  }
+  return s;
+}
+
+export function setLang(l) {
+  if (!STRINGS[l]) return;
+  lang = l;
+  storage.set('lang', l);
+  apply();
+}
+
+export function init() {
+  const saved = storage.get('lang');
+  lang = STRINGS[saved] ? saved : 'fr';
+  apply();
+}
+
+/** Applique les traductions à tous les éléments balisés du DOM. */
+export function apply() {
+  document.documentElement.lang = lang === 'zh' ? 'zh-CN' : lang;
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-html]').forEach((el) => {
+    el.innerHTML = t(el.dataset.i18nHtml);
+  });
+}
