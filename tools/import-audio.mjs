@@ -422,9 +422,13 @@ const phase = Math.abs(phaseKey - bpm) < 1 ? analysis.phaseFor[phaseKey] : 0;
 console.log(`durée ${analysis.duration.toFixed(1)}s · BPM retenu ${bpm} (candidats : ${analysis.bpmCandidates.slice(0, 4).map(c => c.bpm).join(', ')}) · phase ${(phase * 1000).toFixed(0)}ms`);
 console.log(`onsets : low ${analysis.onsets.low.length} · mid ${analysis.onsets.mid.length} · high ${analysis.onsets.high.length}`);
 
-// tier automatique d'après la densité brute des onsets mélodiques + tempo
+// tier automatique : essentiellement le tempo, ajusté par la densité brute
+// (calibré sur les choix manuels des 14 premières pistes)
 const rawNps = (analysis.onsets.mid.length + analysis.onsets.low.length) / analysis.duration;
-const tier = opt.tier ? parseInt(opt.tier, 10) : Math.max(1, Math.min(5, Math.round(rawNps * 0.9 + (bpm - 100) / 40)));
+let autoTier = 1 + (bpm >= 95 ? 1 : 0) + (bpm >= 118 ? 1 : 0) + (bpm >= 146 ? 1 : 0);
+if (rawNps >= 11.5) autoTier++;
+if (rawNps < 7) autoTier--;
+const tier = opt.tier ? parseInt(opt.tier, 10) : Math.max(1, Math.min(5, autoTier));
 
 const difficulties = generate(analysis, bpm, phase, tier);
 

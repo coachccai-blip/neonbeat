@@ -1,12 +1,136 @@
 {
   "tracks": [
     {
+      "id": "guerrier",
+      "title": "Guerrier",
+      "artist": "Piste importée",
+      "bpm": 88.5,
+      "duration": 94.72,
+      "color": "#dceb70",
+      "tier": 1,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 2
+        },
+        {
+          "name": "EASY+",
+          "level": 3
+        },
+        {
+          "name": "NORMAL",
+          "level": 3
+        },
+        {
+          "name": "NORMAL+",
+          "level": 4
+        },
+        {
+          "name": "HARD",
+          "level": 5
+        }
+      ]
+    },
+    {
+      "id": "je-dois-partir",
+      "title": "Je dois partir",
+      "artist": "Piste importée",
+      "bpm": 88.5,
+      "duration": 201,
+      "color": "#8f70eb",
+      "tier": 1,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 2
+        },
+        {
+          "name": "EASY+",
+          "level": 3
+        },
+        {
+          "name": "NORMAL",
+          "level": 4
+        },
+        {
+          "name": "NORMAL+",
+          "level": 4
+        },
+        {
+          "name": "HARD",
+          "level": 5
+        }
+      ]
+    },
+    {
       "id": "mont-blanc",
       "title": "Au sommet du Mont Blanc",
       "artist": "Piste importée",
       "bpm": 88.5,
       "duration": 77.6,
       "color": "#bfe3ff",
+      "tier": 1,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 2
+        },
+        {
+          "name": "EASY+",
+          "level": 3
+        },
+        {
+          "name": "NORMAL",
+          "level": 4
+        },
+        {
+          "name": "NORMAL+",
+          "level": 4
+        },
+        {
+          "name": "HARD",
+          "level": 5
+        }
+      ]
+    },
+    {
+      "id": "cest-moi",
+      "title": "C'est moi",
+      "artist": "Piste importée",
+      "bpm": 90,
+      "duration": 177.94,
+      "color": "#eb70b8",
+      "tier": 1,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 2
+        },
+        {
+          "name": "EASY+",
+          "level": 3
+        },
+        {
+          "name": "NORMAL",
+          "level": 3
+        },
+        {
+          "name": "NORMAL+",
+          "level": 4
+        },
+        {
+          "name": "HARD",
+          "level": 5
+        }
+      ]
+    },
+    {
+      "id": "za-warudo",
+      "title": "Za Warudo",
+      "artist": "Piste importée",
+      "bpm": 94,
+      "duration": 80.21,
+      "color": "#9beb70",
       "tier": 1,
       "levels": [
         {
@@ -94,6 +218,192 @@
       ]
     },
     {
+      "id": "sur-tes-traces",
+      "title": "Sur tes traces",
+      "artist": "Piste importée",
+      "bpm": 97.75,
+      "duration": 63.15,
+      "color": "#ebd270",
+      "tier": 2,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 3
+        },
+        {
+          "name": "EASY+",
+          "level": 4
+        },
+        {
+          "name": "NORMAL",
+          "level": 5
+        },
+        {
+          "name": "NORMAL+",
+          "level": 6
+        },
+        {
+          "name": "HARD",
+          "level": 7
+        }
+      ]
+    },
+    {
+      "id": "bazooka-rock",
+      "title": "Bazooka Rock",
+      "artist": "Piste importée",
+      "bpm": 98.5,
+      "duration": 194.47,
+      "color": "#ebd870",
+      "tier": 2,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 3
+        },
+        {
+          "name": "EASY+",
+          "level": 4
+        },
+        {
+          "name": "NORMAL",
+          "level": 5
+        },
+        {
+          "name": "NORMAL+",
+          "level": 6
+        },
+        {
+          "name": "HARD",
+          "level": 7
+        }
+      ]
+    },
+    {
+      "id": "impossible-oui",
+      "title": "Impossible Oui",
+      "artist": "Piste importée",
+      "bpm": 106.75,
+      "duration": 187.65,
+      "color": "#74eb70",
+      "tier": 2,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 3
+        },
+        {
+          "name": "EASY+",
+          "level": 4
+        },
+        {
+          "name": "NORMAL",
+          "level": 5
+        },
+        {
+          "name": "NORMAL+",
+          "level": 6
+        },
+        {
+          "name": "HARD",
+          "level": 7
+        }
+      ]
+    },
+    {
+      "id": "no-abandon",
+      "title": "No abandon",
+      "artist": "Piste importée",
+      "bpm": 110,
+      "duration": 124.12,
+      "color": "#bceb70",
+      "tier": 2,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 3
+        },
+        {
+          "name": "EASY+",
+          "level": 4
+        },
+        {
+          "name": "NORMAL",
+          "level": 5
+        },
+        {
+          "name": "NORMAL+",
+          "level": 6
+        },
+        {
+          "name": "HARD",
+          "level": 7
+        }
+      ]
+    },
+    {
+      "id": "sung-jinwoo",
+      "title": "Sung Jinwoo",
+      "artist": "Piste importée",
+      "bpm": 110,
+      "duration": 86.81,
+      "color": "#af70eb",
+      "tier": 2,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 3
+        },
+        {
+          "name": "EASY+",
+          "level": 4
+        },
+        {
+          "name": "NORMAL",
+          "level": 5
+        },
+        {
+          "name": "NORMAL+",
+          "level": 6
+        },
+        {
+          "name": "HARD",
+          "level": 7
+        }
+      ]
+    },
+    {
+      "id": "under-the-stars",
+      "title": "Under the Stars",
+      "artist": "Piste importée",
+      "bpm": 110,
+      "duration": 129.88,
+      "color": "#70e0eb",
+      "tier": 2,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 3
+        },
+        {
+          "name": "EASY+",
+          "level": 4
+        },
+        {
+          "name": "NORMAL",
+          "level": 5
+        },
+        {
+          "name": "NORMAL+",
+          "level": 6
+        },
+        {
+          "name": "HARD",
+          "level": 7
+        }
+      ]
+    },
+    {
       "id": "doree",
       "title": "Dorée",
       "artist": "Piste importée",
@@ -125,12 +435,74 @@
       ]
     },
     {
+      "id": "a-life-to-love",
+      "title": "A Life to Love",
+      "artist": "Piste importée",
+      "bpm": 120,
+      "duration": 71.55,
+      "color": "#eb7070",
+      "tier": 3,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
+          "name": "NORMAL",
+          "level": 6
+        },
+        {
+          "name": "NORMAL+",
+          "level": 7
+        },
+        {
+          "name": "HARD",
+          "level": 9
+        }
+      ]
+    },
+    {
       "id": "dix-mille-reves",
       "title": "10 000 Rêves en Marche",
       "artist": "Piste importée",
       "bpm": 127.75,
       "duration": 119.72,
       "color": "#ffe066",
+      "tier": 3,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
+          "name": "NORMAL",
+          "level": 6
+        },
+        {
+          "name": "NORMAL+",
+          "level": 7
+        },
+        {
+          "name": "HARD",
+          "level": 9
+        }
+      ]
+    },
+    {
+      "id": "monoc",
+      "title": "Monoc",
+      "artist": "Piste importée",
+      "bpm": 127.75,
+      "duration": 140.74,
+      "color": "#eb70de",
       "tier": 3,
       "levels": [
         {
@@ -187,6 +559,99 @@
       ]
     },
     {
+      "id": "pour-leternite",
+      "title": "Pour l'éternité",
+      "artist": "Piste importée",
+      "bpm": 131,
+      "duration": 89.98,
+      "color": "#eb7076",
+      "tier": 3,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
+          "name": "NORMAL",
+          "level": 6
+        },
+        {
+          "name": "NORMAL+",
+          "level": 7
+        },
+        {
+          "name": "HARD",
+          "level": 9
+        }
+      ]
+    },
+    {
+      "id": "lf-ting-dj",
+      "title": "LF Ting DJ",
+      "artist": "Piste importée",
+      "bpm": 133.5,
+      "duration": 115.88,
+      "color": "#70ebd4",
+      "tier": 3,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
+          "name": "NORMAL",
+          "level": 6
+        },
+        {
+          "name": "NORMAL+",
+          "level": 7
+        },
+        {
+          "name": "HARD",
+          "level": 9
+        }
+      ]
+    },
+    {
+      "id": "il-craint-personne",
+      "title": "Il craint personne",
+      "artist": "Piste importée",
+      "bpm": 134.25,
+      "duration": 143.32,
+      "color": "#eb7097",
+      "tier": 3,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
+          "name": "NORMAL",
+          "level": 6
+        },
+        {
+          "name": "NORMAL+",
+          "level": 7
+        },
+        {
+          "name": "HARD",
+          "level": 9
+        }
+      ]
+    },
+    {
       "id": "laissez-aller",
       "title": "Laissez aller",
       "artist": "Piste importée",
@@ -218,12 +683,229 @@
       ]
     },
     {
+      "id": "les-legendes",
+      "title": "Les légendes ne meurent pas",
+      "artist": "Piste importée",
+      "bpm": 138,
+      "duration": 99.73,
+      "color": "#ebb170",
+      "tier": 3,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
+          "name": "NORMAL",
+          "level": 6
+        },
+        {
+          "name": "NORMAL+",
+          "level": 7
+        },
+        {
+          "name": "HARD",
+          "level": 9
+        }
+      ]
+    },
+    {
+      "id": "coeur-vaillant",
+      "title": "Cœur vaillant",
+      "artist": "Piste importée",
+      "bpm": 141,
+      "duration": 110.68,
+      "color": "#95eb70",
+      "tier": 3,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
+          "name": "NORMAL",
+          "level": 6
+        },
+        {
+          "name": "NORMAL+",
+          "level": 7
+        },
+        {
+          "name": "HARD",
+          "level": 9
+        }
+      ]
+    },
+    {
+      "id": "hey-kids",
+      "title": "Hey Kids",
+      "artist": "Piste importée",
+      "bpm": 141,
+      "duration": 89.77,
+      "color": "#70baeb",
+      "tier": 3,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
+          "name": "NORMAL",
+          "level": 6
+        },
+        {
+          "name": "NORMAL+",
+          "level": 7
+        },
+        {
+          "name": "HARD",
+          "level": 9
+        }
+      ]
+    },
+    {
+      "id": "ange-avec-un-pompe",
+      "title": "Ange avec un pompe",
+      "artist": "Piste importée",
+      "bpm": 141.75,
+      "duration": 193.64,
+      "color": "#70eb93",
+      "tier": 3,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
+          "name": "NORMAL",
+          "level": 6
+        },
+        {
+          "name": "NORMAL+",
+          "level": 7
+        },
+        {
+          "name": "HARD",
+          "level": 9
+        }
+      ]
+    },
+    {
+      "id": "attrapez-les-tous",
+      "title": "Attrapez-les tous",
+      "artist": "Piste importée",
+      "bpm": 141.75,
+      "duration": 60.25,
+      "color": "#b670eb",
+      "tier": 3,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
+          "name": "NORMAL",
+          "level": 6
+        },
+        {
+          "name": "NORMAL+",
+          "level": 7
+        },
+        {
+          "name": "HARD",
+          "level": 9
+        }
+      ]
+    },
+    {
+      "id": "railgun",
+      "title": "Railgun",
+      "artist": "Piste importée",
+      "bpm": 141.75,
+      "duration": 90.05,
+      "color": "#70eb8d",
+      "tier": 3,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
+          "name": "NORMAL",
+          "level": 6
+        },
+        {
+          "name": "NORMAL+",
+          "level": 7
+        },
+        {
+          "name": "HARD",
+          "level": 9
+        }
+      ]
+    },
+    {
       "id": "terre-de-magie",
       "title": "Terre de magie",
       "artist": "Piste importée",
       "bpm": 141.75,
       "duration": 189.86,
       "color": "#52d1a4",
+      "tier": 3,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
+          "name": "NORMAL",
+          "level": 6
+        },
+        {
+          "name": "NORMAL+",
+          "level": 7
+        },
+        {
+          "name": "HARD",
+          "level": 9
+        }
+      ]
+    },
+    {
+      "id": "ce-jeu",
+      "title": "Ce jeu",
+      "artist": "Piste importée",
+      "bpm": 145.75,
+      "duration": 89.24,
+      "color": "#70daeb",
       "tier": 3,
       "levels": [
         {
@@ -286,6 +968,37 @@
       "bpm": 137,
       "duration": 175.1,
       "color": "#6bffb0",
+      "tier": 4,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "EASY+",
+          "level": 6
+        },
+        {
+          "name": "NORMAL",
+          "level": 7
+        },
+        {
+          "name": "NORMAL+",
+          "level": 9
+        },
+        {
+          "name": "HARD",
+          "level": 11
+        }
+      ]
+    },
+    {
+      "id": "dieu-sait",
+      "title": "Dieu sait",
+      "artist": "Piste importée",
+      "bpm": 149,
+      "duration": 158.21,
+      "color": "#eb9170",
       "tier": 4,
       "levels": [
         {
@@ -415,6 +1128,161 @@
         {
           "name": "EASY",
           "level": 4
+        },
+        {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
+          "name": "NORMAL",
+          "level": 7
+        },
+        {
+          "name": "NORMAL+",
+          "level": 9
+        },
+        {
+          "name": "HARD",
+          "level": 11
+        }
+      ]
+    },
+    {
+      "id": "no-pain-trance",
+      "title": "No Pain Trance",
+      "artist": "Piste importée",
+      "bpm": 169.5,
+      "duration": 79.32,
+      "color": "#7099eb",
+      "tier": 4,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "EASY+",
+          "level": 6
+        },
+        {
+          "name": "NORMAL",
+          "level": 7
+        },
+        {
+          "name": "NORMAL+",
+          "level": 9
+        },
+        {
+          "name": "HARD",
+          "level": 11
+        }
+      ]
+    },
+    {
+      "id": "feeling-over",
+      "title": "Feeling Over",
+      "artist": "Piste importée",
+      "bpm": 175.25,
+      "duration": 90.05,
+      "color": "#d670eb",
+      "tier": 4,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 5
+        },
+        {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
+          "name": "NORMAL",
+          "level": 7
+        },
+        {
+          "name": "NORMAL+",
+          "level": 9
+        },
+        {
+          "name": "HARD",
+          "level": 11
+        }
+      ]
+    },
+    {
+      "id": "we-touch",
+      "title": "We Touch",
+      "artist": "Piste importée",
+      "bpm": 175.25,
+      "duration": 156.05,
+      "color": "#eb70be",
+      "tier": 4,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 5
+        },
+        {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
+          "name": "NORMAL",
+          "level": 7
+        },
+        {
+          "name": "NORMAL+",
+          "level": 9
+        },
+        {
+          "name": "HARD",
+          "level": 11
+        }
+      ]
+    },
+    {
+      "id": "contrejour",
+      "title": "Contrejour",
+      "artist": "Piste importée",
+      "bpm": 181.5,
+      "duration": 89.17,
+      "color": "#7072eb",
+      "tier": 4,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "EASY+",
+          "level": 6
+        },
+        {
+          "name": "NORMAL",
+          "level": 7
+        },
+        {
+          "name": "NORMAL+",
+          "level": 9
+        },
+        {
+          "name": "HARD",
+          "level": 11
+        }
+      ]
+    },
+    {
+      "id": "exorciste-bleu",
+      "title": "Exorciste bleu",
+      "artist": "Piste importée",
+      "bpm": 181.5,
+      "duration": 91.84,
+      "color": "#70ebb4",
+      "tier": 4,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 5
         },
         {
           "name": "EASY+",
