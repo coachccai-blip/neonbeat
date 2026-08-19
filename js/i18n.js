@@ -76,7 +76,10 @@ const STRINGS = {
     ver_available: 'Nouvelle version v{v} disponible — Réglages → METTRE À JOUR',
     ver_installing: 'Mise à jour en cours…',
     ver_installed: 'NEONBEAT mis à jour en v{v} !',
-    ver_offline: 'Impossible de vérifier la version (hors ligne ?)'
+    ver_offline: 'Impossible de vérifier la version (hors ligne ?)',
+    calib_or: 'ou règle ta latence à la main :',
+    calib_manual: 'OFFSET MANUEL',
+    calib_use: 'UTILISER CET OFFSET'
   },
 
   en: {
@@ -150,7 +153,10 @@ const STRINGS = {
     ver_available: 'New version v{v} available — Settings → UPDATE',
     ver_installing: 'Updating…',
     ver_installed: 'NEONBEAT updated to v{v}!',
-    ver_offline: 'Could not check the version (offline?)'
+    ver_offline: 'Could not check the version (offline?)',
+    calib_or: 'or set your latency manually:',
+    calib_manual: 'MANUAL OFFSET',
+    calib_use: 'USE THIS OFFSET'
   },
 
   zh: {
@@ -224,7 +230,10 @@ const STRINGS = {
     ver_available: '新版本 v{v} 可用——设置 → 更新',
     ver_installing: '正在更新…',
     ver_installed: 'NEONBEAT 已更新至 v{v}！',
-    ver_offline: '无法检查版本（离线？）'
+    ver_offline: '无法检查版本（离线？）',
+    calib_or: '或手动设置延迟：',
+    calib_manual: '手动偏移',
+    calib_use: '使用此偏移'
   }
 };
 

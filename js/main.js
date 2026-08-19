@@ -145,6 +145,18 @@ function boot() {
     storage.set('calibrated', true);       // « plus tard » = accepté à 0 ms
     afterCalibration();
   });
+  // Offset manuel : pour qui connaît déjà sa latence (ou veut l'ajuster à
+  // l'oreille), sans passer par le métronome.
+  $('calib-offset').addEventListener('input', (e) => {
+    const v = Math.max(-200, Math.min(200, parseInt(e.target.value, 10) || 0));
+    storage.set('offset', v);
+    $('calib-offset-val').textContent = `${v} ms`;
+    ui.refreshSettings();
+  });
+  $('btn-calib-use').addEventListener('click', () => {
+    storage.set('calibrated', true);
+    afterCalibration();
+  });
 
   // Jeu
   $('btn-pause').addEventListener('click', () => S.game && S.game.pause());
@@ -239,8 +251,11 @@ function boot() {
 
 /* ══════════════════ Version & mise à jour ══════════════════ */
 
+const updateButtons = () => [$('btn-update'), $('btn-update-home')].filter(Boolean);
+
 function initVersion() {
   $('ver-current').textContent = 'v' + APP_VERSION;
+  $('btn-update-home').textContent = t('ver_update') + ' · v' + APP_VERSION;
 
   // Notification de version au lancement : « mis à jour ! » si elle a changé
   // depuis la dernière visite, sinon simple rappel de la version installée.
@@ -252,15 +267,17 @@ function initVersion() {
   }
   storage.set('lastVersion', APP_VERSION);
 
-  $('btn-update').addEventListener('click', checkForUpdate);
+  for (const b of updateButtons()) b.addEventListener('click', checkForUpdate);
 
   // Vérification silencieuse au lancement : si une nouvelle version est en
   // ligne, on le signale et on met le bouton des réglages en évidence.
   fetchRemoteVersion().then((remote) => {
     if (remote && parseFloat(remote) > parseFloat(APP_VERSION)) {
       ui.toast(t('ver_available', { v: remote }), 5000);
-      $('btn-update').classList.add('has-update');
-      $('btn-update').textContent = t('ver_update') + ' → v' + remote;
+      for (const b of updateButtons()) {
+        b.classList.add('has-update');
+        b.textContent = t('ver_update') + ' → v' + remote;
+      }
     }
   }).catch(() => {});
 }
@@ -411,6 +428,8 @@ function goCalibrate(returnTo) {
   $('calib-result').textContent = '';
   $('calib-count').innerHTML = '0<span>/20</span>';
   $('btn-calib-start').textContent = t('calib_start');
+  $('calib-offset').value = storage.get('offset');
+  $('calib-offset-val').textContent = `${storage.get('offset')} ms`;
   ui.show('calib');
 }
 

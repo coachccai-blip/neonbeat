@@ -1,6 +1,6 @@
 // Service worker : cache-first pour tous les assets du jeu.
 // Incrémenter VERSION à chaque déploiement pour invalider l'ancien cache.
-const VERSION = 'neonbeat-1.02';
+const VERSION = 'neonbeat-1.03';
 
 const CORE = [
   './',

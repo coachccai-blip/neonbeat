@@ -34,6 +34,7 @@
       <button class="btn btn-tiny" id="btn-calib-home" data-i18n="home_calib">CALIBRER</button>
       <button class="btn btn-tiny" id="btn-credits" data-i18n="home_credits">CRÉDITS</button>
     </div>
+    <button class="btn btn-tiny btn-update-home" id="btn-update-home"></button>
     <p class="net-note" id="net-note"></p>
   </div>
 </section>
@@ -147,6 +148,17 @@
     <div class="menu">
       <button class="btn btn-primary" id="btn-calib-start" data-i18n="calib_start">DÉMARRER</button>
       <button class="btn btn-ghost" id="btn-calib-skip" data-i18n="calib_later">PLUS TARD</button>
+    </div>
+
+    <p class="hint" data-i18n="calib_or">ou règle ta latence à la main :</p>
+    <div class="manual-offset">
+      <div class="speed-head">
+        <span class="label" data-i18n="calib_manual">OFFSET MANUEL</span>
+        <span class="speed-val" id="calib-offset-val">0 ms</span>
+      </div>
+      <input type="range" id="calib-offset" min="-200" max="200" step="1"
+             aria-label="Offset de calibration manuel">
+      <button class="btn btn-small" id="btn-calib-use" data-i18n="calib_use">UTILISER CET OFFSET</button>
     </div>
   </div>
 </section>

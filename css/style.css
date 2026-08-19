@@ -315,7 +315,10 @@ input[type=range]::-moz-range-thumb { width: 30px; height: 30px; border-radius: 
 .switch { display: flex; align-items: center; gap: 12px; min-height: 52px; font-size: 15px; letter-spacing: .06em; cursor: pointer; }
 .switch .sw-label { font-style: normal; }
 .lang-seg .seg-btn { min-width: 96px; flex: 0 1 auto; }
-#btn-update.has-update {
+.btn-update-home { width: 100%; margin-top: 2px; }
+.manual-offset { display: flex; flex-direction: column; gap: 8px; }
+.manual-offset .btn { width: 100%; }
+#btn-update.has-update, #btn-update-home.has-update {
   background: linear-gradient(96deg, var(--magenta), var(--violet)); color: #fff;
   animation: pulse-update 1.6s ease-in-out infinite;
 }
