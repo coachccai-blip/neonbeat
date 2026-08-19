@@ -55,6 +55,10 @@ python3 -m http.server 8000        # puis http://localhost:8000
 
 - Régénérer les charts après avoir modifié une partition :
   `node tools/build-charts.mjs`
+- **Avant chaque déploiement** : `node tools/bump-version.mjs` incrémente la
+  version de 0,01 (js/version.js + version.json + cache du service worker) —
+  c'est elle qui déclenche la notification et le bouton METTRE À JOUR chez
+  les joueurs
 - Éditeur de charts manuel (desktop, clavier D F J K) : `tools/editor.html`
 - Multijoueur : PeerJS via le broker public `0.peerjs.com` (configurable en
   tête de `js/net.js`, ou par `localStorage['neonbeat.signaling']`).

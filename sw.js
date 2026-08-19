@@ -1,6 +1,6 @@
 // Service worker : cache-first pour tous les assets du jeu.
 // Incrémenter VERSION à chaque déploiement pour invalider l'ancien cache.
-const VERSION = 'neonbeat-v11';
+const VERSION = 'neonbeat-1.01';
 
 const CORE = [
   './',
@@ -34,6 +34,12 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
+  // La version doit toujours venir du réseau : c'est elle qui détecte les
+  // mises à jour — la servir depuis le cache rendrait l'update indétectable.
+  if (url.pathname.endsWith('/version.json')) {
+    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+    return;
+  }
   e.respondWith(
     caches.match(e.request).then((hit) => {
       const fetched = fetch(e.request).then((res) => {

@@ -12,6 +12,7 @@ import { ClockSync } from './clock.js';
 import { Host, Client, normalizeCode, MAX_PLAYERS } from './net.js';
 import { MODS, multiplierFor, modsLabel } from './mods.js';
 import * as i18n from './i18n.js';
+import { APP_VERSION } from './version.js';
 const { t } = i18n;
 
 const $ = (id) => document.getElementById(id);
@@ -47,6 +48,7 @@ function displayName() {
 
 function boot() {
   i18n.init();
+  initVersion();
   // Précharge la police embarquée : le canvas ne participe pas au chargement
   // automatique des @font-face, il faut la demander explicitement.
   if (document.fonts && document.fonts.load) {
@@ -233,6 +235,68 @@ function boot() {
   }).catch(() => {
     ui.toast(t('tracks_error'));
   });
+}
+
+/* ══════════════════ Version & mise à jour ══════════════════ */
+
+function initVersion() {
+  $('ver-current').textContent = 'v' + APP_VERSION;
+
+  // Notification de version au lancement : « mis à jour ! » si elle a changé
+  // depuis la dernière visite, sinon simple rappel de la version installée.
+  const last = storage.get('lastVersion');
+  if (last && last !== APP_VERSION) {
+    ui.toast(t('ver_installed', { v: APP_VERSION }), 3500);
+  } else {
+    ui.toast(t('ver_hello', { v: APP_VERSION }), 1800);
+  }
+  storage.set('lastVersion', APP_VERSION);
+
+  $('btn-update').addEventListener('click', checkForUpdate);
+
+  // Vérification silencieuse au lancement : si une nouvelle version est en
+  // ligne, on le signale et on met le bouton des réglages en évidence.
+  fetchRemoteVersion().then((remote) => {
+    if (remote && parseFloat(remote) > parseFloat(APP_VERSION)) {
+      ui.toast(t('ver_available', { v: remote }), 5000);
+      $('btn-update').classList.add('has-update');
+      $('btn-update').textContent = t('ver_update') + ' → v' + remote;
+    }
+  }).catch(() => {});
+}
+
+function fetchRemoteVersion() {
+  // cache: 'no-store' + garde-fou côté service worker : version.json vient
+  // TOUJOURS du réseau, sinon les mises à jour seraient indétectables.
+  return fetch('./version.json', { cache: 'no-store' })
+    .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
+    .then((d) => d.version);
+}
+
+async function checkForUpdate() {
+  let remote = null;
+  try {
+    remote = await fetchRemoteVersion();
+  } catch {
+    return ui.toast(t('ver_offline'));
+  }
+  if (parseFloat(remote) <= parseFloat(APP_VERSION)) {
+    return ui.toast(t('ver_uptodate', { v: APP_VERSION }));
+  }
+  ui.toast(t('ver_installing'), 4000);
+  // Purge tous les caches puis recharge : la nouvelle version s'installe et
+  // le service worker re-remplit son cache avec les fichiers frais.
+  try {
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    }
+    if (navigator.serviceWorker) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) await reg.update();
+    }
+  } catch { /* on recharge quand même */ }
+  setTimeout(() => location.reload(), 300);
 }
 
 /* ══════════════════ Sélection de morceau ══════════════════ */

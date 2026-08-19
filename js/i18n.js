@@ -69,7 +69,14 @@ const STRINGS = {
     room_full: 'Salon complet (4 joueurs max)', room_kicked: 'Exclu du salon',
     host_left: 'L’hôte a quitté — termine ton morceau !',
     sync_warn: 'Sync d’horloge indisponible — le rythme peut flotter',
-    tracks_error: 'Impossible de charger la liste des morceaux'
+    tracks_error: 'Impossible de charger la liste des morceaux',
+    ver_label: 'VERSION', ver_update: 'METTRE À JOUR',
+    ver_hello: 'NEONBEAT v{v}',
+    ver_uptodate: 'Tu es à jour (v{v})',
+    ver_available: 'Nouvelle version v{v} disponible — Réglages → METTRE À JOUR',
+    ver_installing: 'Mise à jour en cours…',
+    ver_installed: 'NEONBEAT mis à jour en v{v} !',
+    ver_offline: 'Impossible de vérifier la version (hors ligne ?)'
   },
 
   en: {
@@ -136,7 +143,14 @@ const STRINGS = {
     room_full: 'Room is full (4 players max)', room_kicked: 'Removed from the room',
     host_left: 'The host left — finish your track!',
     sync_warn: 'Clock sync unavailable — timing may drift',
-    tracks_error: 'Could not load the track list'
+    tracks_error: 'Could not load the track list',
+    ver_label: 'VERSION', ver_update: 'UPDATE',
+    ver_hello: 'NEONBEAT v{v}',
+    ver_uptodate: 'You are up to date (v{v})',
+    ver_available: 'New version v{v} available — Settings → UPDATE',
+    ver_installing: 'Updating…',
+    ver_installed: 'NEONBEAT updated to v{v}!',
+    ver_offline: 'Could not check the version (offline?)'
   },
 
   zh: {
@@ -203,7 +217,14 @@ const STRINGS = {
     room_full: '房间已满（最多4名玩家）', room_kicked: '已被移出房间',
     host_left: '房主已离开——打完这首歌吧！',
     sync_warn: '时钟同步不可用——节奏可能漂移',
-    tracks_error: '无法加载歌曲列表'
+    tracks_error: '无法加载歌曲列表',
+    ver_label: '版本', ver_update: '更新',
+    ver_hello: 'NEONBEAT v{v}',
+    ver_uptodate: '已是最新版本（v{v}）',
+    ver_available: '新版本 v{v} 可用——设置 → 更新',
+    ver_installing: '正在更新…',
+    ver_installed: 'NEONBEAT 已更新至 v{v}！',
+    ver_offline: '无法检查版本（离线？）'
   }
 };
 
