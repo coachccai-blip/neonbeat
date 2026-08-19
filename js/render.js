@@ -77,9 +77,13 @@ export class Renderer {
     this.h = h;
     this.laneW = w / this.lanes;
     this.judgeY = h * JUDGE_Y;
-    this.noteH = Math.max(20, Math.min(36, this.laneW * 0.26));
+    // Hauteur de note et polices basées sur la largeur d'un couloir en mode
+    // 4 keys : en mode 2 keys les couloirs sont plus LARGES, mais les notes
+    // gardent exactement la même hauteur et la même lettre.
+    const ref = w / 4;
+    this.noteH = Math.max(20, Math.min(36, ref * 0.26));
     this.keyFont = `800 ${Math.round(this.noteH * 0.78)}px 'Inter', 'Segoe UI', Roboto, Arial, sans-serif`;
-    this.receptorFont = `700 ${Math.round(Math.min(20, this.laneW * 0.14))}px 'Inter', 'Segoe UI', Roboto, Arial, sans-serif`;
+    this.receptorFont = `700 ${Math.round(Math.min(20, ref * 0.14))}px 'Inter', 'Segoe UI', Roboto, Arial, sans-serif`;
 
     // Dégradés pré-calculés (piège n°8 : ne jamais les recréer par frame).
     this.bgGrad = this.ctx.createLinearGradient(0, 0, 0, h);
