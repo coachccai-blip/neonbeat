@@ -105,6 +105,12 @@
   <div class="wrap wide">
     <button class="btn-back" id="select-back" data-i18n="back">‹ RETOUR</button>
     <h2 class="title" data-i18n="select_title">MORCEAUX</h2>
+    <div class="browse-bar">
+      <input type="search" id="track-search" class="text-input search-input"
+             autocomplete="off" spellcheck="false" aria-label="Rechercher un morceau">
+      <div class="seg sort-seg" id="track-sort" role="group" aria-label="Tri"></div>
+    </div>
+    <p class="hint" id="search-empty" hidden data-i18n="search_none">Aucun morceau ne correspond.</p>
     <div class="track-list" id="track-list"></div>
   </div>
 

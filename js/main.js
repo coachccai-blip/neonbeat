@@ -26,6 +26,8 @@ const S = {
   myDiff: storage.get('lastDiff'),
   audioMode: 'shared',
   selectPurpose: 'solo',   // solo | lobby (l'hôte choisit pour le salon)
+  trackFilter: '',
+  trackSort: 'tier',       // tier | az | dur
 
   net: null,               // Host ou Client
   clock: new ClockSync(),
@@ -112,6 +114,10 @@ function boot() {
   });
   $('sheet-close').addEventListener('click', closeSheet);
   $('sheet-backdrop').addEventListener('click', closeSheet);
+  $('track-search').addEventListener('input', (e) => {
+    S.trackFilter = e.target.value;
+    refreshTrackListGrades();
+  });
   document.querySelectorAll('#audio-mode-row .seg-btn').forEach((b) => {
     b.addEventListener('click', () => {
       document.querySelectorAll('#audio-mode-row .seg-btn').forEach((x) => x.classList.remove('is-on'));
@@ -366,14 +372,27 @@ function openSelect() {
   ui.show('select');
   closeSheet();
   $('btn-play').textContent = S.selectPurpose === 'lobby' ? t('select_pick') : t('select_play');
-  ui.renderTrackList(S.tracks, S.selectedTrack && S.selectedTrack.id, (t) => {
-    S.selectedTrack = t;
-    storage.set('lastTrack', t.id);
-    openSheet(t);
-  }, (trackId, diffName) => {
-    const best = storage.bestFor(trackId, diffName);
-    return best ? best.grade : null;
-  });
+  const search = $('track-search');
+  search.placeholder = t('search_ph');
+  search.value = S.trackFilter;
+  renderSortChips();
+  refreshTrackListGrades();
+}
+
+function renderSortChips() {
+  const box = $('track-sort');
+  box.innerHTML = '';
+  for (const [id, key] of [['tier', 'sort_tier'], ['az', 'sort_az'], ['dur', 'sort_dur']]) {
+    const b = document.createElement('button');
+    b.className = 'seg-btn' + (S.trackSort === id ? ' is-on' : '');
+    b.textContent = t(key);
+    b.addEventListener('click', () => {
+      S.trackSort = id;
+      renderSortChips();
+      refreshTrackListGrades();
+    });
+    box.appendChild(b);
+  }
 }
 
 /** Fenêtre de paramétrage : réglages + JOUER, préversion à l'ouverture. */
@@ -399,9 +418,32 @@ function openSheet(t) {
   previewTrack(t);
 }
 
-/** Re-rend la liste des morceaux avec les grades du mode courant. */
+/** Sans accents ni casse : « Cœur » trouve « coeur ». */
+function foldText(str) {
+  return (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/œ/g, 'oe').replace(/æ/g, 'ae').toLowerCase();
+}
+
+/** Applique la recherche et le tri courants au catalogue. */
+function visibleTracks() {
+  let list = S.tracks;
+  const q = foldText(S.trackFilter.trim());
+  if (q) list = list.filter((t) => foldText(t.title).includes(q) || foldText(t.artist).includes(q));
+  list = [...list];
+  if (S.trackSort === 'az') {
+    list.sort((a, b) => a.title.localeCompare(b.title, 'fr', { sensitivity: 'base' }));
+  } else if (S.trackSort === 'dur') {
+    list.sort((a, b) => a.duration - b.duration);
+  }
+  // 'tier' : ordre de l'index (déjà par difficulté croissante)
+  return list;
+}
+
+/** Re-rend la liste des morceaux (recherche, tri, grades du mode courant). */
 function refreshTrackListGrades() {
-  ui.renderTrackList(S.tracks, S.selectedTrack && S.selectedTrack.id, (t) => {
+  const list = visibleTracks();
+  $('search-empty').hidden = list.length > 0;
+  ui.renderTrackList(list, S.selectedTrack && S.selectedTrack.id, (t) => {
     S.selectedTrack = t;
     storage.set('lastTrack', t.id);
     openSheet(t);

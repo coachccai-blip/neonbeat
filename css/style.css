@@ -221,6 +221,13 @@ body { overflow: hidden; }
 .seg-btn[data-diff="HARD"].is-on    { background: var(--magenta); color: #fff; }
 .keys-seg .seg-btn { min-width: 80px; flex: 0 1 auto; }
 
+/* ─── Recherche et tri du catalogue ─── */
+.browse-bar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.search-input { font-size: 16px; padding: 11px 14px; }
+.search-input::-webkit-search-cancel-button { filter: invert(0.7); }
+.sort-seg { justify-content: stretch; }
+.sort-seg .seg-btn { min-height: 40px; padding: 6px 8px; }
+
 /* ─── Liste des morceaux ─── */
 .track-list { display: flex; flex-direction: column; gap: 10px; }
 .track-item {

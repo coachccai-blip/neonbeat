@@ -81,6 +81,9 @@ const STRINGS = {
     calib_manual: 'OFFSET MANUEL',
     calib_use: 'UTILISER CET OFFSET',
     mode_label: 'MODE',
+    search_ph: 'Rechercher un morceau…',
+    sort_tier: 'NIVEAU', sort_az: 'A → Z', sort_dur: 'DURÉE',
+    search_none: 'Aucun morceau ne correspond.',
     install: 'INSTALLER LE JEU',
     install_ios: 'Sur iPhone/iPad : bouton Partager, puis « Sur l’écran d’accueil »',
     install_done: 'NEONBEAT est installé !'
@@ -162,6 +165,9 @@ const STRINGS = {
     calib_manual: 'MANUAL OFFSET',
     calib_use: 'USE THIS OFFSET',
     mode_label: 'MODE',
+    search_ph: 'Search for a track…',
+    sort_tier: 'LEVEL', sort_az: 'A → Z', sort_dur: 'LENGTH',
+    search_none: 'No track matches.',
     install: 'INSTALL THE GAME',
     install_ios: 'On iPhone/iPad: Share button, then “Add to Home Screen”',
     install_done: 'NEONBEAT is installed!'
@@ -243,6 +249,9 @@ const STRINGS = {
     calib_manual: '手动偏移',
     calib_use: '使用此偏移',
     mode_label: '模式',
+    search_ph: '搜索歌曲…',
+    sort_tier: '难度', sort_az: 'A → Z', sort_dur: '时长',
+    search_none: '没有匹配的歌曲。',
     install: '安装游戏',
     install_ios: '在 iPhone/iPad 上：点按分享按钮，然后选择「添加到主屏幕」',
     install_done: 'NEONBEAT 已安装！'
