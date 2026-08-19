@@ -118,6 +118,16 @@ function boot() {
     S.trackFilter = e.target.value;
     refreshTrackListGrades();
   });
+  $('sort-az').addEventListener('click', () => {
+    S.trackSort = S.trackSort === 'az' ? 'tier' : 'az';
+    syncSortButtons();
+    refreshTrackListGrades();
+  });
+  $('sort-dur').addEventListener('click', () => {
+    S.trackSort = S.trackSort === 'dur' ? 'tier' : 'dur';
+    syncSortButtons();
+    refreshTrackListGrades();
+  });
   document.querySelectorAll('#audio-mode-row .seg-btn').forEach((b) => {
     b.addEventListener('click', () => {
       document.querySelectorAll('#audio-mode-row .seg-btn').forEach((x) => x.classList.remove('is-on'));
@@ -375,24 +385,14 @@ function openSelect() {
   const search = $('track-search');
   search.placeholder = t('search_ph');
   search.value = S.trackFilter;
-  renderSortChips();
+  syncSortButtons();
   refreshTrackListGrades();
 }
 
-function renderSortChips() {
-  const box = $('track-sort');
-  box.innerHTML = '';
-  for (const [id, key] of [['tier', 'sort_tier'], ['az', 'sort_az'], ['dur', 'sort_dur']]) {
-    const b = document.createElement('button');
-    b.className = 'seg-btn' + (S.trackSort === id ? ' is-on' : '');
-    b.textContent = t(key);
-    b.addEventListener('click', () => {
-      S.trackSort = id;
-      renderSortChips();
-      refreshTrackListGrades();
-    });
-    box.appendChild(b);
-  }
+/** A→Z et durée sont des bascules : re-cliquer revient à l'ordre par niveau. */
+function syncSortButtons() {
+  $('sort-az').classList.toggle('is-on', S.trackSort === 'az');
+  $('sort-dur').classList.toggle('is-on', S.trackSort === 'dur');
 }
 
 /** Fenêtre de paramétrage : réglages + JOUER, préversion à l'ouverture. */

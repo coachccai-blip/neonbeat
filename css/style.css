@@ -222,11 +222,18 @@ body { overflow: hidden; }
 .keys-seg .seg-btn { min-width: 80px; flex: 0 1 auto; }
 
 /* ─── Recherche et tri du catalogue ─── */
-.browse-bar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
-.search-input { font-size: 16px; padding: 11px 14px; }
+.browse-bar { display: flex; gap: 8px; margin-bottom: 10px; align-items: stretch; }
+.search-input { flex: 1; min-width: 0; font-size: 16px; padding: 11px 14px; }
 .search-input::-webkit-search-cancel-button { filter: invert(0.7); }
-.sort-seg { justify-content: stretch; }
-.sort-seg .seg-btn { min-height: 40px; padding: 6px 8px; }
+.sort-btn {
+  flex: none; min-width: 56px; padding: 0 10px; cursor: pointer;
+  font-family: inherit; font-size: 13px; font-weight: 700; letter-spacing: .04em;
+  color: var(--ink-dim); background: rgba(255,255,255,.04);
+  border: 1.5px solid var(--line); border-radius: var(--radius);
+  transition: color .12s, background .12s, border-color .12s;
+}
+.sort-btn .arrow { font-size: 11px; margin-left: 1px; }
+.sort-btn.is-on { color: #080812; background: var(--cyan); border-color: var(--cyan); }
 
 /* ─── Liste des morceaux ─── */
 .track-list { display: flex; flex-direction: column; gap: 10px; }
