@@ -101,8 +101,11 @@ function boot() {
     openSelect();
   });
   $('select-back').addEventListener('click', () => {
+    closeSheet();
     ui.show(S.selectPurpose === 'lobby' ? 'lobby' : 'home');
   });
+  $('sheet-close').addEventListener('click', closeSheet);
+  $('sheet-backdrop').addEventListener('click', closeSheet);
   document.querySelectorAll('#audio-mode-row .seg-btn').forEach((b) => {
     b.addEventListener('click', () => {
       document.querySelectorAll('#audio-mode-row .seg-btn').forEach((x) => x.classList.remove('is-on'));
@@ -216,22 +219,36 @@ function boot() {
 
 function openSelect() {
   ui.show('select');
+  closeSheet();
   $('btn-play').textContent = S.selectPurpose === 'lobby' ? 'CHOISIR CE MORCEAU' : 'JOUER';
   ui.renderTrackList(S.tracks, S.selectedTrack && S.selectedTrack.id, (t) => {
     S.selectedTrack = t;
     storage.set('lastTrack', t.id);
-    renderSelectDiff();
-    applyAutoSpeed();
-    previewTrack(t);
+    openSheet(t);
   }, (trackId, diffName) => {
     const best = storage.bestFor(trackId, diffName);
     return best ? best.grade : null;
   });
+}
+
+/** Fenêtre de paramétrage : réglages + JOUER, préversion à l'ouverture. */
+function openSheet(t) {
+  $('sheet-title').textContent = t.title;
+  $('sheet-meta').textContent = `${t.artist} · ${t.bpm} BPM · ${Math.floor(t.duration / 60)}:${String(Math.round(t.duration % 60)).padStart(2, '0')}`;
+  $('sheet-backdrop').hidden = false;
+  $('select-sheet').hidden = false;
   $('speed-slider').value = storage.get('speed');
   renderSelectDiff();
   renderSelectMods();
   applyAutoSpeed();
-  if (S.selectedTrack) previewTrack(S.selectedTrack);
+  previewTrack(t);
+}
+
+function closeSheet() {
+  $('sheet-backdrop').hidden = true;
+  $('select-sheet').hidden = true;
+  previewToken++;
+  audio.stopPreview();
 }
 
 function renderSelectMods() {

@@ -232,16 +232,36 @@ body { overflow: hidden; }
   font-size: 15px; font-weight: 800; color: #080812; background: var(--accent, var(--cyan));
 }
 .track-info { flex: 1; min-width: 0; }
-.track-info .t { font-size: 19px; font-weight: 800; letter-spacing: .01em; }
-.track-info .m { font-size: 11px; color: var(--ink-dim); letter-spacing: .08em; margin-top: 2px; }
+.track-info .t { display: block; font-size: 19px; font-weight: 800; letter-spacing: .01em; }
+.track-info .m { display: block; font-size: 11px; color: var(--ink-dim); letter-spacing: .08em; margin-top: 2px; }
 .track-levels { display: flex; gap: 4px; flex: none; }
 .lv { font-size: 11px; font-weight: 700; padding: 3px 6px; border-radius: 6px; background: rgba(255,255,255,.07); color: var(--ink-dim); }
 .lv.e { color: var(--cyan); } .lv.n { color: var(--amber); } .lv.h { color: var(--magenta); }
 
-.select-foot {
-  position: sticky; bottom: 0; margin-top: 14px; padding: 14px 0 4px;
-  background: linear-gradient(to top, var(--bg) 62%, transparent);
-  display: flex; flex-direction: column; gap: 12px;
+/* ─── Fenêtre de paramétrage (bottom sheet) ─── */
+.sheet-backdrop {
+  position: fixed; inset: 0; z-index: 20;
+  background: rgba(7, 7, 15, .72);
+  animation: fade .16s ease-out;
+}
+.sheet {
+  position: fixed; left: 50%; bottom: 0; transform: translateX(-50%);
+  width: min(100vw, 520px); max-height: 82vh; overflow-y: auto; z-index: 21;
+  background: #101022;
+  border-radius: 20px 20px 0 0;
+  border: 1px solid var(--line); border-bottom: 0;
+  box-shadow: 0 -12px 50px rgba(0, 0, 0, .6);
+  padding: 16px 18px calc(var(--safe-b) + 18px);
+  display: flex; flex-direction: column; gap: 14px;
+  animation: sheet-up .18s ease-out;
+}
+@keyframes sheet-up { from { transform: translate(-50%, 40px); opacity: 0; } }
+.sheet-head { display: flex; align-items: flex-start; gap: 12px; }
+.sheet-title-block { flex: 1; min-width: 0; }
+.sheet-close {
+  width: 44px; height: 44px; flex: none; border: 0; border-radius: 50%;
+  background: rgba(255,255,255,.07); color: var(--ink-dim);
+  font-size: 17px; cursor: pointer; font-family: inherit;
 }
 
 /* ─── Effets & records ─── */

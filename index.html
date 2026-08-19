@@ -100,27 +100,37 @@
     <button class="btn-back" id="select-back">‹ RETOUR</button>
     <h2 class="title">MORCEAUX</h2>
     <div class="track-list" id="track-list"></div>
+  </div>
 
-    <div class="select-foot">
-      <div class="row">
-        <span class="label">DIFFICULTÉ</span>
-        <div class="seg" id="select-diff" role="group" aria-label="Difficulté"></div>
+  <!-- Fenêtre de paramétrage : s'ouvre au choix d'un morceau,
+       la préversion démarre à l'ouverture -->
+  <div class="sheet-backdrop" id="sheet-backdrop" hidden></div>
+  <div class="sheet" id="select-sheet" hidden role="dialog" aria-modal="true">
+    <div class="sheet-head">
+      <div class="sheet-title-block">
+        <div class="track-title" id="sheet-title">—</div>
+        <div class="track-meta" id="sheet-meta"></div>
       </div>
-      <div class="row mods-row">
-        <span class="label">EFFETS <span class="mods-mult" id="mods-mult"></span></span>
-        <div class="seg" id="select-mods" role="group" aria-label="Effets optionnels"></div>
-      </div>
-      <div class="speed-row">
-        <div class="speed-head">
-          <span class="label">VITESSE DE CHUTE</span>
-          <span class="speed-val" id="speed-val">×2.5</span>
-        </div>
-        <input type="range" id="speed-slider" min="1" max="6" step="0.25" value="2.5"
-               aria-label="Vitesse de chute des notes">
-        <p class="hint speed-hint" id="speed-hint"></p>
-      </div>
-      <button class="btn btn-primary" id="btn-play">JOUER</button>
+      <button class="sheet-close" id="sheet-close" aria-label="Fermer">✕</button>
     </div>
+    <div class="row">
+      <span class="label">DIFFICULTÉ</span>
+      <div class="seg" id="select-diff" role="group" aria-label="Difficulté"></div>
+    </div>
+    <div class="row mods-row">
+      <span class="label">EFFETS <span class="mods-mult" id="mods-mult"></span></span>
+      <div class="seg" id="select-mods" role="group" aria-label="Effets optionnels"></div>
+    </div>
+    <div class="speed-row">
+      <div class="speed-head">
+        <span class="label">VITESSE DE CHUTE</span>
+        <span class="speed-val" id="speed-val">×2.5</span>
+      </div>
+      <input type="range" id="speed-slider" min="1" max="6" step="0.25" value="2.5"
+             aria-label="Vitesse de chute des notes">
+      <p class="hint speed-hint" id="speed-hint"></p>
+    </div>
+    <button class="btn btn-primary" id="btn-play">JOUER</button>
   </div>
 </section>
 
