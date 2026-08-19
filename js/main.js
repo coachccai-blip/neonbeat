@@ -162,6 +162,10 @@ function boot() {
   ui.onScreenChange((name) => {
     if (name === 'settings') ui.startSpeedPreview();
     else ui.stopSpeedPreview();
+    if (name !== 'select') {
+      previewToken++;                      // invalide les préversions en attente
+      audio.stopPreview();
+    }
   });
 
   // Orientation : en paysage pendant le jeu, on affiche l'écran « tourne ».
@@ -174,7 +178,14 @@ function boot() {
 
   // Onglet en arrière-plan : pause en solo, rattrapage en multi.
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden && S.game) S.game.onHidden();
+    if (!S.game) return;
+    if (document.hidden) {
+      S.game.onHidden();
+    } else {
+      // Le navigateur libère le wake lock quand l'onglet passe en arrière-plan
+      // (appel, notification…) : il faut le redemander au retour.
+      S.game.acquireWakeLock();
+    }
   });
 
   // Code de room dans le hash : #KYRO
@@ -220,6 +231,7 @@ function openSelect() {
   renderSelectDiff();
   renderSelectMods();
   applyAutoSpeed();
+  if (S.selectedTrack) previewTrack(S.selectedTrack);
 }
 
 function renderSelectMods() {
@@ -277,11 +289,15 @@ function applyAutoSpeed() {
 
 let previewToken = 0;
 function previewTrack(t) {
-  // Pré-lance la préparation en arrière-plan : le bouton JOUER sera instantané.
+  // Prépare la piste puis joue son refrain en boucle tant qu'on est sur
+  // l'écran de sélection (le bouton JOUER devient instantané au passage).
   const token = ++previewToken;
   loadTrack(t.id)
-    .then((track) => audio.prepare(t.id, null, track.audio))
-    .then(() => { if (token !== previewToken) return; })
+    .then((track) => audio.prepare(t.id, null, track.audio).then(() => track))
+    .then((track) => {
+      if (token !== previewToken || ui.screen() !== 'select') return;
+      audio.startPreview(t.id, track.previewStart || 0);
+    })
     .catch(() => {});
 }
 
@@ -422,13 +438,16 @@ class Game {
 
     // L'écran ne doit pas s'éteindre pendant un morceau.
     this.wakeLock = null;
-    if (navigator.wakeLock) {
-      navigator.wakeLock.request('screen')
-        .then((l) => { this.wakeLock = l; })
-        .catch(() => {});
-    }
+    this.acquireWakeLock();
 
     this.start();
+  }
+
+  acquireWakeLock() {
+    if (!navigator.wakeLock || this.finished) return;
+    navigator.wakeLock.request('screen')
+      .then((l) => { this.wakeLock = l; })
+      .catch(() => {});
   }
 
   start() {
@@ -509,6 +528,11 @@ class Game {
 
     // HUD
     $('hud-score').textContent = Math.round(this.engine.score * this.mult).toLocaleString('fr-FR');
+    if (t - (this.lastProgressUi || -1) >= 0.25) {
+      this.lastProgressUi = t;
+      $('song-progress-fill').style.width =
+        Math.min(100, Math.max(0, (t / this.track.duration) * 100)) + '%';
+    }
     const life = $('life-bar');
     life.style.width = this.engine.life + '%';
     life.classList.toggle('low', this.engine.life < 30);
@@ -820,7 +844,8 @@ function hostBroadcastLobby() {
       ({ id, name, color, ready, difficulty, off })),
     trackId: S.selectedTrack ? S.selectedTrack.id : null,
     audioMode: S.audioMode,
-    hostName: displayName()
+    hostName: displayName(),
+    state: S.game ? 'playing' : 'lobby'
   });
 }
 
@@ -892,6 +917,7 @@ function hostMaybeLaunch(force = false) {
       startPerf: startAtHostTime,
       seek: 0
     });
+    hostBroadcastLobby();                   // état « partie en cours »
   });
 }
 
@@ -910,6 +936,7 @@ function hostMaybeSendResults(force = false) {
     .sort((a, b) => (b.score || 0) - (a.score || 0));
   S.resultsSent = true;
   clearTimeout(S.resultsDeadline);
+  S.liveScores = null;
   S.net.broadcast({ t: 'RESULTS', ranking });
   ui.renderResults({ title: S.selectedTrack.title }, { ...S.myResult, diffName: '' }, ranking, S.myId);
   for (const [, p] of S.players) { p.ready = false; }
@@ -981,6 +1008,7 @@ function clientOnMessage(msg) {
     case 'LOBBY': {
       S.players.clear();
       for (const p of msg.players) S.players.set(p.id, p);
+      S.roomState = msg.state || 'lobby';
       refreshLobby();
       const t = S.tracks.find((x) => x.id === msg.trackId);
       if (t) {
@@ -1009,7 +1037,13 @@ function clientOnMessage(msg) {
       clientStart(msg);
       break;
     case 'SCORES':
-      updateRivals(msg.scores || {});
+      if (S.game) {
+        updateRivals(msg.scores || {});
+      } else if (ui.screen() === 'lobby') {
+        // Partie en cours vue depuis le lobby : scores en direct des joueurs.
+        S.liveScores = msg.scores || {};
+        refreshLobby();
+      }
       break;
     case 'RESULTS':
       ui.renderResults(
@@ -1067,7 +1101,17 @@ function clientStart(msg) {
 /* ══════════════════ Lobby (rendu commun) ══════════════════ */
 
 function refreshLobby() {
-  ui.renderPlayers(lobbyPlayersArray(), S.myId);
+  const playing = S.mode === 'host' ? !!S.game : S.roomState === 'playing';
+  const players = lobbyPlayersArray().map((p) => {
+    if (playing && S.liveScores && S.liveScores[p.id]) {
+      return { ...p, liveScore: S.liveScores[p.id].score };
+    }
+    return p;
+  });
+  ui.renderPlayers(players, S.myId);
+  if (playing && S.mode === 'client' && !S.game) {
+    $('lobby-status').textContent = 'Partie en cours — tu joueras au prochain morceau.';
+  }
   const t = S.selectedTrack;
   if (t) {
     if (!t.levels.some((l) => l.name === S.myDiff)) S.myDiff = t.levels[0].name;

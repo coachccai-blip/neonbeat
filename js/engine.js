@@ -68,6 +68,10 @@ export class Engine {
     this.failed = false;
     this.holding = [null, null, null, null];
     this.events = [];            // pour le rendu : flashs et libellés
+    this.deltaSum = 0;           // somme des écarts signés (s) — stats early/late
+    this.deltaCount = 0;
+    this.earlyCount = 0;
+    this.lateCount = 0;
   }
 
   /* ─── Frappes ───────────────────────────────────────────────────── */
@@ -110,8 +114,14 @@ export class Engine {
       best.state = 'done';
     }
 
+    const delta = t - best.time;
+    this.deltaSum += delta;
+    this.deltaCount++;
+    if (delta < -0.005) this.earlyCount++;
+    else if (delta > 0.005) this.lateCount++;
+
     this._apply(judgment, best, lane);
-    return { judgment, delta: t - best.time, note: best };
+    return { judgment, delta, note: best };
   }
 
   release(lane, t) {
@@ -224,7 +234,12 @@ export class Engine {
       counts: { ...this.counts },
       grade: this.failed ? 'D' : gradeFor(precision),
       failed: this.failed,
-      total: this.total
+      total: this.total,
+      timing: {
+        avgMs: this.deltaCount ? Math.round((this.deltaSum / this.deltaCount) * 1000) : 0,
+        earlyPct: this.deltaCount ? Math.round((100 * this.earlyCount) / this.deltaCount) : 0,
+        latePct: this.deltaCount ? Math.round((100 * this.lateCount) / this.deltaCount) : 0
+      }
     };
   }
 

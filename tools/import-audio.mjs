@@ -133,11 +133,49 @@ async function analyze(path) {
       return out;
     }
 
+    // Énergie brute des médiums (lissée) : sert à détecter les sons TENUS
+    // (voix longues, nappes) pour générer des notes longues.
+    const midEnergy = new Float32Array(frames);
+    {
+      const [a, z] = BANDS.mid;
+      const raw = new Float32Array(frames);
+      for (let f = 0; f < frames; f++) {
+        // recalcul léger à partir du flux impossible : on réutilise energy
+        // global pondéré ? Non — on refait une passe STFT serait coûteux ;
+        // l'énergie globale suit assez bien les médiums pour ce besoin.
+        raw[f] = energy[f];
+      }
+      let acc = raw[0];
+      for (let f = 0; f < frames; f++) {
+        acc += (raw[f] - acc) * 0.25;
+        midEnergy[f] = acc;
+      }
+    }
+
     const onsets = {
       low: pick(flux.low, 0.10, 1.1),
       mid: pick(flux.mid, 0.09, 1.0),
       high: pick(flux.high, 0.06, 1.2)
     };
+
+    // Tenue : combien de temps l'énergie reste au-dessus de 60 % du niveau
+    // atteint juste après l'attaque, sans nouvelle attaque mélodique.
+    const midTimes = onsets.mid.map((o) => o.t);
+    for (let i = 0; i < onsets.mid.length; i++) {
+      const o = onsets.mid[i];
+      const f0 = Math.min(frames - 1, Math.round(o.t * frameRate) + 2);
+      const level = midEnergy[f0];
+      const nextOnset = i + 1 < midTimes.length ? midTimes[i + 1] : 1e9;
+      let end = o.t;
+      for (let f = f0; f < frames; f++) {
+        const t = f / frameRate;
+        if (t >= nextOnset - 0.06) break;      // une nouvelle note commence
+        if (midEnergy[f] < level * 0.6) break; // le son est retombé
+        end = t;
+        if (end - o.t > 4) break;
+      }
+      o.sus = Math.round((end - o.t) * 100) / 100;
+    }
 
     /* BPM : autocorrélation du flux global (lags 60 → 220 BPM) */
     const o = flux.full;
@@ -259,6 +297,7 @@ function buildCandidates(analysis, bpm, phase) {
         step: offGrid <= 0.06 ? step : Math.round(raw / stepDur),
         band,
         lane: band === 'mid' ? laneOfCentroid(o.c) : null,
+        sustain: band === 'mid' ? (o.sus || 0) : 0,
         score: (PRIO[band] || 3) + Math.min(3, o.s) * 0.9 + beatBonus + rng() * 1.2
       });
     }
@@ -280,10 +319,11 @@ function buildCandidates(analysis, bpm, phase) {
   return cands;
 }
 
-function place(cands, diff, threshold, stepDur) {
+function place(cands, diff, threshold, stepDur, duration) {
   const laneFree = new Array(LANES).fill(-1e9);
   const out = [];
   let lastT = -1e9, lastLane = -1;
+  let holdCooldownUntil = -1e9;      // un seul hold à la fois, avec respiration
   const toggle = { low: 0, high: 0 };
   const LANE_PREF = { low: [0, 3], high: [3, 0] };
 
@@ -319,8 +359,26 @@ function place(cands, diff, threshold, stepDur) {
         }
       }
       if (lane < 0) continue;
-      laneFree[lane] = t + 0.01;
-      out.push([lane, t, 0]);
+
+      // Note longue : son tenu assez long, pas d'autre hold en cours.
+      let len = 0;
+      if (c.sustain >= 0.45 && t >= holdCooldownUntil) {
+        const steps = Math.min(16, Math.floor(c.sustain / stepDur));
+        if (steps >= 3) {
+          len = Math.round(steps * stepDur * 1000) / 1000;
+          if (duration && t + len > duration - 0.2) {
+            len = Math.max(0, Math.round((duration - 0.3 - t) * 1000) / 1000);
+          }
+        }
+      }
+      if (len > 0) {
+        holdCooldownUntil = t + len + 0.8;
+        laneFree[lane] = t + len + stepDur;
+      } else {
+        len = 0;
+        laneFree[lane] = t + 0.01;
+      }
+      out.push([lane, t, len]);
       chord++;
       any = true;
       lastLane = lane;
@@ -339,12 +397,14 @@ function generate(analysis, bpm, phase, tier) {
     let lo = 0, hi = 1, best = null;
     for (let it = 0; it < 22; it++) {
       const mid = (lo + hi) / 2;
-      const placed = place(cands, diff, mid, stepDur);
+      const placed = place(cands, diff, mid, stepDur, duration);
       if (!best || Math.abs(placed.length - target) < Math.abs(best.length - target)) best = placed;
       if (placed.length > target) hi = mid; else lo = mid;
     }
     best.sort((a, b) => a[1] - b[1] || a[0] - b[0]);
     const nps = best.length / duration;
+    const holds = best.filter((n) => n[2] > 0).length;
+    console.log(`    ${diff.name}: ${holds} notes longues`);
     return { name: diff.name, level: Math.max(1, Math.min(15, Math.round(nps * 1.55 + tier * 0.45))), notes: best };
   });
 }

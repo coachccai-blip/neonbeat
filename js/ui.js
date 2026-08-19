@@ -143,7 +143,9 @@ export function renderPlayers(players, myId) {
       <span class="dot" style="background:${p.color}"></span>
       <span class="pname">${esc(p.name)}${p.id === myId ? ' (toi)' : ''}</span>
       <span class="pdiff">${p.difficulty || ''}</span>
-      <span class="pready">${p.off ? 'DÉCONNECTÉ' : p.ready ? 'PRÊT' : '…'}</span>`;
+      <span class="pready">${p.off ? 'DÉCONNECTÉ'
+        : p.liveScore !== undefined ? p.liveScore.toLocaleString('fr-FR')
+        : p.ready ? 'PRÊT' : '…'}</span>`;
     box.appendChild(div);
   }
 }
@@ -239,6 +241,21 @@ export function renderResults(track, res, ranking, myId) {
     <div class="stat miss"><div class="v">${res.counts.MISS}</div><div class="k">MISS</div></div>
     <div class="stat"><div class="v">${res.comboMax}</div><div class="k">COMBO MAX</div></div>
     <div class="stat"><div class="v">${(res.precision * 100).toFixed(1)}%</div><div class="k">PRÉCISION</div></div>`;
+
+  const timingEl = $('res-timing');
+  if (timingEl) {
+    const tm = res.timing;
+    if (tm && (tm.earlyPct || tm.latePct)) {
+      const lean = tm.avgMs > 0 ? 'en retard' : 'en avance';
+      let txt = `Frappes : ${tm.earlyPct} % en avance · ${tm.latePct} % en retard · moyenne ${tm.avgMs > 0 ? '+' : ''}${tm.avgMs} ms`;
+      if (Math.abs(tm.avgMs) >= 25) {
+        txt += `<br><strong>Conseil : tu tapes surtout ${lean} — recalibre ou ajuste ton offset de ${tm.avgMs > 0 ? '+' : ''}${tm.avgMs} ms.</strong>`;
+      }
+      timingEl.innerHTML = txt;
+    } else {
+      timingEl.textContent = '';
+    }
+  }
 
   const box = $('res-ranking');
   box.innerHTML = '';

@@ -344,6 +344,8 @@ input[type=range]::-moz-range-thumb { width: 30px; height: 30px; border-radius: 
 .life-wrap { height: 7px; border-radius: 4px; background: rgba(255,255,255,.10); overflow: hidden; }
 .life { height: 100%; width: 70%; border-radius: 4px; background: linear-gradient(90deg, var(--cyan), var(--magenta)); transition: width .1s linear; }
 .life.low { background: linear-gradient(90deg, var(--danger), var(--amber)); }
+.song-progress { height: 3px; border-radius: 2px; background: rgba(255,255,255,.07); overflow: hidden; margin-top: 3px; }
+#song-progress-fill { height: 100%; width: 0; background: rgba(238,240,255,.55); transition: width .3s linear; }
 .hud-line { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding-left: 52px; min-height: 40px; }
 .song-name { font-size: 12px; letter-spacing: .14em; color: var(--ink-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .score { font-size: 30px; font-weight: 800; letter-spacing: .02em; font-variant-numeric: tabular-nums; }
@@ -379,7 +381,9 @@ input[type=range]::-moz-range-thumb { width: 30px; height: 30px; border-radius: 
 }
 .res-song { text-align: center; font-size: 15px; letter-spacing: .12em; color: var(--ink-dim); }
 .res-score { text-align: center; font-size: 46px; font-weight: 800; font-variant-numeric: tabular-nums; margin: 2px 0 12px; }
-.res-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+.res-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
+.res-timing { text-align: center; font-size: 13px; color: var(--ink-dim); min-height: 18px; margin-bottom: 12px; line-height: 1.5; }
+.res-timing strong { color: var(--amber); }
 .stat { background: rgba(255,255,255,.04); border-radius: 10px; padding: 10px 8px; text-align: center; }
 .stat .v { font-size: 21px; font-weight: 800; }
 .stat .k { font-size: 10px; letter-spacing: .12em; color: var(--ink-dim); }

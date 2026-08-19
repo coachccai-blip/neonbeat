@@ -244,7 +244,44 @@ function perfTimeOf(ctxTime) {
   return (p1 + p2) / 2 + (ctxTime - ctxNow) * 1000;
 }
 
+/* ─── Préversion (écran de sélection) ─────────────────────────────── */
+
+let preview = null;
+
+/** Joue en boucle ~18 s du morceau à partir de previewStart, avec fondu. */
+export function startPreview(trackId, previewStart = 0) {
+  const c = context();
+  stopPreview();
+  const buf = buffers.get(trackId);
+  if (!buf || current) return;             // jamais par-dessus une partie
+  const source = c.createBufferSource();
+  source.buffer = buf;
+  const from = Math.min(previewStart, Math.max(0, buf.duration - 20));
+  source.loop = true;
+  source.loopStart = from;
+  source.loopEnd = Math.min(buf.duration, from + 18);
+  const g = c.createGain();
+  g.gain.setValueAtTime(0.0001, c.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.85 * trackGain(trackId), c.currentTime + 0.6);
+  source.connect(g).connect(musicGain);
+  source.start(c.currentTime, from);
+  preview = { source, gain: g };
+}
+
+export function stopPreview() {
+  if (!preview) return;
+  const c = context();
+  const { source, gain } = preview;
+  preview = null;
+  try {
+    gain.gain.setValueAtTime(gain.gain.value, c.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 0.25);
+    source.stop(c.currentTime + 0.3);
+  } catch { /* déjà arrêtée */ }
+}
+
 export function stop() {
+  stopPreview();
   if (current && current.source) {
     try { current.source.stop(); } catch { /* déjà arrêtée */ }
     current.source.disconnect();
