@@ -593,7 +593,7 @@ class Game {
   }
 
   onRelease(lane, timeStampMs) {
-    if (this.finished) return;
+    if (this.finished || this.paused) return;
     const age = (performance.now() - timeStampMs) / 1000;
     const t = this.songTime() - (age + this.userOffset) * this.rate;
     const j = this.engine.release(lane, t);
@@ -638,20 +638,38 @@ class Game {
     life.style.width = this.engine.life + '%';
     life.classList.toggle('low', this.engine.life < 30);
 
-    // Décompte
+    // Décompte : avant le début du morceau et au retour de pause, en
+    // secondes réelles (le rewind de reprise compte 3-2-1 jusqu'à l'instant
+    // précis où les notes redeviennent jouables).
     const cd = $('countdown');
-    if (t < 0) {
+    let remainReal = 0;
+    if (t < 0) remainReal = -t / this.rate;
+    else if (this.resumeTarget != null && t < this.resumeTarget) {
+      remainReal = (this.resumeTarget - t) / this.rate;
+    }
+    if (remainReal > 0) {
       cd.hidden = false;
-      const n = Math.ceil(-t);
-      if (n <= 3) {
-        cd.textContent = n;
-        cd.classList.remove('go');
-      } else {
-        cd.textContent = '';
+      const n = Math.ceil(remainReal);
+      cd.textContent = n <= 3 ? String(n) : '';
+      cd.classList.remove('go');
+    } else {
+      if (this.resumeTarget != null && t >= this.resumeTarget) {
+        this.resumeTarget = null;
+        this.goUntil = performance.now() + 550;
       }
-    } else if (!cd.hidden) {
-      if (t < 0.6) { cd.textContent = 'GO'; cd.classList.add('go'); }
-      else { cd.hidden = true; cd.classList.remove('go'); }
+      if (t >= 0 && !this.startGoDone) {
+        this.startGoDone = true;
+        this.goUntil = performance.now() + 550;
+      }
+      if (this.goUntil && performance.now() < this.goUntil) {
+        cd.hidden = false;
+        cd.textContent = 'GO';
+        cd.classList.add('go');
+      } else if (!cd.hidden) {
+        cd.hidden = true;
+        cd.classList.remove('go');
+        this.goUntil = 0;
+      }
     }
 
     // Progression réseau, 4 fois par seconde
@@ -671,6 +689,7 @@ class Game {
     this.pausedAt = this.songTime();
     audio.stop();
     this.input.enabled = false;
+    this.input.reset();
     $('pause-overlay').hidden = false;
   }
 
@@ -682,10 +701,12 @@ class Game {
 
   resume() {
     $('pause-overlay').hidden = true;
-    // Reprise 2 s en arrière, avec décompte, pour se remettre dans le rythme.
+    // Reprise 2 s en arrière : la musique déjà jouée sert d'élan, et le
+    // décompte 3-2-1 vise l'instant EXACT où les nouvelles notes arrivent.
     const seek = Math.max(0, this.pausedAt - 2);
     const { perfAtStart } = audio.start(this.track.id, { delay: 1.2, silent: this.opts.silent, seek, rate: this.rate });
     this.perfAtStart = perfAtStart;
+    this.resumeTarget = this.pausedAt;
     this.paused = false;
     this.input.enabled = true;
   }
