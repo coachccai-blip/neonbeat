@@ -118,10 +118,23 @@ function computeGain(id, buf) {
   if (!levels.length || peak === 0) { gains.set(id, 1); return; }
   levels.sort((a, b) => a - b);
   const loud = levels[Math.floor(levels.length * 0.9)];
-  // Borné par la crête : on monte autant qu'il faut (certains fichiers
-  // arrivent à −35 dB), la saturation reste impossible.
-  const g = Math.max(0.3, Math.min(TARGET_LEVEL / loud, 0.97 / peak, 10));
-  gains.set(id, g);
+  const want = Math.max(0.3, Math.min(TARGET_LEVEL / loud, 10));
+  if (want <= 0.97 / peak) {
+    // Assez de marge de crête : un simple gain suffit.
+    gains.set(id, want);
+    return;
+  }
+  // Le gain nécessaire dépasserait la crête (piste au niveau faible mais aux
+  // pics hauts, ex. « Laissez aller ») : on applique le gain directement dans
+  // les échantillons avec un limiteur doux — les rares crêtes sont arrondies
+  // sans saturation et le niveau perçu rejoint celui des autres pistes.
+  for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+    const d = buf.getChannelData(ch);
+    for (let i = 0; i < d.length; i++) {
+      d[i] = Math.tanh(d[i] * want) * 0.97;
+    }
+  }
+  gains.set(id, 1);
 }
 
 export function trackGain(id) {
