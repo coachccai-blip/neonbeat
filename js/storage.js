@@ -16,9 +16,7 @@ const DEFAULTS = {
   lastTrack: null,
   lastDiff: 'NORMAL',
   lang: 'fr',
-  mods: [],           // effets actifs : 'MIRROR' | 'FADE' | 'SUDDEN' | 'NIGHTCORE'
-  scores: {},         // "trackId|DIFF" → meilleur { score, grade, precision, comboMax, mods }
-  board: {}           // "trackId|DIFF" → top 8 [{ score, grade, mods, name }]
+  mods: []            // effets actifs : 'MIRROR' | 'FADE' | 'SUDDEN' | 'NIGHTCORE'
 };
 
 let cache = null;
@@ -83,41 +81,70 @@ export function suggestSpeed(bpm, notesPerSecond) {
   return clampSpeed((notesPerSecond * 240) / (bpm * 1.5));
 }
 
-/* ─── Records locaux ─────────────────────────────────────────────────── */
+/* ─── Records locaux ─────────────────────────────────────────────────────
+   Les scores vivent dans LEUR PROPRE clé localStorage, séparée des réglages :
+   ils survivent aux mises à jour du jeu (qui ne purgent que les caches de
+   fichiers), aux évolutions de schéma des réglages, et à une éventuelle
+   corruption du blob principal.                                            */
 
+const SCORES_KEY = 'neonbeat.scores';
 const GRADE_ORDER = ['D', 'C', 'B', 'A', 'S', 'S+', 'SS'];
+
+let scoresCache = null;
+
+function readScores() {
+  if (scoresCache) return scoresCache;
+  try {
+    scoresCache = { scores: {}, board: {}, ...JSON.parse(localStorage.getItem(SCORES_KEY) || '{}') };
+  } catch {
+    scoresCache = { scores: {}, board: {} };
+  }
+  // Migration depuis l'ancien emplacement (blob des réglages, ≤ v1.01).
+  const legacy = read();
+  if (legacy.scores && Object.keys(legacy.scores).length) {
+    scoresCache.scores = { ...legacy.scores, ...scoresCache.scores };
+    scoresCache.board = { ...(legacy.board || {}), ...scoresCache.board };
+    delete legacy.scores;
+    delete legacy.board;
+    try { localStorage.setItem(KEY, JSON.stringify(legacy)); } catch { /* tant pis */ }
+    writeScores();
+  }
+  return scoresCache;
+}
+
+function writeScores() {
+  try {
+    localStorage.setItem(SCORES_KEY, JSON.stringify(scoresCache));
+  } catch { /* stockage plein ou privé : les records restent en mémoire */ }
+}
 
 /**
  * Enregistre un résultat. Retourne { record: bool, best } — record = vrai si
  * le score bat le meilleur local pour ce morceau + difficulté.
  */
 export function saveScore(trackId, diffName, entry) {
+  const store = readScores();
   const key = trackId + '|' + diffName;
-  const scores = { ...get('scores') };
-  const prev = scores[key];
+  const prev = store.scores[key];
   const record = !prev || entry.score > prev.score;
   if (record) {
-    scores[key] = entry;
+    store.scores[key] = entry;
   } else if (GRADE_ORDER.indexOf(entry.grade) > GRADE_ORDER.indexOf(prev.grade)) {
     // Un meilleur grade avec un moins bon score (autres effets) : on garde le
     // meilleur des deux mondes pour l'affichage.
-    scores[key] = { ...prev, grade: entry.grade };
+    store.scores[key] = { ...prev, grade: entry.grade };
   }
-  set('scores', scores);
-
-  const board = { ...get('board') };
-  const list = [...(board[key] || []), entry]
+  store.board[key] = [...(store.board[key] || []), entry]
     .sort((a, b) => b.score - a.score)
     .slice(0, 8);
-  board[key] = list;
-  set('board', board);
-  return { record, best: scores[key] };
+  writeScores();
+  return { record, best: store.scores[key] };
 }
 
 export function bestFor(trackId, diffName) {
-  return get('scores')[trackId + '|' + diffName] || null;
+  return readScores().scores[trackId + '|' + diffName] || null;
 }
 
 export function boardFor(trackId, diffName) {
-  return get('board')[trackId + '|' + diffName] || [];
+  return readScores().board[trackId + '|' + diffName] || [];
 }
