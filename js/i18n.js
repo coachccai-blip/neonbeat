@@ -80,7 +80,10 @@ const STRINGS = {
     calib_or: 'ou règle ta latence à la main :',
     calib_manual: 'OFFSET MANUEL',
     calib_use: 'UTILISER CET OFFSET',
-    mode_label: 'MODE'
+    mode_label: 'MODE',
+    install: 'INSTALLER LE JEU',
+    install_ios: 'Sur iPhone/iPad : bouton Partager, puis « Sur l’écran d’accueil »',
+    install_done: 'NEONBEAT est installé !'
   },
 
   en: {
@@ -158,7 +161,10 @@ const STRINGS = {
     calib_or: 'or set your latency manually:',
     calib_manual: 'MANUAL OFFSET',
     calib_use: 'USE THIS OFFSET',
-    mode_label: 'MODE'
+    mode_label: 'MODE',
+    install: 'INSTALL THE GAME',
+    install_ios: 'On iPhone/iPad: Share button, then “Add to Home Screen”',
+    install_done: 'NEONBEAT is installed!'
   },
 
   zh: {
@@ -236,7 +242,10 @@ const STRINGS = {
     calib_or: '或手动设置延迟：',
     calib_manual: '手动偏移',
     calib_use: '使用此偏移',
-    mode_label: '模式'
+    mode_label: '模式',
+    install: '安装游戏',
+    install_ios: '在 iPhone/iPad 上：点按分享按钮，然后选择「添加到主屏幕」',
+    install_done: 'NEONBEAT 已安装！'
   }
 };
 

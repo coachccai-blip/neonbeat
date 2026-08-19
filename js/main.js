@@ -49,6 +49,7 @@ function displayName() {
 function boot() {
   i18n.init();
   initVersion();
+  initInstall();
   // Précharge la police embarquée : le canvas ne participe pas au chargement
   // automatique des @font-face, il faut la demander explicitement.
   if (document.fonts && document.fonts.load) {
@@ -246,6 +247,48 @@ function boot() {
     S.selectedTrack = last || tracks[0];
   }).catch(() => {
     ui.toast(t('tracks_error'));
+  });
+}
+
+/* ══════════════════ Installation (PWA) ══════════════════ */
+
+function initInstall() {
+  const btn = $('btn-install');
+  // Déjà installé (lancé depuis l'icône) : rien à proposer.
+  const standalone = window.matchMedia('(display-mode: standalone)').matches
+    || window.matchMedia('(display-mode: fullscreen)').matches
+    || navigator.standalone === true;
+  if (standalone) return;
+
+  let deferredPrompt = null;
+
+  // Chrome / Edge / Android : le navigateur signale que l'installation est
+  // possible — on capture l'invite pour la déclencher depuis notre bouton.
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    btn.hidden = false;
+  });
+
+  // iOS Safari n'a pas cet événement : le bouton affiche la marche à suivre.
+  if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
+    btn.hidden = false;
+  }
+
+  btn.addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice.catch(() => null);
+      deferredPrompt = null;
+      if (choice && choice.outcome === 'accepted') btn.hidden = true;
+    } else {
+      ui.toast(t('install_ios'), 6500);
+    }
+  });
+
+  window.addEventListener('appinstalled', () => {
+    btn.hidden = true;
+    ui.toast(t('install_done'));
   });
 }
 

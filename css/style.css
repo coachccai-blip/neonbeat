@@ -319,6 +319,10 @@ input[type=range]::-moz-range-thumb { width: 30px; height: 30px; border-radius: 
 .switch .sw-label { font-style: normal; }
 .lang-seg .seg-btn { min-width: 96px; flex: 0 1 auto; }
 .btn-update-home { width: 100%; margin-top: 2px; }
+.btn-install {
+  background: linear-gradient(96deg, #59f0ff, var(--violet)); color: #080812;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.1), 0 8px 26px rgba(139,92,255,.3);
+}
 .manual-offset { display: flex; flex-direction: column; gap: 8px; }
 .manual-offset .btn { width: 100%; }
 #btn-update.has-update, #btn-update-home.has-update {
