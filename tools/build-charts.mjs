@@ -11,8 +11,12 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(root, 'tracks');
 mkdirSync(out, { recursive: true });
 
+// Les 5 compositions synthétisées ont été retirées du jeu (le moteur de
+// synthèse reste dans js/ si on veut les réactiver un jour).
+const INCLUDE_SYNTH = false;
+
 const index = [];
-for (const song of SONGS) {
+for (const song of INCLUDE_SYNTH ? SONGS : []) {
   const track = buildTrack(song);
   writeFileSync(join(out, `${track.id}.json`), JSON.stringify(track) + '\n');
   index.push({
