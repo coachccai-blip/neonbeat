@@ -6,7 +6,15 @@
 export const WINDOWS = { PERFECT: 0.160, GREAT: 0.200, GOOD: 0.240 };
 export const WEIGHTS = { PERFECT: 1, GREAT: 0.75, GOOD: 0.40, MISS: 0 };
 const LIFE_DELTA = { PERFECT: 0.6, GREAT: 0.6, GOOD: 0, MISS: -3 };
-const HOLD_TOLERANCE = 0.1;    // relâchement anticipé toléré, en secondes
+/* Les holds demandent de viser la tête ET de tenir jusqu'au bout : deux
+   occasions de se tromper là où une note simple n'en offre qu'une. Toutes
+   leurs fenêtres sont donc élargies d'une fois et demie par rapport aux
+   notes simples — tête, jugement et relâchement.                          */
+export const HOLD_SCALE = 1.5;
+const HOLD_TOLERANCE = 0.1 * HOLD_SCALE;   // relâchement anticipé toléré, en s
+
+/** Facteur de fenêtre d'une note : 1,5 pour un hold, 1 pour une note simple. */
+const wScale = (note) => (note.dur > 0 ? HOLD_SCALE : 1);
 
 /* ─── Fever ───────────────────────────────────────────────────────────
    Façon DJ Max : enchaîner les combos monte automatiquement un
@@ -115,23 +123,28 @@ export class Engine {
     let best = null;
     let bestAbs = Infinity;
 
+    // La borne de sortie prend la fenêtre la PLUS large (celle des holds),
+    // sinon on s'arrêterait avant d'avoir vu un hold encore atteignable.
+    const reach = WINDOWS.GOOD * HOLD_SCALE;
     for (let k = this.cursor[lane]; k < queue.length; k++) {
       const n = queue[k];
       if (n.state !== 'pending') continue;
       const d = n.time - t;
-      if (d > WINDOWS.GOOD) break;             // trop tôt : tout le reste aussi
+      if (d > reach) break;                    // trop tôt : tout le reste aussi
       const a = Math.abs(d);
+      if (a > WINDOWS.GOOD * wScale(n)) continue;   // hors de SA propre fenêtre
       if (a < bestAbs) { bestAbs = a; best = n; }
     }
 
-    if (!best || bestAbs > WINDOWS.GOOD) {
+    if (!best) {
       // Frappe dans le vide : aucune pénalité (§4.3), trop punitif en salon.
       this.events.push({ type: 'empty', lane, t });
       return null;
     }
 
-    const judgment = bestAbs <= WINDOWS.PERFECT ? 'PERFECT'
-      : bestAbs <= WINDOWS.GREAT ? 'GREAT' : 'GOOD';
+    const ws = wScale(best);
+    const judgment = bestAbs <= WINDOWS.PERFECT * ws ? 'PERFECT'
+      : bestAbs <= WINDOWS.GREAT * ws ? 'GREAT' : 'GOOD';
 
     best.judgment = judgment;
     best.hitAt = t;
@@ -175,7 +188,7 @@ export class Engine {
       while (k < queue.length) {
         const n = queue[k];
         if (n.state === 'pending') {
-          if (n.time + WINDOWS.GOOD < t) {
+          if (n.time + WINDOWS.GOOD * wScale(n) < t) {
             n.state = 'done';
             n.judgment = 'MISS';
             this._apply('MISS', n, lane);
