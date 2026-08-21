@@ -1,1 +1,37 @@
-{ "version": "1.14" }
+{
+ "version": "1.15",
+ "files": [
+  "./",
+  "./index.html",
+  "./css/style.css",
+  "./manifest.webmanifest",
+  "./sw.js",
+  "./tracks/index.json",
+  "./js/audio.js",
+  "./js/calibration.js",
+  "./js/chart.js",
+  "./js/chartgen.js",
+  "./js/clock.js",
+  "./js/dsp.js",
+  "./js/engine.js",
+  "./js/i18n.js",
+  "./js/input.js",
+  "./js/main.js",
+  "./js/mods.js",
+  "./js/net.js",
+  "./js/render.js",
+  "./js/storage.js",
+  "./js/synth.js",
+  "./js/ui.js",
+  "./js/version.js",
+  "./js/songs/circuit-storm.js",
+  "./js/songs/hyper-nova.js",
+  "./js/songs/index.js",
+  "./js/songs/laser-bloom.js",
+  "./js/songs/midnight-drive.js",
+  "./js/songs/neon-sunrise.js",
+  "./js/songs/theory.js",
+  "./vendor/peerjs.min.js",
+  "./vendor/qrcode.min.js"
+ ]
+}

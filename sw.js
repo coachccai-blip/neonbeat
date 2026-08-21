@@ -1,6 +1,6 @@
 // Service worker : cache-first pour tous les assets du jeu.
 // Incrémenter VERSION à chaque déploiement pour invalider l'ancien cache.
-const VERSION = 'neonbeat-1.14';
+const VERSION = 'neonbeat-1.15';
 // Les MP3 vivent dans leur propre cache, PERMANENT : il survit aux mises à
 // jour du jeu (les musiques sont immuables, inutile de les re-télécharger).
 const TRACKS = 'neonbeat-tracks';
@@ -21,8 +21,13 @@ const CORE = [
 ];
 
 self.addEventListener('install', (e) => {
+  // cache:'reload' : le pré-cache contourne le cache HTTP (GitHub Pages sert
+  // avec max-age=600) — sans ça, un nouveau service worker pourrait figer
+  // d'ANCIENS fichiers sous le nom du nouveau cache.
   e.waitUntil(
-    caches.open(VERSION).then((c) => c.addAll(CORE)).then(() => self.skipWaiting())
+    caches.open(VERSION)
+      .then((c) => c.addAll(CORE.map((u) => new Request(u, { cache: 'reload' }))))
+      .then(() => self.skipWaiting())
   );
 });
 

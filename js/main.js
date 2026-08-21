@@ -381,11 +381,11 @@ function initVersion() {
   // Vérification silencieuse au lancement : si une nouvelle version est en
   // ligne, on le signale et on met le bouton des réglages en évidence.
   fetchRemoteVersion().then((remote) => {
-    if (remote && parseFloat(remote) > parseFloat(APP_VERSION)) {
-      ui.toast(t('ver_available', { v: remote }), 5000);
+    if (remote.version && parseFloat(remote.version) > parseFloat(APP_VERSION)) {
+      ui.toast(t('ver_available', { v: remote.version }), 5000);
       for (const b of updateButtons()) {
         b.classList.add('has-update');
-        b.textContent = t('ver_update') + ' → v' + remote;
+        b.textContent = t('ver_update') + ' → v' + remote.version;
       }
     }
   }).catch(() => {});
@@ -394,10 +394,14 @@ function initVersion() {
 function fetchRemoteVersion() {
   // cache: 'no-store' + garde-fou côté service worker : version.json vient
   // TOUJOURS du réseau, sinon les mises à jour seraient indétectables.
+  // Retourne { version, files } — files liste les fichiers de l'application
+  // de la NOUVELLE version (générée par tools/bump-version.mjs).
   return fetch('./version.json', { cache: 'no-store' })
-    .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
-    .then((d) => d.version);
+    .then((r) => { if (!r.ok) throw new Error(); return r.json(); });
 }
+
+// Repli si version.json ne liste pas encore les fichiers (vieux déploiement).
+const CORE_FILES = ['./', './index.html', './css/style.css', './js/main.js', './js/version.js'];
 
 async function checkForUpdate() {
   let remote = null;
@@ -406,19 +410,23 @@ async function checkForUpdate() {
   } catch {
     return ui.toast(t('ver_offline'));
   }
-  if (parseFloat(remote) <= parseFloat(APP_VERSION)) {
+  if (parseFloat(remote.version) <= parseFloat(APP_VERSION)) {
     return ui.toast(t('ver_uptodate', { v: APP_VERSION }));
   }
-  ui.toast(t('ver_installing'), 4000);
-  // Purge les caches applicatifs puis recharge : la nouvelle version
-  // s'installe et le service worker re-remplit son cache avec les fichiers
-  // frais. Le cache des morceaux est permanent : on ne re-télécharge jamais
-  // 100 Mo de musique pour une mise à jour du code.
+  ui.toast(t('ver_installing'), 8000);
+  // Le cache des morceaux est permanent : on ne re-télécharge jamais 100 Mo
+  // de musique pour une mise à jour du code.
   try {
     if ('caches' in window) {
       const keys = await caches.keys();
       await Promise.all(keys.filter((k) => k !== TRACKS_CACHE).map((k) => caches.delete(k)));
     }
+    // GitHub Pages sert les fichiers avec un cache HTTP de 10 minutes : un
+    // simple reload rechargerait l'ANCIENNE version depuis ce cache (et le
+    // bouton « mettre à jour » resterait affiché). cache:'reload' contourne
+    // le cache HTTP et y range les fichiers frais avant de recharger.
+    const files = (Array.isArray(remote.files) && remote.files.length) ? remote.files : CORE_FILES;
+    await Promise.all(files.map((f) => fetch(f, { cache: 'reload' }).catch(() => {})));
     if (navigator.serviceWorker) {
       const reg = await navigator.serviceWorker.getRegistration();
       if (reg) await reg.update();
