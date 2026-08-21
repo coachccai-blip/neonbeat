@@ -143,6 +143,15 @@ export function trackGain(id) {
 
 /** Téléchargement avec progression (le décodage compte pour les 15 % restants). */
 async function fetchWithProgress(url, onProgress) {
+  // Le pré-téléchargement (main.js) et le service worker remplissent un cache
+  // permanent : on le consulte d'abord pour un chargement instantané, même
+  // quand le service worker n'est pas (encore) actif.
+  if ('caches' in window) {
+    try {
+      const hit = await caches.match(new URL(url, location.href).href);
+      if (hit) return hit.arrayBuffer();
+    } catch { /* navigation privée : on passe par le réseau */ }
+  }
   const res = await fetch(url);
   if (!res.ok) throw new Error(`audio introuvable : ${url}`);
   const total = parseInt(res.headers.get('content-length') || '0', 10);

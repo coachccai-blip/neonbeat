@@ -262,9 +262,58 @@ function boot() {
     S.tracks = tracks;
     const last = tracks.find((t) => t.id === storage.get('lastTrack'));
     S.selectedTrack = last || tracks[0];
+    initPrefetch();
   }).catch(() => {
     ui.toast(t('tracks_error'));
   });
+}
+
+/* ══════════════════ Pré-téléchargement des morceaux ══════════════════ */
+
+// Cache permanent partagé avec le service worker (voir sw.js) : il survit aux
+// mises à jour, donc chaque morceau n'est téléchargé qu'une seule fois.
+const TRACKS_CACHE = 'neonbeat-tracks';
+
+/**
+ * Télécharge en tâche de fond tous les morceaux du catalogue, un par un, pour
+ * que le chargement d'une map soit instantané. Se met en pause pendant les
+ * parties (et pendant le chargement d'une map) pour ne pas voler la bande
+ * passante ni le CPU au jeu.
+ */
+async function initPrefetch() {
+  if (!('caches' in window)) return; // navigation privée / navigateur ancien
+  let cache;
+  try { cache = await caches.open(TRACKS_CACHE); } catch { return; }
+
+  const urls = S.tracks.map((tr) => new URL(`tracks/${tr.id}.mp3`, location.href).href);
+  const missing = [];
+  for (const u of urls) {
+    try { if (!(await cache.match(u))) missing.push(u); } catch { missing.push(u); }
+  }
+  const total = urls.length;
+  let done = total - missing.length;
+  if (!missing.length) return; // tout est déjà sur l'appareil : silence total
+
+  const el = $('dl-status');
+  const paint = () => { el.textContent = t('dl_progress', { done, total }); };
+  el.hidden = false;
+  paint();
+
+  const idle = () => !S.game && ui.screen() !== 'loading' && ui.screen() !== 'game';
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  for (const u of missing) {
+    while (!idle()) await wait(2000);
+    try {
+      const res = await fetch(u);
+      if (res.ok) await cache.put(u, res);
+    } catch { /* hors-ligne ou espace plein : on réessaiera au prochain lancement */ }
+    done++;
+    paint();
+  }
+
+  el.textContent = t('dl_done');
+  setTimeout(() => { el.hidden = true; }, 6000);
 }
 
 /* ══════════════════ Installation (PWA) ══════════════════ */
@@ -361,12 +410,14 @@ async function checkForUpdate() {
     return ui.toast(t('ver_uptodate', { v: APP_VERSION }));
   }
   ui.toast(t('ver_installing'), 4000);
-  // Purge tous les caches puis recharge : la nouvelle version s'installe et
-  // le service worker re-remplit son cache avec les fichiers frais.
+  // Purge les caches applicatifs puis recharge : la nouvelle version
+  // s'installe et le service worker re-remplit son cache avec les fichiers
+  // frais. Le cache des morceaux est permanent : on ne re-télécharge jamais
+  // 100 Mo de musique pour une mise à jour du code.
   try {
     if ('caches' in window) {
       const keys = await caches.keys();
-      await Promise.all(keys.map((k) => caches.delete(k)));
+      await Promise.all(keys.filter((k) => k !== TRACKS_CACHE).map((k) => caches.delete(k)));
     }
     if (navigator.serviceWorker) {
       const reg = await navigator.serviceWorker.getRegistration();

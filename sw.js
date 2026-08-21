@@ -1,6 +1,9 @@
 // Service worker : cache-first pour tous les assets du jeu.
 // Incrémenter VERSION à chaque déploiement pour invalider l'ancien cache.
-const VERSION = 'neonbeat-1.13';
+const VERSION = 'neonbeat-1.14';
+// Les MP3 vivent dans leur propre cache, PERMANENT : il survit aux mises à
+// jour du jeu (les musiques sont immuables, inutile de les re-télécharger).
+const TRACKS = 'neonbeat-tracks';
 
 const CORE = [
   './',
@@ -26,7 +29,7 @@ self.addEventListener('install', (e) => {
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION && k !== TRACKS).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -38,6 +41,19 @@ self.addEventListener('fetch', (e) => {
   // mises à jour — la servir depuis le cache rendrait l'update indétectable.
   if (url.pathname.endsWith('/version.json')) {
     e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+    return;
+  }
+  // Musiques : cache-first dans le cache permanent.
+  if (url.pathname.endsWith('.mp3')) {
+    e.respondWith(
+      caches.match(e.request).then((hit) => hit || fetch(e.request).then((res) => {
+        if (res.ok) {
+          const clone = res.clone();
+          caches.open(TRACKS).then((c) => c.put(e.request, clone));
+        }
+        return res;
+      }))
+    );
     return;
   }
   e.respondWith(
