@@ -403,6 +403,102 @@ export function scheduleClick(at) {
 }
 
 /** Riser de montée de fever : balayage ascendant + ping final, par palier. */
+/* ─── Bruitages d'interface ──────────────────────────────────────────
+   Très courts (< 120 ms), volontairement discrets : on navigue vite dans
+   les menus, un son trop présent devient vite fatigant. Synthétisés comme
+   le reste — aucun fichier à charger.                                    */
+
+const UI_LEVEL = 0.5;        // les sons de menu restent en retrait du jeu
+
+/** Bip d'interface : sinus court avec enveloppe douce (aucun clic parasite). */
+function blip(at, freq, dur, level, type = 'sine', to = 0) {
+  const c = context();
+  const g = c.createGain();
+  g.gain.setValueAtTime(0.0001, at);
+  g.gain.exponentialRampToValueAtTime(0.5 * level * UI_LEVEL, at + 0.008);
+  g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+  g.connect(sfxGain);
+  const o = c.createOscillator();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, at);
+  if (to) o.frequency.exponentialRampToValueAtTime(to, at + dur * 0.9);
+  o.connect(g);
+  o.start(at); o.stop(at + dur + 0.02);
+}
+
+/** Souffle feutré : bruit filtré, pour les ouvertures et retours. */
+function whoosh(at, dur, level, from, to) {
+  const c = context();
+  const n = Math.floor(c.sampleRate * dur);
+  const buf = c.createBuffer(1, n, c.sampleRate);
+  const d = buf.getChannelData(0);
+  // Bruit pseudo-aléatoire déterministe : même souffle à chaque fois.
+  let seed = 12345;
+  for (let i = 0; i < n; i++) {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    d[i] = (seed / 0x3fffffff - 1) * (1 - i / n);
+  }
+  const src = c.createBufferSource();
+  src.buffer = buf;
+  const bp = c.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.Q.value = 1.1;
+  bp.frequency.setValueAtTime(from, at);
+  bp.frequency.exponentialRampToValueAtTime(to, at + dur);
+  const g = c.createGain();
+  g.gain.value = 0.5 * level * UI_LEVEL;
+  src.connect(bp).connect(g).connect(sfxGain);
+  src.start(at); src.stop(at + dur + 0.02);
+}
+
+function uiAt() {
+  const c = context();
+  if (c.state === 'suspended') c.resume();
+  return c.currentTime + 0.005;
+}
+
+/** Effleurement : boutons secondaires, cases, onglets. */
+export function uiTap() {
+  const t = uiAt();
+  blip(t, 1180, 0.055, 0.55, 'triangle');
+}
+
+/** Validation : boutons principaux (jouer, créer, lancer, rejouer). */
+export function uiConfirm() {
+  const t = uiAt();
+  blip(t, 660, 0.07, 0.7, 'triangle');
+  blip(t + 0.055, 990, 0.11, 0.6, 'triangle');
+  whoosh(t, 0.13, 0.3, 900, 2600);
+}
+
+/** Retour en arrière / fermeture : le motif de validation, à l'envers. */
+export function uiBack() {
+  const t = uiAt();
+  blip(t, 760, 0.06, 0.5, 'triangle');
+  blip(t + 0.05, 500, 0.1, 0.45, 'triangle');
+  whoosh(t, 0.13, 0.26, 2300, 800);
+}
+
+/** Bascule d'option : petit tic net, monté ou descendu selon l'état. */
+export function uiToggle(on = true) {
+  const t = uiAt();
+  blip(t, on ? 880 : 620, 0.05, 0.5, 'square', on ? 1240 : 460);
+}
+
+/** Sélection d'un morceau dans le catalogue : pincement court. */
+export function uiSelect() {
+  const t = uiAt();
+  blip(t, 520, 0.09, 0.55, 'triangle', 780);
+  blip(t + 0.012, 1560, 0.06, 0.22, 'sine');
+}
+
+/** Ouverture d'un panneau (fiche du morceau, réglages). */
+export function uiOpen() {
+  const t = uiAt();
+  whoosh(t, 0.17, 0.34, 600, 2400);
+  blip(t + 0.05, 1040, 0.08, 0.4, 'sine');
+}
+
 /* ─── Jingle de fin de partie ────────────────────────────────────────
    Entièrement synthétisé : pas un octet de plus à télécharger, et le motif
    s'adapte au grade obtenu — d'un simple accord pour un D à une fanfare

@@ -18,6 +18,7 @@ const DEFAULTS = {
   volume: 0.8,
   hitsound: false,
   vibrate: false,
+  uisound: true,      // bruitages de navigation dans les menus
   lastTrack: null,
   lastDiff: 'NORMAL',
   lang: 'fr',

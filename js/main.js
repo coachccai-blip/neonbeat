@@ -52,6 +52,7 @@ function boot() {
   i18n.init();
   initVersion();
   initInstall();
+  initUiSounds();
   // Précharge la police embarquée : le canvas ne participe pas au chargement
   // automatique des @font-face, il faut la demander explicitement.
   if (document.fonts && document.fonts.load) {
@@ -346,6 +347,49 @@ async function initPrefetch() {
 
   el.textContent = t('dl_done');
   setTimeout(() => { el.hidden = true; }, 6000);
+}
+
+/* ══════════════════ Bruitages de navigation ══════════════════ */
+
+/**
+ * Un seul écouteur en capture couvre TOUS les menus, y compris les éléments
+ * créés à la volée (morceaux, difficultés, effets, couleurs, langues).
+ * Aucun son pendant une partie : le canvas est exclu et l'écran de jeu aussi.
+ */
+function initUiSounds() {
+  // Un clic sur un <label> déclenche aussi un clic sur sa case : sans ce
+  // garde-fou, les interrupteurs sonneraient deux fois.
+  let last = 0;
+
+  document.addEventListener('click', (e) => {
+    if (!storage.get('uisound')) return;
+    const el = e.target instanceof Element ? e.target.closest('button, .track-item, .color-dot, label.switch') : null;
+    if (!el || el.disabled) return;
+    // En jeu, seuls les boutons du menu pause ont droit à un son.
+    if (ui.screen() === 'game' && !el.closest('#pause-overlay')) return;
+    const now = performance.now();
+    if (now - last < 60) return;
+    last = now;
+
+    const id = el.id || '';
+    const back = el.hasAttribute('data-back')
+      || ['select-back', 'sheet-close', 'btn-back-select', 'btn-quit', 'btn-loading-cancel'].includes(id);
+    const confirm = ['btn-solo', 'btn-create', 'btn-join-go', 'btn-play', 'btn-start',
+                     'btn-again', 'btn-ready', 'btn-resume', 'btn-restart', 'btn-calib-use',
+                     'btn-install'].includes(id)
+      || el.classList.contains('btn-primary') || el.classList.contains('btn-host');
+    const open = ['btn-settings', 'btn-credits', 'btn-calib-home', 'btn-change-track',
+                  'btn-join', 'btn-recalib'].includes(id);
+    const toggle = el.classList.contains('seg-btn') || el.classList.contains('sort-btn')
+      || el.classList.contains('color-dot') || el.classList.contains('switch');
+
+    if (back) audio.uiBack();
+    else if (confirm) audio.uiConfirm();
+    else if (open) audio.uiOpen();
+    else if (el.classList.contains('track-item')) audio.uiSelect();
+    else if (toggle) audio.uiToggle(!el.classList.contains('is-on'));
+    else audio.uiTap();
+  }, true);
 }
 
 /* ══════════════════ Installation (PWA) ══════════════════ */
@@ -852,7 +896,16 @@ class Game {
     if (this.paused) return;
     const t = this.songTime();
 
-    this.engine.update(t);
+    // Le moteur juge sur la MÊME horloge que les frappes (onPress/onRelease) :
+    // l'horloge audio décalée de l'offset de calibration. Sur l'horloge brute,
+    // une note était retirée — donc comptée MISS — avant que la fenêtre de
+    // retard du joueur ne soit épuisée : la fenêtre utile perdait exactement
+    // l'offset (240 ms annoncés, 170 ms réels à 80 ms d'offset), et un hold
+    // dont la tête sautait ainsi était perdu en entier.
+    // Le rendu, lui, reste sur l'horloge brute : les notes se dessinent à leur
+    // vraie position audio.
+    const tJudge = t - this.userOffset * this.rate;
+    this.engine.update(tJudge);
     // Événements du moteur : MISS détectés par l'avancée du temps (les autres
     // jugements ont déjà eu leur feedback à la frappe) et montées de fever.
     for (const ev of this.engine.events.splice(0)) {
