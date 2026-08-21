@@ -523,6 +523,11 @@ input[type=range]::-moz-range-thumb { width: 30px; height: 30px; border-radius: 
 }
 .countdown.go { color: var(--magenta); font-size: min(17vw, 13vh); letter-spacing: .06em; }
 
+/* Combo maximal théorique, sous la vitesse de chute. */
+.maxcombo { text-align: center; font-size: 12px; letter-spacing: .1em; color: var(--ink-dim); margin-top: 4px; }
+.maxcombo strong { color: var(--cyan); font-size: 14px; font-variant-numeric: tabular-nums; }
+.maxcombo:empty { display: none; }
+
 /* ─── Trophées & skins ─── */
 
 /* Compteurs de tête : SS, S+, S et combo maximal, lisibles d'un coup d'œil. */

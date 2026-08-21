@@ -4,7 +4,7 @@ import * as storage from './storage.js';
 import * as audio from './audio.js';
 import * as ui from './ui.js';
 import { loadIndex, loadTrack, getDifficulty, density, to2Keys } from './chart.js';
-import { Engine } from './engine.js';
+import { Engine, feverBounds } from './engine.js';
 import { Renderer } from './render.js';
 import { Input } from './input.js';
 import { Calibration } from './calibration.js';
@@ -632,7 +632,7 @@ function openSheet(t) {
   $('sheet-backdrop').hidden = false;
   $('select-sheet').hidden = false;
   $('speed-slider').value = storage.get('speed');
-  renderKeysChips('select-keys', () => { renderSelectDiff(); refreshTrackListGrades(); });
+  renderKeysChips('select-keys', () => { renderSelectDiff(); refreshTrackListGrades(); updateSpeedHint(); });
   renderSelectDiff();
   renderSelectMods();
   applyAutoSpeed();
@@ -706,12 +706,24 @@ function renderSelectDiff() {
 }
 
 function updateSpeedHint() {
-  const t = S.selectedTrack;
+  const sel = S.selectedTrack;
   const speed = storage.get('speed');
-  if (!t) return ui.describeSpeed(speed, null);
-  loadTrack(t.id).then((track) => {
+  if (!sel) { ui.describeSpeed(speed, null); ui.showMaxCombo(0); return; }
+  loadTrack(sel.id).then((track) => {
     ui.describeSpeed(speed, { bpm: track.bpm, nps: density(track, S.myDiff) });
-  }).catch(() => ui.describeSpeed(speed, null));
+    ui.showMaxCombo(maxComboOf(track, S.myDiff, storage.get('keys')));
+  }).catch(() => { ui.describeSpeed(speed, null); ui.showMaxCombo(0); });
+}
+
+/**
+ * Combo maximal atteignable : une note jugée = un point de combo, donc
+ * c'est le nombre de notes de la chart. En 2 touches, to2Keys en fusionne
+ * certaines : le total est calculé sur la chart réellement jouée.
+ */
+function maxComboOf(track, diffName, keysMode) {
+  const def = getDifficulty(track, diffName);
+  if (!def || !def.notes) return 0;
+  return (keysMode === '2' ? to2Keys(def.notes) : def.notes).length;
 }
 
 /**
@@ -731,6 +743,7 @@ function applyAutoSpeed() {
     if (slider) slider.value = v;
     ui.refreshSettings();
     ui.describeSpeed(v, { bpm: track.bpm, nps });
+    ui.showMaxCombo(maxComboOf(track, S.myDiff, storage.get('keys')));
   }).catch(() => {});
 }
 
@@ -976,14 +989,18 @@ class Game {
       if (ev.type === 'judge' && ev.judgment === 'MISS') {
         this.renderer.label('MISS');
         this.renderer.setCombo(0);
+        audio.missSound();
       } else if (ev.type === 'fever') {
         this.renderer.feverUp(ev.level);
         audio.feverSound(ev.level);
         if (storage.get('vibrate') && navigator.vibrate) navigator.vibrate([25, 30, 25]);
       }
     }
-    // Le badge suit le niveau réel (retombe à ×1 quand le combo casse).
+    // Le badge suit le niveau réel (retombe à ×1 quand le combo casse) et la
+    // jauge indique où en est le joueur vers le palier suivant.
     this.renderer.feverLevel = this.engine.fever;
+    const fb = feverBounds(this.engine.combo);
+    this.renderer.setFeverGauge((this.engine.combo - fb.from) / (fb.to - fb.from), fb.level + 1);
 
     this.renderer.pressed = this.input.pressedLanes();
     this.renderer.setCombo(this.engine.combo);

@@ -11,6 +11,7 @@
  * @typedef {object} Stats
  * @property {number} plays          parties terminées
  * @property {number} maxCombo       plus long combo jamais atteint
+ * @property {number} maxFever       plus haut multiplicateur de fever atteint
  * @property {number} fullCombos     parties sans aucun MISS
  * @property {number} allPerfects    parties 100 % PERFECT
  * @property {number} hardFullCombos full combos en HARD
@@ -20,7 +21,7 @@
  */
 
 export const EMPTY_STATS = {
-  plays: 0, maxCombo: 0, fullCombos: 0, allPerfects: 0,
+  plays: 0, maxCombo: 0, maxFever: 1, fullCombos: 0, allPerfects: 0,
   hardFullCombos: 0, keys2Plays: 0, notesHit: 0, unlocked: []
 };
 
@@ -49,6 +50,9 @@ export const TROPHIES = [
   { id: 'combo100',  icon: '🔗', target: 100, value: (s) => s.maxCombo },
   { id: 'combo250',  icon: '⛓️', target: 250, value: (s) => s.maxCombo },
   { id: 'combo500',  icon: '🌠', target: 500, value: (s) => s.maxCombo },
+  { id: 'fever5',    icon: '🔥', target: 5,   value: (s) => s.maxFever },
+  { id: 'fever8',    icon: '☄️', target: 8,   value: (s) => s.maxFever },
+  { id: 'fever12',   icon: '🌌', target: 12,  value: (s) => s.maxFever },
   { id: 'fc1',       icon: '✨', target: 1,   value: (s) => s.fullCombos },
   { id: 'fc10',      icon: '📺', target: 10,  value: (s) => s.fullCombos },
   { id: 'ap1',       icon: '❄️', target: 1,   value: (s) => s.allPerfects },
@@ -92,6 +96,7 @@ export function applyResult(stats, res) {
   const noMiss = !res.failed && !counts.MISS && (counts.PERFECT || counts.GREAT || counts.GOOD);
   s.plays++;
   s.maxCombo = Math.max(s.maxCombo, res.comboMax || 0);
+  s.maxFever = Math.max(s.maxFever || 1, res.feverMax || 1);
   s.notesHit += (counts.PERFECT || 0) + (counts.GREAT || 0) + (counts.GOOD || 0);
   if (noMiss) {
     s.fullCombos++;

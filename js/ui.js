@@ -107,6 +107,19 @@ export function describeSpeed(speed, chartInfo) {
   el.textContent = t('speed_hint', { n: on.toFixed(1), ms, verdict });
 }
 
+/**
+ * Combo maximal théorique : le nombre de notes de la chart pour la
+ * difficulté ET le mode de touches choisis — donc ce que vaut une chaîne
+ * parfaite. Le mode 2 touches fusionne des notes, son total diffère.
+ */
+export function showMaxCombo(n) {
+  const el = $('sheet-maxcombo');
+  if (!el) return;
+  el.innerHTML = n
+    ? `${t('maxcombo_label')} <strong>${n.toLocaleString('fr-FR')}</strong>`
+    : '';
+}
+
 /* ─── Sélecteurs segmentés (difficulté) ─── */
 
 const DIFF_CLASS = { EASY: 'e', 'EASY+': 'e', NORMAL: 'n', 'NORMAL+': 'n', HARD: 'h' };

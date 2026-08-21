@@ -519,7 +519,7 @@ export function badgeSound(tier) {
    les menus, un son trop présent devient vite fatigant. Synthétisés comme
    le reste — aucun fichier à charger.                                    */
 
-const UI_LEVEL = 0.5;        // les sons de menu restent en retrait du jeu
+const UI_LEVEL = 1.15;       // bien audibles : on navigue au son autant qu'à l'œil
 
 /** Bip d'interface : sinus court avec enveloppe douce (aucun clic parasite). */
 function blip(at, freq, dur, level, type = 'sine', to = 0) {
@@ -538,7 +538,7 @@ function blip(at, freq, dur, level, type = 'sine', to = 0) {
 }
 
 /** Souffle feutré : bruit filtré, pour les ouvertures et retours. */
-function whoosh(at, dur, level, from, to) {
+function whoosh(at, dur, level, from, to, scale = UI_LEVEL) {
   const c = context();
   const n = Math.floor(c.sampleRate * dur);
   const buf = c.createBuffer(1, n, c.sampleRate);
@@ -557,7 +557,7 @@ function whoosh(at, dur, level, from, to) {
   bp.frequency.setValueAtTime(from, at);
   bp.frequency.exponentialRampToValueAtTime(to, at + dur);
   const g = c.createGain();
-  g.gain.value = 0.5 * level * UI_LEVEL;
+  g.gain.value = 0.5 * level * scale;
   src.connect(bp).connect(g).connect(sfxGain);
   src.start(at); src.stop(at + dur + 0.02);
 }
@@ -596,11 +596,16 @@ export function uiToggle(on = true) {
   blip(t, on ? 880 : 620, 0.05, 0.5, 'square', on ? 1240 : 460);
 }
 
-/** Sélection d'un morceau dans le catalogue : pincement court. */
+/**
+ * Sélection d'un morceau : petit accord ascendant, plus « choisi » qu'un
+ * simple tic — c'est le geste central du catalogue, il mérite sa signature.
+ */
 export function uiSelect() {
   const t = uiAt();
-  blip(t, 520, 0.09, 0.55, 'triangle', 780);
-  blip(t + 0.012, 1560, 0.06, 0.22, 'sine');
+  blip(t, 523, 0.10, 0.6, 'triangle', 784);      // do → sol
+  blip(t + 0.045, 784, 0.13, 0.5, 'triangle');
+  blip(t + 0.045, 1046, 0.16, 0.28, 'sine');     // octave, en halo
+  whoosh(t, 0.11, 0.22, 1200, 3000);
 }
 
 /** Ouverture d'un panneau (fiche du morceau, réglages). */
@@ -608,6 +613,33 @@ export function uiOpen() {
   const t = uiAt();
   whoosh(t, 0.17, 0.34, 600, 2400);
   blip(t + 0.05, 1040, 0.08, 0.4, 'sine');
+}
+
+/**
+ * MISS : bref, grave et dissonant — il doit se distinguer instantanément
+ * de tout le reste, sans couvrir la musique ni faire sursauter. Deux voix
+ * désaccordées d'un demi-ton qui plongent, plus un souffle mat.
+ */
+export function missSound() {
+  const c = context();
+  if (c.state === 'suspended') c.resume();
+  const t = c.currentTime + 0.004;
+
+  const g = c.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.34, t + 0.008);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.20);
+  g.connect(sfxGain);
+
+  for (const [f, type] of [[196, 'sawtooth'], [185, 'square']]) {
+    const o = c.createOscillator();
+    o.type = type;
+    o.frequency.setValueAtTime(f, t);
+    o.frequency.exponentialRampToValueAtTime(f * 0.55, t + 0.17);
+    o.connect(g);
+    o.start(t); o.stop(t + 0.22);
+  }
+  whoosh(t, 0.12, 0.30, 900, 260, 1);   // indépendant du volume des menus
 }
 
 /* ─── Jingle de fin de partie ────────────────────────────────────────
@@ -737,7 +769,10 @@ export function gradeJingle(grade, failed) {
 export function feverSound(level) {
   const c = context();
   const t = c.currentTime;
-  const base = 200 * Math.pow(1.26, level);
+  // Sans plafond, ×20 enverrait la fondamentale au-delà de 20 kHz : on
+  // borne la montée et on repart d'une octave plus bas au-delà de ×9.
+  const step = level <= 9 ? level : 5 + ((level - 5) % 5);
+  const base = 200 * Math.pow(1.26, step);
 
   const g = c.createGain();
   g.gain.setValueAtTime(0.0001, t);

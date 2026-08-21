@@ -16,13 +16,40 @@ const HOLD_TOLERANCE = 0.1;    // relâchement anticipé toléré, en secondes
    tôt coûte la rampe de fever, pas seulement le bonus de combo.          */
 
 export const FEVER_STEPS = [0, 25, 50, 100, 150];   // combo requis pour ×1…×5
+export const FEVER_EXTRA = 50;     // puis un palier tous les 50 de combo
 
+/**
+ * Multiplicateur de fever, SANS PLAFOND : ×1…×5 aux paliers historiques,
+ * puis ×6, ×7, ×8… tous les 50 de combo supplémentaires.
+ *
+ * Conséquence assumée : sur une chart longue, les dernières notes valent
+ * bien plus que les premières. Le score reste sur 1 000 000 (le
+ * dénominateur emprunte la même formule), mais casser son combo tard coûte
+ * désormais très cher — c'est précisément ce qui rend la chaîne palpitante.
+ */
 export function feverLevel(combo) {
+  const last = FEVER_STEPS[FEVER_STEPS.length - 1];
+  if (combo >= last) return FEVER_STEPS.length + Math.floor((combo - last) / FEVER_EXTRA);
   let lv = 1;
   for (let i = 1; i < FEVER_STEPS.length; i++) {
     if (combo >= FEVER_STEPS[i]) lv = i + 1;
   }
   return lv;
+}
+
+/**
+ * Bornes du palier de fever courant : de quel combo il part, à quel combo
+ * bascule le suivant. Sert à la jauge d'énergie du HUD.
+ * @returns {{level:number, from:number, to:number}}
+ */
+export function feverBounds(combo) {
+  const last = FEVER_STEPS[FEVER_STEPS.length - 1];
+  const lv = feverLevel(combo);
+  if (combo >= last) {
+    const from = last + (lv - FEVER_STEPS.length) * FEVER_EXTRA;
+    return { level: lv, from, to: from + FEVER_EXTRA };
+  }
+  return { level: lv, from: FEVER_STEPS[lv - 1], to: FEVER_STEPS[lv] };
 }
 
 export const GRADES = [
@@ -59,6 +86,7 @@ export class Engine {
     this.weightSum = 0;
     this.feverSum = 0;
     this.fever = 1;
+    this.feverMax = 1;           // plus haut multiplicateur atteint (trophées)
     // Somme de fever d'une partie parfaite : sert de dénominateur au score.
     this.maxFeverSum = 0;
     for (let i = 1; i <= this.total; i++) this.maxFeverSum += feverLevel(i);
@@ -190,6 +218,7 @@ export class Engine {
     }
     const prevFever = this.fever;
     this.fever = lv;
+    if (lv > this.feverMax) this.feverMax = lv;
     if (lv > prevFever) {
       this.events.push({ type: 'fever', level: lv });
     }
@@ -235,6 +264,7 @@ export class Engine {
       grade: this.failed ? 'D' : gradeFor(precision),
       failed: this.failed,
       total: this.total,
+      feverMax: this.feverMax,
       timing: {
         avgMs: this.deltaCount ? Math.round((this.deltaSum / this.deltaCount) * 1000) : 0,
         earlyPct: this.deltaCount ? Math.round((100 * this.earlyCount) / this.deltaCount) : 0,

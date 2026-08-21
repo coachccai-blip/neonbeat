@@ -72,6 +72,24 @@ export const SKINS = [
     glow: 0.55
   },
   {
+    id: 'brasier',
+    unlock: 'fever8',
+    lanes4: ['#ffdd55', '#ff8a1f', '#ff4d17', '#ffb347'],
+    lanes2: ['#ffdd55', '#ff4d17'],
+    note: 'chrome',
+    line: '#ffe6b0',
+    glow: 1.4
+  },
+  {
+    id: 'nova',
+    unlock: 'fever12',
+    lanes4: ['#ffffff', '#9df0ff', '#ff9ae8', '#c9b6ff'],
+    lanes2: ['#ffffff', '#ff9ae8'],
+    note: 'outline',
+    line: '#ffffff',
+    glow: 1.6
+  },
+  {
     id: 'void',
     unlock: 'ss15',
     lanes4: ['#b06bff', '#6b3dff', '#e07aff', '#4a2bd0'],

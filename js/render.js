@@ -16,7 +16,14 @@ const JUDGE_Y = 0.82;            // ligne de jugement à 18 % du bas
 // ici que le mappage des touches, qui ne dépend que du mode de jeu.
 const LANE_KEYS = { 4: ['Z', 'E', 'I', 'O'], 2: ['E', 'I'] };
 const JUDGE_COLORS = { PERFECT: '#22e0c8', GREAT: '#7ce0ff', GOOD: '#ffb020', MISS: '#ff4d4d' };
-const FEVER_COLORS = { 2: '#22e0c8', 3: '#8b5cff', 4: '#ff3d8b', 5: '#ffb020' };
+// Le fever n'a plus de plafond : au-delà de ×5 la palette recommence, et
+// à partir de ×10 tout vire à l'or blanc — un niveau « hors barème » se
+// reconnaît au premier coup d'œil.
+const FEVER_CYCLE = ['#2fd8ff', '#7a5cff', '#ff4bd8', '#ffb020'];
+function feverColor(level) {
+  if (level >= 10) return '#fff0b8';
+  return FEVER_CYCLE[(Math.max(2, level) - 2) % FEVER_CYCLE.length];
+}
 const FONT = "'Inter', 'Segoe UI', Roboto, Arial, sans-serif";
 
 export class Renderer {
@@ -46,6 +53,14 @@ export class Renderer {
     this.failed = false;
     this.feverLevel = 1;
     this.feverAnim = null;
+    this.feverFrac = 0;
+    this.feverTarget = 0;
+    this.feverNext = 2;
+    this.feverBurst = null;
+    this.feverFrac = 0;          // remplissage AFFICHÉ (lissé)
+    this.feverTarget = 0;        // remplissage réel visé
+    this.feverNext = 2;          // palier suivant, écrit au bout de la jauge
+    this.feverBurst = null;      // { t0 } — éclat au passage d'un palier
     this.shake = null;           // { t0, mag } — secousse aux gros fevers
     this.mods = { fade: false, sudden: false };
     this.lanes = 4;
@@ -274,7 +289,7 @@ export class Renderer {
       this.rings.push({ lane, t0: now, color });
     }
     const cx = (lane + 0.5) * this.laneW;
-    const count = 5 + this.feverLevel * 2;
+    const count = 5 + Math.min(this.feverLevel, 8) * 2;
     for (let i = 0; i < count; i++) {
       this.particles.push({
         x: cx, y: this.judgeY,
@@ -291,11 +306,25 @@ export class Renderer {
     if (this.labels.length > 3) this.labels.splice(0, this.labels.length - 3);
   }
 
+  /**
+   * Progression vers le palier suivant.
+   * @param {number} frac  0..1
+   * @param {number} next  numéro du prochain multiplicateur
+   */
+  setFeverGauge(frac, next) {
+    this.feverTarget = Math.max(0, Math.min(1, frac));
+    this.feverNext = next;
+  }
+
   feverUp(level) {
     this.feverLevel = level;
     this.feverAnim = { level, t0: performance.now() };
-    if (level >= 4) this.shake = { t0: performance.now(), mag: level === 5 ? 5 : 3 };
-    const color = FEVER_COLORS[level] || '#ffb020';
+    // La jauge se remplit d'un coup, éclate, puis se vide vers le nouveau
+    // palier : on lit « l'énergie a été consommée ».
+    this.feverFrac = 1;
+    this.feverBurst = { t0: performance.now() };
+    if (level >= 4) this.shake = { t0: performance.now(), mag: Math.min(6, 3 + (level - 4)) };
+    const color = feverColor(level) || '#ffb020';
     for (let i = 0; i < 26; i++) {
       this.particles.push({
         x: (i / 26) * this.w + this.laneW * 0.1,
@@ -382,7 +411,7 @@ export class Renderer {
       const railA = 0.22 + beatPulse * 0.34 + bnd.mid * 0.55 + (this.feverLevel >= 2 ? 0.12 : 0);
       ctx.globalAlpha = railA;
       ctx.fillStyle = this.feverLevel >= 2
-        ? hexA(FEVER_COLORS[this.feverLevel], 0.9)
+        ? hexA(feverColor(this.feverLevel), 0.9)
         : this.railGrad;
       ctx.fillRect(0, 0, 4, h);
       ctx.fillRect(w - 4, 0, 4, h);
@@ -598,9 +627,11 @@ export class Renderer {
     // ─── Combo : chiffres roulants ───
     if (this.combo >= 2) this._drawCombo(now, w, h);
 
-    // ─── FEVER ───
-    if (this.feverLevel >= 2) {
-      const color = FEVER_COLORS[this.feverLevel];
+    // ─── FEVER : badge + jauge d'énergie ───
+    // Affichés dès que le joueur enchaîne, même à ×1 : la jauge n'a de sens
+    // que si elle apparaît AVANT le premier palier.
+    if (this.feverLevel >= 2 || this.combo >= 5) {
+      const color = feverColor(this.feverLevel);
       const pulse = 1 + 0.045 * Math.sin(now / 150);
       ctx.font = `800 ${Math.round(w * 0.052 * pulse)}px ${FONT}`;
       ctx.textAlign = 'center';
@@ -608,13 +639,14 @@ export class Renderer {
       ctx.fillText(`FEVER ×${this.feverLevel}`, w / 2 + 1.5, h * 0.475 + 1.5);
       ctx.fillStyle = color;
       ctx.fillText(`FEVER ×${this.feverLevel}`, w / 2, h * 0.475);
+      this._drawFeverGauge(now, color);
     }
     if (this.feverAnim) {
       const age = (now - this.feverAnim.t0) / 850;
       if (age >= 1) {
         this.feverAnim = null;
       } else {
-        const color = FEVER_COLORS[this.feverAnim.level] || '#ffb020';
+        const color = feverColor(this.feverAnim.level) || '#ffb020';
         const ease = 1 - Math.pow(1 - Math.min(1, age * 1.6), 3);
         const scale = 2.3 - 1.3 * ease;
         const alpha = age < 0.7 ? 1 : (1 - age) / 0.3;
@@ -662,6 +694,94 @@ export class Renderer {
     const sw = nw + 2 * m;
     const sh = this.noteH + 2 * m;
     this.ctx.drawImage(sprite, x - m, y - sh / 2, sw, sh);
+  }
+
+  /**
+   * Jauge d'énergie sous le badge FEVER : elle se remplit jusqu'au palier
+   * suivant, éclate au passage, puis se vide. Le remplissage affiché suit
+   * la valeur réelle avec un lissage — la barre glisse au lieu de sauter,
+   * et la montée se lit même quand les notes s'enchaînent vite.
+   */
+  _drawFeverGauge(now, color) {
+    const { ctx, w, h } = this;
+    // Lissage : montée souple, vidage plus vif (on doit sentir la dépense).
+    const d = this.feverTarget - this.feverFrac;
+    this.feverFrac += d * (d < 0 ? 0.22 : 0.14);
+    if (Math.abs(d) < 0.002) this.feverFrac = this.feverTarget;
+
+    const gw = Math.round(w * 0.38);
+    const gh = Math.max(7, Math.round(w * 0.021));
+    const labFont = Math.round(w * 0.030);
+    const labW = labFont * 1.7;          // « ×12 » au plus large
+    const gap = Math.round(w * 0.018);
+    // Le libellé du palier visé fait partie de l'ensemble : on centre le
+    // TOUT, sinon la jauge paraît décalée à gauche.
+    const x = Math.round((w - (gw + gap + labW)) / 2);
+    const y = Math.round(h * 0.475 + w * 0.048);
+    const r = gh / 2;
+
+    // À l'approche du palier, la capsule respire : le joueur sent venir la
+    // bascule sans quitter les notes des yeux.
+    const near = this.feverFrac > 0.82 ? (this.feverFrac - 0.82) / 0.18 : 0;
+    const breathe = near * (0.5 + 0.5 * Math.sin(now / 90));
+
+    let burst = 0;
+    if (this.feverBurst) {
+      const age = (now - this.feverBurst.t0) / 620;
+      if (age >= 1) this.feverBurst = null;
+      else burst = 1 - age;
+    }
+
+    // Halo sous la capsule : discret d'ordinaire, franc à l'approche du palier
+    if (near > 0.02 || burst > 0) {
+      ctx.globalAlpha = Math.min(0.5, near * 0.30 + burst * 0.45);
+      ctx.fillStyle = color;
+      rr(ctx, x - 6, y - 5, gw + 12, gh + 10, r + 5); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    // Rail creux
+    ctx.fillStyle = 'rgba(255,255,255,0.09)';
+    rr(ctx, x, y, gw, gh, r); ctx.fill();
+    ctx.strokeStyle = hexA(color, 0.30 + burst * 0.5 + breathe * 0.45);
+    ctx.lineWidth = 1 + breathe;
+    rr(ctx, x + 0.5, y + 0.5, gw - 1, gh - 1, r); ctx.stroke();
+
+    // Remplissage
+    const fw = Math.max(0, this.feverFrac) * (gw - 2);
+    if (fw > 1.5) {
+      ctx.save();
+      rr(ctx, x + 1, y + 1, gw - 2, gh - 2, r - 1);
+      ctx.clip();
+      ctx.fillStyle = hexA(color, 0.9);
+      ctx.fillRect(x + 1, y + 1, fw, gh - 2);
+      // Pointe plus claire : donne le sens de la marche.
+      ctx.fillStyle = mix(color, '#ffffff', 0.55);
+      ctx.fillRect(x + 1 + Math.max(0, fw - gh * 0.9), y + 1, Math.min(fw, gh * 0.9), gh - 2);
+      // Reflet qui balaie la partie remplie, en boucle lente.
+      const sx = x + 1 + ((now / 14) % (gw + 60)) - 30;
+      ctx.fillStyle = 'rgba(255,255,255,0.28)';
+      ctx.fillRect(sx, y + 1, 14, gh - 2);
+      ctx.restore();
+    }
+
+    // Éclat au passage de palier : la capsule blanchit et déborde.
+    if (burst > 0) {
+      ctx.globalAlpha = burst * 0.85;
+      ctx.fillStyle = '#ffffff';
+      rr(ctx, x - burst * 5, y - burst * 4, gw + burst * 10, gh + burst * 8, r + burst * 4);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    // Palier visé, au bout de la jauge.
+    ctx.font = `800 ${labFont}px ${FONT}`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = hexA(color, 0.5 + burst * 0.5 + breathe * 0.4);
+    ctx.fillText(`×${this.feverNext}`, x + gw + gap, y + gh / 2);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
   }
 
   _drawCombo(now, w, h) {
