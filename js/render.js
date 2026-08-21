@@ -21,7 +21,11 @@ const FONT = "'Inter', 'Segoe UI', Roboto, Arial, sans-serif";
 export class Renderer {
   constructor(canvas) {
     this.canvas = canvas;
-    this.ctx = canvas.getContext('2d', { alpha: false });
+    // desynchronized : sur les plateformes qui le supportent (Chrome/Android,
+    // Windows), le canvas contourne une étape de composition du navigateur —
+    // quelques millisecondes de latence tactile→affichage en moins. Repli
+    // silencieux ailleurs.
+    this.ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
     this.notes = [];
     this.headIndex = 0;
     this.travel = 0.9;
