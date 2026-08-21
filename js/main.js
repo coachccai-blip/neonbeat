@@ -1000,7 +1000,7 @@ class Game {
     // jauge indique où en est le joueur vers le palier suivant.
     this.renderer.feverLevel = this.engine.fever;
     const fb = feverBounds(this.engine.combo);
-    this.renderer.setFeverGauge((this.engine.combo - fb.from) / (fb.to - fb.from), fb.level + 1);
+    this.renderer.setFeverGauge((this.engine.combo - fb.from) / (fb.to - fb.from));
 
     this.renderer.pressed = this.input.pressedLanes();
     this.renderer.setCombo(this.engine.combo);

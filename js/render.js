@@ -55,11 +55,9 @@ export class Renderer {
     this.feverAnim = null;
     this.feverFrac = 0;
     this.feverTarget = 0;
-    this.feverNext = 2;
     this.feverBurst = null;
     this.feverFrac = 0;          // remplissage AFFICHÉ (lissé)
     this.feverTarget = 0;        // remplissage réel visé
-    this.feverNext = 2;          // palier suivant, écrit au bout de la jauge
     this.feverBurst = null;      // { t0 } — éclat au passage d'un palier
     this.shake = null;           // { t0, mag } — secousse aux gros fevers
     this.mods = { fade: false, sudden: false };
@@ -309,11 +307,9 @@ export class Renderer {
   /**
    * Progression vers le palier suivant.
    * @param {number} frac  0..1
-   * @param {number} next  numéro du prochain multiplicateur
    */
-  setFeverGauge(frac, next) {
+  setFeverGauge(frac) {
     this.feverTarget = Math.max(0, Math.min(1, frac));
-    this.feverNext = next;
   }
 
   feverUp(level) {
@@ -711,12 +707,9 @@ export class Renderer {
 
     const gw = Math.round(w * 0.38);
     const gh = Math.max(7, Math.round(w * 0.021));
-    const labFont = Math.round(w * 0.030);
-    const labW = labFont * 1.7;          // « ×12 » au plus large
-    const gap = Math.round(w * 0.018);
-    // Le libellé du palier visé fait partie de l'ensemble : on centre le
-    // TOUT, sinon la jauge paraît décalée à gauche.
-    const x = Math.round((w - (gw + gap + labW)) / 2);
+    // Jauge centrée sous le badge : le palier visé est déjà lisible dans le
+    // « FEVER ×N » juste au-dessus, inutile de le répéter au bout de la barre.
+    const x = Math.round((w - gw) / 2);
     const y = Math.round(h * 0.475 + w * 0.048);
     const r = gh / 2;
 
@@ -774,14 +767,6 @@ export class Renderer {
       ctx.globalAlpha = 1;
     }
 
-    // Palier visé, au bout de la jauge.
-    ctx.font = `800 ${labFont}px ${FONT}`;
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = hexA(color, 0.5 + burst * 0.5 + breathe * 0.4);
-    ctx.fillText(`×${this.feverNext}`, x + gw + gap, y + gh / 2);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
   }
 
   _drawCombo(now, w, h) {
