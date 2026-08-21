@@ -3,14 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#07070f">
-<meta name="description" content="NEONBEAT — jeu de rythme multijoueur, 4 joueurs dans le même salon, chacun sur son téléphone.">
+<meta name="theme-color" content="#0b0a1c">
+<meta name="description" content="NEONBEAT — jeu de rythme multijoueur, jusqu’à 8 joueurs dans le même salon, chacun sur son téléphone.">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>NEONBEAT</title>
 <link rel="manifest" href="./manifest.webmanifest">
-<link rel="icon" href="./assets/icon.svg" type="image/svg+xml">
+<link rel="icon" href="./assets/favicon-64.png" type="image/png">
+<link rel="icon" href="./assets/icon-192.png" sizes="192x192" type="image/png">
 <link rel="apple-touch-icon" href="./assets/icon-180.png">
 <link rel="stylesheet" href="./css/style.css">
 </head>
@@ -20,9 +21,19 @@
 
 <!-- ─────────────────────────── ACCUEIL ─────────────────────────── -->
 <section class="screen" id="screen-home" data-screen="home">
-  <div class="wrap">
-    <h1 class="logo"><span class="logo-neon">NEON</span><span class="logo-beat">BEAT</span></h1>
-    <p class="tagline" data-i18n="tagline">4 joueurs · 1 salon · 4 touches</p>
+  <div class="wrap wrap-home">
+    <!-- Mascotte : badge circulaire, halo et anneau néon animés en CSS pur -->
+    <div class="hero">
+      <div class="mascot">
+        <picture>
+          <source srcset="./assets/mascot.webp 720w, ./assets/mascot-420.webp 420w"
+                  sizes="(max-width: 420px) 62vw, 260px" type="image/webp">
+          <img src="./assets/mascot.png" width="420" height="420" alt="" decoding="async" fetchpriority="high">
+        </picture>
+      </div>
+      <h1 class="logo"><span class="logo-neon">NEON</span><span class="logo-beat">BEAT</span></h1>
+      <p class="tagline" data-i18n="tagline">Jusqu’à 8 joueurs · 1 salon · 4 touches</p>
+    </div>
     <p class="pc-hint" data-i18n-html="pc_hint"></p>
     <div class="menu">
       <button class="btn btn-primary" id="btn-solo" data-i18n="home_solo">JOUER EN SOLO</button>
@@ -34,10 +45,12 @@
       <button class="btn btn-tiny" id="btn-calib-home" data-i18n="home_calib">CALIBRER</button>
       <button class="btn btn-tiny" id="btn-credits" data-i18n="home_credits">CRÉDITS</button>
     </div>
-    <button class="btn btn-install" id="btn-install" data-i18n="install" hidden>INSTALLER LE JEU</button>
-    <button class="btn btn-tiny btn-update-home" id="btn-update-home"></button>
-    <p class="dl-status" id="dl-status" hidden></p>
-    <p class="net-note" id="net-note"></p>
+    <div class="home-foot">
+      <button class="btn btn-install" id="btn-install" data-i18n="install" hidden>INSTALLER LE JEU</button>
+      <button class="btn btn-tiny btn-update-home" id="btn-update-home"></button>
+      <p class="dl-status" id="dl-status" hidden></p>
+      <p class="net-note" id="net-note"></p>
+    </div>
   </div>
 </section>
 

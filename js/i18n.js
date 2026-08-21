@@ -6,7 +6,7 @@ import * as storage from './storage.js';
 
 const STRINGS = {
   fr: {
-    tagline: '4 joueurs · 1 salon · 4 touches',
+    tagline: 'Jusqu’à 8 joueurs · 1 salon · 4 touches',
     pc_hint: 'Sur PC : touches <kbd>Z</kbd><kbd>E</kbd><kbd>I</kbd><kbd>O</kbd> (ou <kbd>D</kbd><kbd>F</kbd><kbd>J</kbd><kbd>K</kbd>)',
     home_solo: 'JOUER EN SOLO', home_create: 'CRÉER UNE PARTIE', home_join: 'REJOINDRE UNE PARTIE',
     home_settings: 'RÉGLAGES', home_calib: 'CALIBRER', home_credits: 'CRÉDITS',
@@ -68,7 +68,7 @@ const STRINGS = {
     net_unavailable: 'Multijoueur indisponible — le solo reste jouable.',
     net_nopeer: 'Multijoueur indisponible (PeerJS non chargé)',
     net_broker: 'Broker PeerJS injoignable',
-    room_full: 'Salon complet (4 joueurs max)', room_kicked: 'Exclu du salon',
+    room_full: 'Salon complet ({n} joueurs max)', room_kicked: 'Exclu du salon',
     host_left: 'L’hôte a quitté — termine ton morceau !',
     sync_warn: 'Sync d’horloge indisponible — le rythme peut flotter',
     tracks_error: 'Impossible de charger la liste des morceaux',
@@ -94,7 +94,7 @@ const STRINGS = {
   },
 
   en: {
-    tagline: '4 players · 1 room · 4 keys',
+    tagline: 'Up to 8 players · 1 room · 4 keys',
     pc_hint: 'On PC: keys <kbd>Z</kbd><kbd>E</kbd><kbd>I</kbd><kbd>O</kbd> (or <kbd>D</kbd><kbd>F</kbd><kbd>J</kbd><kbd>K</kbd>)',
     home_solo: 'PLAY SOLO', home_create: 'CREATE A ROOM', home_join: 'JOIN A ROOM',
     home_settings: 'SETTINGS', home_calib: 'CALIBRATE', home_credits: 'CREDITS',
@@ -156,7 +156,7 @@ const STRINGS = {
     net_unavailable: 'Multiplayer unavailable — solo still works.',
     net_nopeer: 'Multiplayer unavailable (PeerJS not loaded)',
     net_broker: 'PeerJS broker unreachable',
-    room_full: 'Room is full (4 players max)', room_kicked: 'Removed from the room',
+    room_full: 'Room is full ({n} players max)', room_kicked: 'Removed from the room',
     host_left: 'The host left — finish your track!',
     sync_warn: 'Clock sync unavailable — timing may drift',
     tracks_error: 'Could not load the track list',
@@ -182,7 +182,7 @@ const STRINGS = {
   },
 
   zh: {
-    tagline: '4名玩家 · 1个房间 · 4个按键',
+    tagline: '最多8名玩家 · 1个房间 · 4个按键',
     pc_hint: '电脑按键：<kbd>Z</kbd><kbd>E</kbd><kbd>I</kbd><kbd>O</kbd>（或 <kbd>D</kbd><kbd>F</kbd><kbd>J</kbd><kbd>K</kbd>）',
     home_solo: '单人游戏', home_create: '创建房间', home_join: '加入房间',
     home_settings: '设置', home_calib: '校准', home_credits: '制作名单',
@@ -244,7 +244,7 @@ const STRINGS = {
     net_unavailable: '多人模式不可用——单人模式仍然可玩。',
     net_nopeer: '多人模式不可用（PeerJS 未加载）',
     net_broker: '无法连接 PeerJS 服务器',
-    room_full: '房间已满（最多4名玩家）', room_kicked: '已被移出房间',
+    room_full: '房间已满（最多{n}名玩家）', room_kicked: '已被移出房间',
     host_left: '房主已离开——打完这首歌吧！',
     sync_warn: '时钟同步不可用——节奏可能漂移',
     tracks_error: '无法加载歌曲列表',

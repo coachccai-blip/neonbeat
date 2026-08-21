@@ -206,6 +206,9 @@ function fmtDur(sec) {
 export function renderPlayers(players, myId) {
   const box = $('players');
   box.innerHTML = '';
+  // Au-delà de quatre, la liste passe en version compacte pour qu'un salon
+  // complet tienne à l'écran d'un téléphone sans défilement.
+  box.classList.toggle('is-crowded', players.length > 4);
   for (const p of players) {
     const div = document.createElement('div');
     div.className = 'player'
@@ -393,6 +396,9 @@ export function renderResults(track, res, ranking, myId) {
 export function renderRivals(list) {
   const box = $('rivals');
   box.innerHTML = '';
+  // Jusqu'à sept rivaux : au-delà de trois, on resserre pour ne jamais
+  // empiéter sur les couloirs de jeu.
+  box.classList.toggle('is-crowded', list.length > 3);
   for (const r of list) {
     const div = document.createElement('div');
     div.className = 'rival' + (r.off ? ' is-off' : '');

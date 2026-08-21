@@ -17,7 +17,7 @@ try {
 
 const PREFIX = 'neonbeat-v1-';
 const CODE_ALPHABET = 'ABCDEFGHJKMNPRSTVWXYZ';   // sans I O Q U L 0 1
-export const MAX_PLAYERS = 4;
+export const MAX_PLAYERS = 8;
 
 export function randomCode() {
   let c = '';

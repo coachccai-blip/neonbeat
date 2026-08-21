@@ -33,12 +33,16 @@
   --bg-2:      #0d0d1c;
   --ink:       #eef0ff;
   --ink-dim:   #8f93b8;
-  --cyan:      #22e0c8;
-  --magenta:   #ff3d8b;
-  --violet:    #8b5cff;
+  /* Palette relevée sur la mascotte : cyan des oreilles de chat, rose néon
+     de la mèche, bleu électrique de l'anneau, indigo de la veste. */
+  --cyan:      #2fd8ff;
+  --magenta:   #ff4bd8;
+  --violet:    #7a5cff;
+  --blue:      #2f7dff;
+  --indigo:    #3c32b9;
   --amber:     #ffb020;
   --danger:    #ff4d4d;
-  --line:      rgba(139, 92, 255, .28);
+  --line:      rgba(122, 92, 255, .30);
   --radius:    14px;
   --safe-t:    env(safe-area-inset-top, 0px);
   --safe-b:    env(safe-area-inset-bottom, 0px);
@@ -104,8 +108,8 @@ body { overflow: hidden; }
   font-size: clamp(40px, 12.5vw, 78px); line-height: .92; letter-spacing: -.02em;
   text-align: center; font-weight: 800;
 }
-.logo-neon { color: var(--cyan); text-shadow: 0 0 18px rgba(34,224,200,.55), 0 0 46px rgba(34,224,200,.25); }
-.logo-beat { color: var(--magenta); text-shadow: 0 0 18px rgba(255,61,139,.55), 0 0 46px rgba(255,61,139,.25); }
+.logo-neon { color: var(--cyan); text-shadow: 0 0 18px rgba(47,216,255,.6), 0 0 46px rgba(47,125,255,.3); }
+.logo-beat { color: var(--magenta); text-shadow: 0 0 18px rgba(255,75,216,.6), 0 0 46px rgba(255,75,216,.28); }
 .logo { animation: logo-breathe 2.6s ease-in-out infinite; }
 @keyframes logo-breathe { 50% { filter: brightness(1.18); } }
 @media (prefers-reduced-motion: reduce) { .logo, #wipe.run { animation: none; } }
@@ -121,17 +125,17 @@ body { overflow: hidden; }
   font-family: inherit; font-size: 18px; font-weight: 700; letter-spacing: .12em;
   color: #080812; background: var(--cyan);
   transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
-  box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 8px 26px rgba(34,224,200,.22);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 8px 26px rgba(47,216,255,.24);
 }
 .btn:active { transform: scale(.975); filter: brightness(1.12); }
-.btn-primary { background: linear-gradient(96deg, var(--cyan), #59f0ff); }
+.btn-primary { background: linear-gradient(96deg, var(--cyan), var(--blue)); color: #04101f; }
 .btn-host { background: linear-gradient(96deg, var(--magenta), var(--violet)); color: #fff;
-  box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 8px 26px rgba(255,61,139,.25); }
+  box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 8px 26px rgba(255,75,216,.28); }
 .btn-ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line); }
 .btn-small { min-height: 44px; font-size: 14px; padding: 10px 16px; width: auto; }
 .btn-tiny {
   min-height: 44px; font-size: 12px; letter-spacing: .14em; padding: 12px 10px;
-  background: transparent; color: var(--ink-dim); box-shadow: inset 0 0 0 1.5px rgba(139,92,255,.22);
+  background: transparent; color: var(--ink-dim); box-shadow: inset 0 0 0 1.5px rgba(122,92,255,.24);
 }
 .btn[disabled] { opacity: .38; pointer-events: none; }
 .menu { display: flex; flex-direction: column; gap: 12px; }
@@ -142,6 +146,75 @@ body { overflow: hidden; }
   min-height: 44px; cursor: pointer;
 }
 .net-note { text-align: center; font-size: 12px; color: var(--amber); min-height: 16px; }
+
+/* ─── Accueil : la mascotte porte l'identité du jeu ───────────────────
+   Le badge circulaire reprend l'anneau néon du visuel source. Anneau et
+   halo sont en CSS pur (aucune image supplémentaire à télécharger) et
+   s'arrêtent net si le système demande moins d'animations.            */
+
+.wrap-home { justify-content: center; gap: clamp(12px, 2.4vh, 18px); }
+
+.hero {
+  display: flex; flex-direction: column; align-items: center;
+  gap: clamp(6px, 1.4vh, 12px);
+}
+
+.mascot {
+  position: relative;
+  width: clamp(150px, min(58vw, 30vh), 260px);
+  aspect-ratio: 1;
+  display: grid; place-items: center;
+  isolation: isolate;
+}
+/* Halo diffus : donne au badge son assise lumineuse sur le fond sombre */
+.mascot::after {
+  content: ''; position: absolute; inset: -22%; z-index: -2; border-radius: 50%;
+  background: radial-gradient(closest-side,
+    rgba(47,125,255,.34), rgba(255,75,216,.16) 58%, transparent 76%);
+  filter: blur(6px);
+}
+/* Anneau conique : la lumière tourne lentement autour de la mascotte */
+.mascot::before {
+  content: ''; position: absolute; inset: -6px; z-index: -1; border-radius: 50%;
+  background: conic-gradient(from 0deg,
+    var(--cyan), var(--blue), var(--violet), var(--magenta), var(--cyan));
+  -webkit-mask: radial-gradient(closest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+          mask: radial-gradient(closest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  animation: mascot-ring 7s linear infinite;
+  opacity: .95;
+}
+.mascot img {
+  width: 100%; height: 100%; border-radius: 50%;
+  display: block; object-fit: cover;
+  animation: mascot-float 4.2s ease-in-out infinite;
+}
+@keyframes mascot-ring { to { transform: rotate(1turn); } }
+@keyframes mascot-float {
+  0%, 100% { transform: translateY(0)    scale(1);     }
+  50%      { transform: translateY(-5px) scale(1.014); }
+}
+
+/* Le logo mord légèrement sur le badge : le titre et la mascotte forment
+   un seul bloc plutôt que deux éléments empilés. */
+.wrap-home .logo { margin-top: -2px; }
+.wrap-home .tagline { margin-top: 0; }
+
+/* Pied d'accueil : installer / mettre à jour / téléchargement / réseau,
+   regroupés pour ne pas disperser les éléments secondaires. */
+.home-foot { display: flex; flex-direction: column; gap: 8px; }
+
+/* Écrans courts (petits téléphones) : on comprime le décor, jamais les
+   boutons — les cibles tactiles restent à 56 px. */
+@media (max-height: 700px) {
+  .mascot { width: clamp(104px, 22vh, 168px); }
+  .wrap-home { gap: 9px; }
+  .wrap-home .logo { font-size: clamp(34px, 10vw, 56px); }
+  .wrap-home .tagline { font-size: 11px; letter-spacing: .22em; }
+  .home-foot { gap: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mascot::before, .mascot img { animation: none; }
+}
 
 /* Aide clavier : uniquement sur les appareils à souris (PC), inutile au tactile */
 .pc-hint { display: none; text-align: center; font-size: 12px; color: var(--ink-dim); margin-top: -4px; }
@@ -190,6 +263,13 @@ body { overflow: hidden; }
 .player.is-ready .pready { color: var(--cyan); }
 .player.is-host .pname::after { content: ' ★'; color: var(--amber); }
 .player.is-off { opacity: .4; }
+
+/* Salon de 5 à 8 joueurs : lignes resserrées, la liste reste entièrement
+   visible sur un téléphone sans rien perdre en lisibilité. */
+.players.is-crowded { gap: 6px; }
+.players.is-crowded .player { min-height: 42px; padding: 7px 12px; gap: 10px; border-left-width: 3px; }
+.players.is-crowded .player .pname { font-size: 15px; }
+.players.is-crowded .player .dot { width: 9px; height: 9px; }
 
 .track-card {
   display: flex; align-items: center; gap: 12px; padding: 14px;
@@ -415,6 +495,10 @@ input[type=range]::-moz-range-thumb { width: 30px; height: 30px; border-radius: 
 .rival .rb { height: 5px; border-radius: 3px; background: rgba(255,255,255,.12); overflow: hidden; margin-top: 2px; }
 .rival .rf { height: 100%; width: 0; border-radius: 3px; transition: width .2s linear; }
 .rival.is-off { opacity: .35; }
+/* Quatre rivaux et plus (salon jusqu'à 8) : colonne resserrée. */
+.rivals.is-crowded { gap: 4px; width: 84px; }
+.rivals.is-crowded .rival { font-size: 9px; }
+.rivals.is-crowded .rival .rb { height: 4px; margin-top: 1px; }
 
 .btn-pause {
   position: absolute; left: 10px; top: calc(var(--safe-t) + 22px); width: 44px; height: 44px;

@@ -1180,6 +1180,20 @@ function createRoom() {
   S.net.open();
 }
 
+/**
+ * Attribue au joueur sa couleur si elle est encore libre, sinon la première
+ * teinte disponible. À huit dans un salon, deux joueurs choisissent
+ * fatalement la même : sans ça, impossible de les distinguer en jeu.
+ */
+function freeColor(peerId, wanted) {
+  const taken = new Set();
+  for (const [id, q] of S.players) if (id !== peerId && q.color) taken.add(q.color.toLowerCase());
+  const ok = /^#[0-9a-f]{6}$/i.test(wanted) ? wanted : null;
+  if (ok && !taken.has(ok.toLowerCase())) return ok;
+  const free = storage.COLORS.find((c) => !taken.has(c.toLowerCase()));
+  return free || ok || '#8f93b8';
+}
+
 function hostOnMessage(peerId, msg) {
   const p = S.players.get(peerId);
   if (!p) return;
@@ -1187,7 +1201,7 @@ function hostOnMessage(peerId, msg) {
   switch (msg.t) {
     case 'JOIN':
       p.name = String(msg.name || 'JOUEUR').slice(0, 10);
-      p.color = /^#[0-9a-f]{6}$/i.test(msg.color) ? msg.color : '#8b5cff';
+      p.color = freeColor(peerId, msg.color);
       p.off = false;
       refreshLobby();
       hostBroadcastLobby();
@@ -1254,7 +1268,7 @@ function hostBroadcastScores() {
       p.off = true;
       hostMaybeSendResults();
     }
-    if (p.progress && !p.off) scores[id] = p.progress;
+    if (p.progress && !p.off) scores[id] = { score: p.progress.score };
   }
   S.net.broadcast({ t: 'SCORES', scores });
   updateRivals(scores);
@@ -1443,7 +1457,7 @@ function clientOnMessage(msg) {
       ui.show('results');
       break;
     case 'KICK':
-      ui.toast(t(msg.reason === 'full' ? 'room_full' : 'room_kicked'));
+      ui.toast(msg.reason === 'full' ? t('room_full', { n: MAX_PLAYERS }) : t('room_kicked'));
       leaveRoom();
       ui.show('home');
       break;

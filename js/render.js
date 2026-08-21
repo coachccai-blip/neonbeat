@@ -109,7 +109,6 @@ export class Renderer {
 
     const ref = w / 4;           // même hauteur de note en 2 et 4 keys
     this.noteH = Math.max(20, Math.min(36, ref * 0.26));
-    this.keyFont = `800 ${Math.round(this.noteH * 0.78)}px ${FONT}`;
     this.receptorFont = `700 ${Math.round(Math.min(20, ref * 0.14))}px ${FONT}`;
     this.comboFont = `800 ${Math.round(w * 0.13)}px ${FONT}`;
     this.comboDigitW = 0;        // mesuré au premier draw (police chargée)
@@ -469,15 +468,10 @@ export class Renderer {
         if (n.state !== 'held') this._stamp(sprite, x, y, nw, m);
         this._stamp(sprite, x, yEnd, nw, m);
       } else {
+        // Pas de lettre sur les notes : elles alourdissaient le visuel. Le
+        // rappel des touches reste sous la ligne de jugement, là où le
+        // regard le cherche avant la partie.
         this._stamp(sprite, x, y, nw, m);
-        if (this.showKeys && n.judgment !== 'MISS') {
-          ctx.font = this.keyFont;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillStyle = 'rgba(7,7,15,0.82)';
-          ctx.fillText(this.laneKeys[n.lane], x + nw / 2, y + 1);
-          ctx.textBaseline = 'alphabetic';
-        }
       }
       ctx.globalAlpha = 1;
     }

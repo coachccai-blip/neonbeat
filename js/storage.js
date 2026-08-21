@@ -2,7 +2,12 @@
 
 const KEY = 'neonbeat.v1';
 
-export const COLORS = ['#22e0c8', '#ff3d8b', '#8b5cff', '#ffb020', '#59f0ff', '#7cff6b'];
+// Huit teintes nettement distinctes : une par joueur d'un salon complet.
+// Reprises de la palette de la mascotte (cyan, bleu, violet, rose néon).
+export const COLORS = [
+  '#2fd8ff', '#2f7dff', '#7a5cff', '#ff4bd8',
+  '#ff5470', '#ffb020', '#7cff6b', '#31e0a8'
+];
 
 const DEFAULTS = {
   name: '',

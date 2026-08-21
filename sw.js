@@ -1,6 +1,6 @@
 // Service worker : cache-first pour tous les assets du jeu.
 // Incrémenter VERSION à chaque déploiement pour invalider l'ancien cache.
-const VERSION = 'neonbeat-1.16';
+const VERSION = 'neonbeat-1.17';
 // Les MP3 vivent dans leur propre cache, PERMANENT : il survit aux mises à
 // jour du jeu (les musiques sont immuables, inutile de les re-télécharger).
 const TRACKS = 'neonbeat-tracks';
@@ -13,6 +13,10 @@ const CORE = [
   './vendor/peerjs.min.js',
   './vendor/qrcode.min.js',
   './assets/icon.svg',
+  './assets/favicon-64.png',
+  './assets/mascot.webp',
+  './assets/mascot-420.webp',
+  './assets/mascot.png',
   './assets/fonts/inter-latin-400-normal.woff2',
   './assets/fonts/inter-latin-700-normal.woff2',
   './assets/fonts/inter-latin-800-normal.woff2',

@@ -1,3 +1,11 @@
+# Crédits
+
+## Mascotte et logo
+
+Le visuel de la mascotte (`assets/mascot-source.png`, décliné en icônes et en
+image d'accueil) a été **fourni par le propriétaire du site** : la vérification
+et la détention des droits d'exploitation relèvent de sa responsabilité.
+
 # Crédits musicaux
 
 Les 5 compositions originales synthétisées (CC0) ont été retirées du jeu ;
