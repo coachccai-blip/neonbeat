@@ -2,9 +2,13 @@
 
 ## Mascotte et logo
 
-Le visuel de la mascotte (`assets/mascot-source.png`, décliné en icônes et en
-image d'accueil) a été **fourni par le propriétaire du site** : la vérification
-et la détention des droits d'exploitation relèvent de sa responsabilité.
+Deux visuels, tous deux **fournis par le propriétaire du site** — la
+vérification et la détention des droits d'exploitation relèvent de sa
+responsabilité :
+
+- `assets/mascot-source.png` — badge circulaire, décliné pour l'écran d'accueil ;
+- `assets/icon-source.png` — visuel carré, décliné en icônes de l'application
+  (192, 512, apple-touch, favicon et icône « maskable »).
 
 # Crédits musicaux
 
