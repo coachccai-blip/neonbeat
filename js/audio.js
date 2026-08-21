@@ -470,6 +470,50 @@ export function scheduleClick(at) {
 }
 
 /** Riser de montée de fever : balayage ascendant + ping final, par palier. */
+/**
+ * Fanfare des bannières de performance (ALL PERFECT / FULL COMBO /
+ * SINGLE BREAK). Jouée APRÈS le jingle du grade : impact grave d'abord,
+ * puis l'accord — l'oreille lit un « tampon » qu'on abat sur l'écran.
+ */
+export function badgeSound(tier) {
+  const c = context();
+  if (c.state === 'suspended') c.resume();
+  const t = c.currentTime + 0.04;
+  const R = 60;
+
+  // Impact : sinus très grave qui plonge, comme un coup de tampon.
+  const thumpG = c.createGain();
+  thumpG.gain.setValueAtTime(0.0001, t);
+  thumpG.gain.exponentialRampToValueAtTime(tier === 'sb' ? 0.30 : 0.55, t + 0.012);
+  thumpG.gain.exponentialRampToValueAtTime(0.0001, t + 0.42);
+  thumpG.connect(sfxGain);
+  const thump = c.createOscillator();
+  thump.type = 'sine';
+  thump.frequency.setValueAtTime(tier === 'ap' ? 190 : 150, t);
+  thump.frequency.exponentialRampToValueAtTime(42, t + 0.30);
+  thump.connect(thumpG);
+  thump.start(t); thump.stop(t + 0.45);
+
+  if (tier === 'sb') {
+    // Un seul MISS : on salue, sans fanfare. Deux notes, franches et brèves.
+    bell(t + 0.10, R + 7, 0.5, 0.55);
+    bell(t + 0.22, R + 12, 0.75, 0.5);
+    pad(t + 0.22, [R - 12, R + 3, R + 7], 0.8, 0.55);
+    return;
+  }
+
+  // FULL COMBO : accord large et net. ALL PERFECT : le même, en majeur
+  // ouvert, doublé d'une octave supérieure et d'une pluie d'étincelles.
+  const chord = tier === 'ap' ? [0, 7, 12, 16, 19, 24] : [0, 7, 12, 16];
+  const at = t + 0.09;
+  for (const d of chord) bell(at, R + d, tier === 'ap' ? 1.5 : 1.1, 0.8);
+  pad(at, [R - 12, R + 4, R + 7, R + 12], tier === 'ap' ? 1.7 : 1.2, tier === 'ap' ? 1.2 : 0.95);
+  if (tier === 'ap') {
+    sparkle(at + 0.16, 10);
+    bell(at + 0.55, R + 31, 1.2, 0.32, 'sine');
+  }
+}
+
 /* ─── Bruitages d'interface ──────────────────────────────────────────
    Très courts (< 120 ms), volontairement discrets : on navigue vite dans
    les menus, un son trop présent devient vite fatigant. Synthétisés comme

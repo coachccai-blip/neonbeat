@@ -326,6 +326,46 @@ function modsShort(ids) {
 
 let scoreRaf = 0;
 let jingleTimer = 0;
+let badgeTimer = 0;
+
+/**
+ * Abat la bannière de performance ~1 s après le grade : les deux fanfares
+ * ne se marchent pas dessus et l'œil a le temps de lire le grade d'abord.
+ */
+function playBadge(tier) {
+  const el = $('res-badge');
+  if (!el) return;
+  clearTimeout(badgeTimer);
+  el.hidden = true;
+  if (!tier) return;
+  badgeTimer = setTimeout(() => {
+    el.dataset.tier = tier;
+    el.querySelector('.pb-txt').textContent = t('badge_' + tier);
+    el.hidden = false;
+    // Redémarre les animations CSS même si la bannière était déjà à l'écran.
+    el.style.animation = 'none';
+    void el.offsetWidth;
+    el.style.animation = '';
+    audio.badgeSound(tier);
+  }, 1050);
+}
+
+/**
+ * Palier de performance, du plus rare au plus commun :
+ *  ap — aucune note en dessous de PERFECT
+ *  fc — aucun MISS (des GREAT/GOOD sont tolérés)
+ *  sb — un seul MISS, « single break »
+ * Une partie échouée n'en obtient aucun.
+ */
+function perfTier(res) {
+  const c = res.counts || {};
+  const juges = (c.PERFECT || 0) + (c.GREAT || 0) + (c.GOOD || 0);
+  if (res.failed || !juges) return null;
+  if (!c.MISS && !c.GREAT && !c.GOOD) return 'ap';
+  if (!c.MISS) return 'fc';
+  if (c.MISS === 1) return 'sb';
+  return null;
+}
 
 /** Palier visuel du grade : pilote couleurs, ondes et étincelles. */
 function tierOf(grade, failed) {
@@ -406,6 +446,7 @@ export function renderResults(track, res, ranking, myId, celebrate = true) {
     // Le son arrive avec l'impact du grade, pas avant.
     clearTimeout(jingleTimer);
     jingleTimer = setTimeout(() => audio.gradeJingle(res.grade, res.failed), 160);
+    playBadge(perfTier(res));
   }
   $('res-song').textContent = `${track.title} — ${res.diffName || ''}`;
   // score compté en montée (1,1 s, freiné en fin de course)

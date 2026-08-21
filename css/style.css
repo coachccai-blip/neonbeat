@@ -586,6 +586,68 @@ input[type=range]::-moz-range-thumb { width: 30px; height: 30px; border-radius: 
   100% { transform: scale(1); filter: drop-shadow(0 0 24px var(--g-glow)); }
 }
 
+/* ─── Bannière de performance (ALL PERFECT / FULL COMBO / SINGLE BREAK) ──
+   Elle s'abat comme un tampon : arrivée écrasée à l'horizontale, rebond,
+   puis un trait de lumière la traverse. Les couleurs suivent le palier. */
+
+.perf-badge {
+  position: relative; margin: 2px auto 4px; max-width: 340px;
+  padding: 9px 14px; border-radius: 10px; text-align: center;
+  overflow: hidden; isolation: isolate;
+  --pb-a: var(--cyan); --pb-b: var(--magenta);
+  background: linear-gradient(100deg, var(--pb-a), var(--pb-b));
+  box-shadow: 0 0 0 1px rgba(255,255,255,.22), 0 6px 26px -4px var(--pb-a);
+  animation: pb-stamp .5s cubic-bezier(.16, 1.5, .3, 1) both;
+}
+.perf-badge[data-tier="ap"] { --pb-a: #ffd76a; --pb-b: #ff7ae0; }
+.perf-badge[data-tier="fc"] { --pb-a: #2fd8ff; --pb-b: #7a5cff; }
+.perf-badge[data-tier="sb"] { --pb-a: #7a5cff; --pb-b: #2f7dff; }
+
+.perf-badge .pb-txt {
+  display: block; position: relative; z-index: 2;
+  font-size: clamp(15px, 5vw, 21px); font-weight: 800; letter-spacing: .26em;
+  color: #080814; text-indent: .26em;               /* compense l'interlettrage à droite */
+  text-shadow: 0 1px 0 rgba(255,255,255,.35);
+}
+
+/* Trait de lumière qui balaie la bannière, une seule fois. */
+.perf-badge::before {
+  content: ''; position: absolute; inset: -40% -60%; z-index: 1;
+  background: linear-gradient(100deg, transparent 42%, rgba(255,255,255,.85) 50%, transparent 58%);
+  transform: translateX(-100%);
+  animation: pb-sheen .85s ease-out .30s both;
+}
+/* Onde de choc à l'impact du tampon. */
+.perf-badge::after {
+  content: ''; position: absolute; inset: 0; z-index: 0; border-radius: 10px;
+  box-shadow: 0 0 0 0 var(--pb-a);
+  animation: pb-shock .7s ease-out .12s both;
+}
+
+@keyframes pb-stamp {
+  0%   { opacity: 0; transform: scaleX(1.5) scaleY(.35); filter: blur(3px); }
+  55%  { opacity: 1; transform: scaleX(.97) scaleY(1.06); filter: blur(0); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes pb-sheen { to { transform: translateX(100%); } }
+@keyframes pb-shock {
+  0%   { box-shadow: 0 0 0 0 var(--pb-a); opacity: .9; }
+  100% { box-shadow: 0 0 0 26px transparent; opacity: 0; }
+}
+
+/* ALL PERFECT : la bannière garde une lueur qui respire, les deux autres
+   se posent et se taisent. */
+.perf-badge[data-tier="ap"] { animation: pb-stamp .5s cubic-bezier(.16,1.5,.3,1) both, pb-glow 1.9s ease-in-out .6s 3; }
+@keyframes pb-glow {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(255,255,255,.22), 0 6px 26px -4px var(--pb-a); }
+  50%      { box-shadow: 0 0 0 1px rgba(255,255,255,.5), 0 10px 40px 2px var(--pb-a); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .perf-badge, .perf-badge[data-tier="ap"] { animation: none; }
+  .perf-badge::before, .perf-badge::after { display: none; }
+}
+
 /* ─── Célébration du grade ───────────────────────────────────────────
    Chaque palier a sa couleur, ses ondes de choc et ses étincelles. Tout est
    en CSS : les éléments sont créés puis retirés à la fin de l'animation,
