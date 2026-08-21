@@ -9,16 +9,36 @@ const $ = (id) => document.getElementById(id);
 
 /* ─── Routeur d'écrans ─── */
 
-let currentScreen = 'home';
+let currentScreen = null;    // null tant qu'aucun écran n'a été affiché
 const listeners = [];
+let wiping = false;
 
-export function show(name) {
+function switchScreens(name) {
   document.querySelectorAll('.screen').forEach((s) => {
     s.classList.toggle('is-active', s.dataset.screen === name);
   });
   currentScreen = name;
   document.body.classList.toggle('in-game', name === 'game');
   for (const fn of listeners) fn(name);
+}
+
+export function show(name) {
+  if (name === currentScreen) return;
+  // Wipe diagonal express entre les menus. Jamais autour de l'écran de jeu ni
+  // au premier affichage : le timing du canvas n'attend aucune animation.
+  const skip = name === 'game' || currentScreen === 'game' || currentScreen === null || wiping;
+  const wipe = document.getElementById('wipe');
+  if (skip || !wipe) {
+    switchScreens(name);
+    return;
+  }
+  wiping = true;
+  wipe.classList.add('run');
+  setTimeout(() => switchScreens(name), 120);
+  setTimeout(() => {
+    wipe.classList.remove('run');
+    wiping = false;
+  }, 270);
 }
 
 export function screen() {
@@ -89,6 +109,39 @@ export function renderDiffSeg(container, levels, active, onPick, gradeOf) {
 
 /* ─── Liste des morceaux ─── */
 
+const coverCache = new Map();
+
+/** Pochette générée : dégradé de la couleur du morceau + silhouette d'onde. */
+export function coverFor(t) {
+  let url = coverCache.get(t.id);
+  if (url) return url;
+  const size = 96;
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size;
+  const x = c.getContext('2d');
+  const g = x.createLinearGradient(0, 0, size, size);
+  g.addColorStop(0, t.color || '#22e0c8');
+  g.addColorStop(1, '#0a0a16');
+  x.fillStyle = g;
+  x.fillRect(0, 0, size, size);
+  // barres pseudo-waveform déterministes (hash du titre)
+  let seed = 0;
+  for (const ch of t.id) seed = (seed * 31 + ch.charCodeAt(0)) >>> 0;
+  x.fillStyle = 'rgba(255,255,255,0.55)';
+  const n = 11;
+  for (let i = 0; i < n; i++) {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    const v = 0.2 + (seed / 4294967296) * 0.8;
+    const bh = v * size * 0.52;
+    x.fillRect(8 + i * ((size - 16) / n), size / 2 - bh / 2, (size - 16) / n * 0.55, bh);
+  }
+  x.fillStyle = 'rgba(7,7,15,0.35)';
+  x.fillRect(0, size - 26, size, 26);
+  url = c.toDataURL();
+  coverCache.set(t.id, url);
+  return url;
+}
+
 export function renderTrackList(tracks, activeId, onPick, gradeOf) {
   const list = $('track-list');
   list.innerHTML = '';
@@ -101,7 +154,7 @@ export function renderTrackList(tracks, activeId, onPick, gradeOf) {
       return `<span class="lv ${DIFF_CLASS[l.name] || ''}">${l.level}${grade ? `<b>${grade}</b>` : ''}</span>`;
     }).join('');
     b.innerHTML = `
-      <span class="track-num">${i + 1}</span>
+      <img class="track-cover" src="${coverFor(t)}" alt="" width="46" height="46">
       <span class="track-info">
         <span class="t">${t.title}</span>
         <span class="m">${t.artist} · ${t.bpm} BPM · ${fmtDur(t.duration)}</span>
@@ -244,11 +297,29 @@ function modsShort(ids) {
 
 /* ─── Résultats ─── */
 
+let scoreRaf = 0;
+
 export function renderResults(track, res, ranking, myId) {
-  $('res-grade').textContent = res.failed ? 'FAILED' : res.grade;
-  $('res-grade').style.fontSize = res.failed ? 'clamp(48px,16vw,80px)' : '';
+  const gradeEl = $('res-grade');
+  gradeEl.textContent = res.failed ? 'FAILED' : res.grade;
+  gradeEl.style.fontSize = res.failed ? 'clamp(48px,16vw,80px)' : '';
+  // re-déclenche l'animation de claquage du grade
+  gradeEl.classList.remove('slam');
+  void gradeEl.offsetWidth;
+  gradeEl.classList.add('slam');
   $('res-song').textContent = `${track.title} — ${res.diffName || ''}`;
-  $('res-score').textContent = res.score.toLocaleString('fr-FR');
+  // score compté en montée (1,1 s, freiné en fin de course)
+  cancelAnimationFrame(scoreRaf);
+  const scoreEl = $('res-score');
+  const target = res.score;
+  const t0 = performance.now();
+  const count = () => {
+    const p = Math.min(1, (performance.now() - t0) / 1100);
+    const e = 1 - Math.pow(1 - p, 3);
+    scoreEl.textContent = Math.round(target * e).toLocaleString('fr-FR');
+    if (p < 1) scoreRaf = requestAnimationFrame(count);
+  };
+  count();
   $('res-stats').innerHTML = `
     <div class="stat perfect"><div class="v">${res.counts.PERFECT}</div><div class="k">PERFECT</div></div>
     <div class="stat great"><div class="v">${res.counts.GREAT}</div><div class="k">GREAT</div></div>
@@ -256,6 +327,11 @@ export function renderResults(track, res, ranking, myId) {
     <div class="stat miss"><div class="v">${res.counts.MISS}</div><div class="k">MISS</div></div>
     <div class="stat"><div class="v">${res.comboMax}</div><div class="k">${t('res_combo_max')}</div></div>
     <div class="stat"><div class="v">${(res.precision * 100).toFixed(1)}%</div><div class="k">${t('res_precision')}</div></div>`;
+  // apparition en cascade des tuiles
+  $('res-stats').querySelectorAll('.stat').forEach((el, i) => {
+    el.style.animationDelay = `${120 + i * 70}ms`;
+    el.classList.add('pop-in');
+  });
 
   const timingEl = $('res-timing');
   if (timingEl) {

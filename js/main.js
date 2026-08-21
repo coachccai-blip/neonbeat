@@ -406,6 +406,7 @@ function renderKeysChips(containerId, refresh) {
 }
 
 function openSheet(t) {
+  $('sheet-cover').src = ui.coverFor(t);
   $('sheet-title').textContent = t.title;
   $('sheet-meta').textContent = `${t.artist} · ${t.bpm} BPM · ${Math.floor(t.duration / 60)}:${String(Math.round(t.duration % 60)).padStart(2, '0')}`;
   $('sheet-backdrop').hidden = false;
