@@ -1365,7 +1365,9 @@ function hostMaybeSendResults(force = false) {
   clearTimeout(S.resultsDeadline);
   S.liveScores = null;
   S.net.broadcast({ t: 'RESULTS', ranking });
-  ui.renderResults({ title: S.selectedTrack.title }, { ...S.myResult, diffName: '' }, ranking, S.myId);
+  // Le classement arrive après coup : on redessine l'écran sans rejouer
+  // l'animation ni le jingle du grade.
+  ui.renderResults({ title: S.selectedTrack.title }, { ...S.myResult, diffName: '' }, ranking, S.myId, false);
   for (const [, p] of S.players) { p.ready = false; }
   hostBroadcastLobby();
   refreshLobby();
@@ -1474,7 +1476,7 @@ function clientOnMessage(msg) {
       ui.renderResults(
         { title: S.selectedTrack ? S.selectedTrack.title : '' },
         { ...(S.myResult || emptyResult()), diffName: '' },
-        msg.ranking, S.myId
+        msg.ranking, S.myId, false
       );
       ui.show('results');
       break;

@@ -403,6 +403,130 @@ export function scheduleClick(at) {
 }
 
 /** Riser de montée de fever : balayage ascendant + ping final, par palier. */
+/* ─── Jingle de fin de partie ────────────────────────────────────────
+   Entièrement synthétisé : pas un octet de plus à télécharger, et le motif
+   s'adapte au grade obtenu — d'un simple accord pour un D à une fanfare
+   complète pour un SS.                                                   */
+
+const MIDI_A4 = 69;
+const hz = (midi) => 440 * Math.pow(2, (midi - MIDI_A4) / 12);
+
+/** Une voix : cloche synthétique (attaque nette, longue traîne). */
+function bell(at, midi, dur, level = 1, type = 'triangle') {
+  const c = context();
+  const f = hz(midi);
+  const g = c.createGain();
+  g.gain.setValueAtTime(0.0001, at);
+  g.gain.exponentialRampToValueAtTime(0.42 * level, at + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+  g.connect(sfxGain);
+
+  const o = c.createOscillator();
+  o.type = type;
+  o.frequency.value = f;
+  o.connect(g);
+  o.start(at); o.stop(at + dur + 0.02);
+
+  // Harmonique douce à l'octave : donne le grain « carillon » sans saturer.
+  const h = c.createOscillator();
+  const gh = c.createGain();
+  h.type = 'sine';
+  h.frequency.value = f * 2.01;          // léger désaccord = battement vivant
+  gh.gain.setValueAtTime(0.0001, at);
+  gh.gain.exponentialRampToValueAtTime(0.16 * level, at + 0.01);
+  gh.gain.exponentialRampToValueAtTime(0.0001, at + dur * 0.7);
+  h.connect(gh).connect(sfxGain);
+  h.start(at); h.stop(at + dur + 0.02);
+}
+
+/** Nappe courte qui soutient l'accord final des bons grades. */
+function pad(at, midis, dur, level = 1) {
+  const c = context();
+  const g = c.createGain();
+  g.gain.setValueAtTime(0.0001, at);
+  g.gain.linearRampToValueAtTime(0.16 * level, at + 0.06);
+  g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+  const lp = c.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.setValueAtTime(900, at);
+  lp.frequency.exponentialRampToValueAtTime(3200, at + 0.25);
+  g.connect(lp).connect(sfxGain);
+  for (const m of midis) {
+    const o = c.createOscillator();
+    o.type = 'sawtooth';
+    o.frequency.value = hz(m);
+    o.detune.value = (Math.abs(m) % 7) * 3 - 9;   // épaisseur, sans aléatoire
+    o.connect(g);
+    o.start(at); o.stop(at + dur + 0.02);
+  }
+}
+
+/** Poussière d'étoiles : quelques pointes très aiguës, réservées au SS. */
+function sparkle(at, n = 7) {
+  for (let i = 0; i < n; i++) {
+    bell(at + i * 0.055, 96 + (i % 3) * 4 + (i % 2) * 7, 0.5, 0.22, 'sine');
+  }
+}
+
+/**
+ * Joue la célébration correspondant au grade.
+ * @param {string} grade  SS · S+ · S · A · B · C · D
+ * @param {boolean} failed
+ */
+export function gradeJingle(grade, failed) {
+  const c = context();
+  if (c.state === 'suspended') c.resume();
+  const t = c.currentTime + 0.05;
+  const R = 60;                       // do majeur : tonique de référence (C4)
+
+  if (failed) {
+    // Chute résignée, en mineur : on n'humilie pas le joueur, on l'invite à
+    // recommencer.
+    bell(t, R + 9, 0.5, 0.7);
+    bell(t + 0.16, R + 5, 0.55, 0.65);
+    bell(t + 0.32, R + 2, 0.9, 0.6);
+    pad(t + 0.32, [R - 12, R + 2, R + 5], 1.1, 0.7);
+    return;
+  }
+
+  switch (grade) {
+    case 'SS': {
+      // Fanfare complète : arpège montant, accord large, pluie d'étincelles.
+      const arp = [0, 4, 7, 12, 16, 19];
+      arp.forEach((d, i) => bell(t + i * 0.085, R + d, 0.55, 0.85));
+      const at = t + arp.length * 0.085;
+      [0, 4, 7, 12, 19, 24].forEach((d) => bell(at, R + d, 1.5, 0.8));
+      pad(at, [R - 12, R, R + 7, R + 16], 1.8, 1.15);
+      sparkle(at + 0.12, 9);
+      bell(at + 0.5, R + 31, 1.1, 0.3, 'sine');
+      break;
+    }
+    case 'S+':
+    case 'S': {
+      // Fanfare brève mais franche.
+      [0, 4, 7].forEach((d, i) => bell(t + i * 0.095, R + d, 0.5, 0.85));
+      const at = t + 0.32;
+      [0, 7, 12, 16].forEach((d) => bell(at, R + d, 1.15, 0.8));
+      pad(at, [R - 12, R + 4, R + 7], 1.3, 1);
+      if (grade === 'S+') sparkle(at + 0.1, 5);
+      break;
+    }
+    case 'A':
+    case 'B': {
+      // Montée franche, sans emphase.
+      [0, 4, 7].forEach((d, i) => bell(t + i * 0.1, R + d, 0.5, 0.75));
+      pad(t + 0.2, [R - 12, R + 4, R + 7], 0.9, 0.8);
+      break;
+    }
+    default: {
+      // C et D : deux notes, une reconnaissance polie.
+      bell(t, R, 0.45, 0.7);
+      bell(t + 0.13, R + 7, 0.7, 0.65);
+      pad(t + 0.13, [R - 12, R + 3, R + 7], 0.8, 0.6);
+    }
+  }
+}
+
 export function feverSound(level) {
   const c = context();
   const t = c.currentTime;

@@ -4,6 +4,7 @@
 import * as storage from './storage.js';
 import { travelTime, notesOnScreen, clampSpeed } from './storage.js';
 import { t } from './i18n.js';
+import * as audio from './audio.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -324,15 +325,88 @@ function modsShort(ids) {
 /* ─── Résultats ─── */
 
 let scoreRaf = 0;
+let jingleTimer = 0;
 
-export function renderResults(track, res, ranking, myId) {
+/** Palier visuel du grade : pilote couleurs, ondes et étincelles. */
+function tierOf(grade, failed) {
+  if (failed) return 'failed';
+  if (grade === 'SS') return 'ss';
+  if (grade === 'S+' || grade === 'S') return 's';
+  if (grade === 'A') return 'a';
+  if (grade === 'B') return 'b';
+  return 'c';
+}
+
+// Intensité de la fête selon le palier : nombre d'ondes et d'étincelles.
+const FX = {
+  ss:     { rings: 3, sparks: 22, spread: 190 },
+  s:      { rings: 2, sparks: 14, spread: 165 },
+  a:      { rings: 2, sparks: 10, spread: 145 },
+  b:      { rings: 1, sparks: 7,  spread: 130 },
+  c:      { rings: 1, sparks: 5,  spread: 115 },
+  failed: { rings: 1, sparks: 0,  spread: 0 }
+};
+
+/**
+ * Ondes de choc + étincelles autour du grade. Les éléments sont créés puis
+ * effacés : rien ne subsiste une fois l'animation terminée.
+ */
+function playGradeFx(tier) {
+  const box = $('res-grade-fx');
+  if (!box) return;
+  box.innerHTML = '';
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const cfg = FX[tier] || FX.c;
+
+  const flash = document.createElement('div');
+  flash.className = 'g-flash';
+  box.appendChild(flash);
+
+  for (let i = 0; i < cfg.rings; i++) {
+    const r = document.createElement('div');
+    r.className = 'g-ring';
+    r.style.setProperty('--delay', `${i * 130}ms`);
+    r.style.setProperty('--dur', `${900 + i * 160}ms`);
+    box.appendChild(r);
+  }
+  // Angles régulièrement répartis, légèrement décalés d'une couronne à
+  // l'autre : dense sans jamais paraître aléatoire ni s'agglutiner.
+  for (let i = 0; i < cfg.sparks; i++) {
+    const sp = document.createElement('div');
+    sp.className = 'g-spark';
+    const a = (i * 360) / cfg.sparks + (i % 2) * (180 / cfg.sparks);
+    sp.style.setProperty('--a', `${a}deg`);
+    sp.style.setProperty('--d', `${cfg.spread * (i % 3 === 0 ? 1 : i % 3 === 1 ? 0.78 : 0.92)}px`);
+    sp.style.setProperty('--delay', `${60 + (i % 4) * 45}ms`);
+    sp.style.setProperty('--dur', `${820 + (i % 3) * 220}ms`);
+    box.appendChild(sp);
+  }
+  clearTimeout(fxTimer);
+  fxTimer = setTimeout(() => { box.innerHTML = ''; }, 3200);
+}
+let fxTimer = 0;
+
+/**
+ * @param {boolean} [celebrate=true]  false quand on redessine le même
+ *        résultat pour y ajouter le classement : la fête ne se rejoue pas.
+ */
+export function renderResults(track, res, ranking, myId, celebrate = true) {
   const gradeEl = $('res-grade');
+  const stage = $('res-grade-stage');
+  const tier = tierOf(res.grade, res.failed);
+  if (stage) stage.dataset.tier = tier;
   gradeEl.textContent = res.failed ? 'FAILED' : res.grade;
   gradeEl.style.fontSize = res.failed ? 'clamp(48px,16vw,80px)' : '';
-  // re-déclenche l'animation de claquage du grade
-  gradeEl.classList.remove('slam');
-  void gradeEl.offsetWidth;
-  gradeEl.classList.add('slam');
+  if (celebrate) {
+    // re-déclenche l'animation de claquage du grade
+    gradeEl.classList.remove('slam');
+    void gradeEl.offsetWidth;
+    gradeEl.classList.add('slam');
+    playGradeFx(tier);
+    // Le son arrive avec l'impact du grade, pas avant.
+    clearTimeout(jingleTimer);
+    jingleTimer = setTimeout(() => audio.gradeJingle(res.grade, res.failed), 160);
+  }
   $('res-song').textContent = `${track.title} — ${res.diffName || ''}`;
   // score compté en montée (1,1 s, freiné en fin de course)
   cancelAnimationFrame(scoreRaf);

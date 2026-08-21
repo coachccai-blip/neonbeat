@@ -524,13 +524,88 @@ input[type=range]::-moz-range-thumb { width: 30px; height: 30px; border-radius: 
   text-align: center; font-size: clamp(90px, 30vw, 150px); font-weight: 800; line-height: 1;
   background: linear-gradient(120deg, var(--cyan), var(--magenta));
   -webkit-background-clip: text; background-clip: text; color: transparent;
-  filter: drop-shadow(0 0 24px rgba(255,61,139,.35));
+  filter: drop-shadow(0 0 24px var(--g-glow, rgba(255,75,216,.35)));
 }
 .grade.slam { animation: grade-slam .45s cubic-bezier(.2, 1.6, .35, 1); }
 @keyframes grade-slam {
   0% { transform: scale(2.6); opacity: 0; filter: drop-shadow(0 0 0 transparent); }
   55% { transform: scale(.94); opacity: 1; }
-  100% { transform: scale(1); filter: drop-shadow(0 0 24px rgba(255,61,139,.35)); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 24px var(--g-glow)); }
+}
+
+/* ─── Célébration du grade ───────────────────────────────────────────
+   Chaque palier a sa couleur, ses ondes de choc et ses étincelles. Tout est
+   en CSS : les éléments sont créés puis retirés à la fin de l'animation,
+   rien ne tourne en boucle une fois la fête finie.                     */
+
+.grade-stage { position: relative; display: grid; place-items: center; isolation: isolate; }
+.grade-fx {
+  position: absolute; left: 50%; top: 50%;
+  width: clamp(140px, 46vw, 230px); aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  pointer-events: none; z-index: -1;
+}
+
+/* Palette par palier — reprise sur le grade lui-même et sur les effets. */
+.grade-stage { --g-a: var(--cyan); --g-b: var(--magenta); --g-glow: rgba(255,75,216,.35); }
+.grade-stage[data-tier="ss"]     { --g-a: #ffd76a; --g-b: #ff7ae0; --g-glow: rgba(255,199,90,.55); }
+.grade-stage[data-tier="s"]      { --g-a: #2fd8ff; --g-b: #ff4bd8; --g-glow: rgba(47,216,255,.45); }
+.grade-stage[data-tier="a"]      { --g-a: #2fd8ff; --g-b: #7a5cff; --g-glow: rgba(47,125,255,.38); }
+.grade-stage[data-tier="b"]      { --g-a: #7a5cff; --g-b: #2f7dff; --g-glow: rgba(122,92,255,.32); }
+.grade-stage[data-tier="c"]      { --g-a: #8f93b8; --g-b: #7a5cff; --g-glow: rgba(122,92,255,.24); }
+.grade-stage[data-tier="failed"] { --g-a: #ff6b6b; --g-b: #ff4d4d; --g-glow: rgba(255,77,77,.4); }
+.grade { background-image: linear-gradient(120deg, var(--g-a), var(--g-b)); }
+
+/* SS : le dégradé balaie le texte, façon métal poli. */
+.grade-stage[data-tier="ss"] .grade {
+  background-image: linear-gradient(100deg, var(--g-a), #fff6cf 28%, var(--g-b) 55%, #fff6cf 78%, var(--g-a));
+  background-size: 280% 100%;
+  animation: grade-sheen 2.6s ease-in-out 1 .45s;
+}
+@keyframes grade-sheen { from { background-position: 100% 0; } to { background-position: 0 0; } }
+
+/* Ondes de choc concentriques */
+.g-ring {
+  position: absolute; left: 50%; top: 50%; width: 40%; aspect-ratio: 1;
+  margin: -20% 0 0 -20%; border-radius: 50%;
+  border: 2px solid var(--g-a); opacity: 0;
+  animation: g-ring var(--dur, .9s) cubic-bezier(.15,.7,.3,1) var(--delay, 0s) 1 forwards;
+}
+@keyframes g-ring {
+  0%   { transform: scale(.3); opacity: .8; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
+/* Étincelles : projetées vers l'extérieur selon un angle et une distance */
+.g-spark {
+  position: absolute; left: 50%; top: 50%; width: 7px; height: 7px;
+  margin: -3.5px 0 0 -3.5px; border-radius: 50%;
+  background: var(--g-b); box-shadow: 0 0 10px var(--g-a);
+  opacity: 0;
+  animation: g-spark var(--dur, .95s) cubic-bezier(.1,.75,.3,1) var(--delay, 0s) 1 forwards;
+}
+@keyframes g-spark {
+  0%   { transform: rotate(var(--a)) translateX(0) scale(.4); opacity: 0; }
+  18%  { opacity: 1; }
+  100% { transform: rotate(var(--a)) translateX(var(--d)) scale(0); opacity: 0; }
+}
+
+/* Éclair de lumière au moment de l'impact */
+.g-flash {
+  position: absolute; left: 50%; top: 50%; width: 170%; aspect-ratio: 1;
+  margin: -85% 0 0 -85%; border-radius: 50%;
+  background: radial-gradient(closest-side, var(--g-glow), transparent 70%);
+  opacity: 0; animation: g-flash .6s ease-out 1 forwards;
+}
+@keyframes g-flash {
+  0% { opacity: 0; transform: scale(.4); }
+  22% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.15); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grade.slam, .grade-stage[data-tier="ss"] .grade { animation: none; }
+  .g-ring, .g-spark, .g-flash { display: none; }
 }
 .stat.pop-in { opacity: 0; animation: stat-pop .3s ease-out forwards; }
 @keyframes stat-pop { from { opacity: 0; transform: translateY(14px) scale(.94); } to { opacity: 1; } }
