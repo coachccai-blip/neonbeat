@@ -88,8 +88,12 @@ const STRINGS = {
     search_ph: 'Rechercher un morceau…',
     sort_tier: 'NIVEAU', sort_az: 'A → Z', sort_dur: 'DURÉE',
     search_none: 'Aucun morceau ne correspond.',
-    install: 'INSTALLER LE JEU',
+    install: 'INSTALLER L’APPLICATION',
     install_ios: 'Sur iPhone/iPad : bouton Partager, puis « Sur l’écran d’accueil »',
+    install_android: 'Ouvre le menu ⋮ du navigateur, puis « Installer l’application » ou « Ajouter à l’écran d’accueil »',
+    install_desktop: 'Clique sur l’icône d’installation à droite de la barre d’adresse, ou menu ⋮ puis « Installer NEONBEAT »',
+    install_safari_mac: 'Sur Mac : menu Fichier, puis « Ajouter au Dock »',
+    install_firefox: 'Firefox n’installe pas les applications web : ouvre NEONBEAT dans Chrome, Edge ou Safari pour l’installer',
     install_done: 'NEONBEAT est installé !'
   },
 
@@ -176,8 +180,12 @@ const STRINGS = {
     search_ph: 'Search for a track…',
     sort_tier: 'LEVEL', sort_az: 'A → Z', sort_dur: 'LENGTH',
     search_none: 'No track matches.',
-    install: 'INSTALL THE GAME',
+    install: 'INSTALL THE APP',
     install_ios: 'On iPhone/iPad: Share button, then “Add to Home Screen”',
+    install_android: 'Open the browser ⋮ menu, then “Install app” or “Add to Home screen”',
+    install_desktop: 'Click the install icon at the right of the address bar, or ⋮ menu then “Install NEONBEAT”',
+    install_safari_mac: 'On Mac: File menu, then “Add to Dock”',
+    install_firefox: 'Firefox cannot install web apps: open NEONBEAT in Chrome, Edge or Safari to install it',
     install_done: 'NEONBEAT is installed!'
   },
 
@@ -264,8 +272,12 @@ const STRINGS = {
     search_ph: '搜索歌曲…',
     sort_tier: '难度', sort_az: 'A → Z', sort_dur: '时长',
     search_none: '没有匹配的歌曲。',
-    install: '安装游戏',
+    install: '安装应用',
     install_ios: '在 iPhone/iPad 上：点按分享按钮，然后选择「添加到主屏幕」',
+    install_android: '打开浏览器的 ⋮ 菜单，选择「安装应用」或「添加到主屏幕」',
+    install_desktop: '点击地址栏右侧的安装图标，或打开 ⋮ 菜单并选择「安装 NEONBEAT」',
+    install_safari_mac: '在 Mac 上：「文件」菜单，然后选择「添加到程序坞」',
+    install_firefox: 'Firefox 不支持安装网页应用：请在 Chrome、Edge 或 Safari 中打开 NEONBEAT 进行安装',
     install_done: 'NEONBEAT 已安装！'
   }
 };

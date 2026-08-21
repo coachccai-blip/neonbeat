@@ -197,7 +197,9 @@ body { overflow: hidden; }
 /* Le logo mord légèrement sur le badge : le titre et la mascotte forment
    un seul bloc plutôt que deux éléments empilés. */
 .wrap-home .logo { margin-top: -2px; }
-.wrap-home .tagline { margin-top: 0; }
+/* L'accroche mentionne 8 joueurs : interlettrage resserré pour qu'elle tienne
+   sur une seule ligne, même sur un écran de 360 px. */
+.wrap-home .tagline { margin-top: 0; letter-spacing: .15em; white-space: nowrap; }
 
 /* Pied d'accueil : installer / mettre à jour / téléchargement / réseau,
    regroupés pour ne pas disperser les éléments secondaires. */
@@ -421,9 +423,11 @@ input[type=range]::-moz-range-thumb { width: 30px; height: 30px; border-radius: 
 .lang-seg .seg-btn { min-width: 96px; flex: 0 1 auto; }
 .btn-update-home { width: 100%; margin-top: 2px; }
 .dl-status { text-align: center; font-size: 11px; color: var(--ink-dim); letter-spacing: .06em; }
+/* Tant que le jeu n'est pas installé, ce bouton occupe la place du bouton de
+   mise à jour sur l'accueil : il doit se lire comme un appel à l'action. */
 .btn-install {
-  background: linear-gradient(96deg, #59f0ff, var(--violet)); color: #080812;
-  box-shadow: 0 0 0 1px rgba(255,255,255,.1), 0 8px 26px rgba(139,92,255,.3);
+  background: linear-gradient(96deg, var(--blue), var(--violet)); color: #fff;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.1), 0 8px 26px rgba(47,125,255,.34);
 }
 .manual-offset { display: flex; flex-direction: column; gap: 8px; }
 .manual-offset .btn { width: 100%; }

@@ -350,13 +350,40 @@ async function initPrefetch() {
 
 /* ══════════════════ Installation (PWA) ══════════════════ */
 
+/** L'application tourne-t-elle depuis son icône plutôt que dans un onglet ? */
+function isInstalled() {
+  return ['standalone', 'fullscreen', 'minimal-ui', 'window-controls-overlay']
+      .some((m) => window.matchMedia(`(display-mode: ${m})`).matches)
+    || navigator.standalone === true;
+}
+
+/**
+ * Marche à suivre quand le navigateur ne propose pas d'invite d'installation
+ * (Safari, Firefox, et Chrome quand l'invite n'a pas encore été émise).
+ */
+function installHint() {
+  const ua = navigator.userAgent;
+  if (/iphone|ipad|ipod/i.test(ua)) return t('install_ios');
+  // Android avant Firefox : Firefox pour Android sait installer depuis son
+  // menu, contrairement à Firefox de bureau.
+  if (/android/i.test(ua)) return t('install_android');
+  if (/firefox/i.test(ua)) return t('install_firefox');
+  // Safari de bureau : « Ajouter au Dock » (macOS Sonoma et suivants)
+  if (/safari/i.test(ua) && !/chrome|chromium|edg\//i.test(ua)) return t('install_safari_mac');
+  return t('install_desktop');
+}
+
 function initInstall() {
   const btn = $('btn-install');
-  // Déjà installé (lancé depuis l'icône) : rien à proposer.
-  const standalone = window.matchMedia('(display-mode: standalone)').matches
-    || window.matchMedia('(display-mode: fullscreen)').matches
-    || navigator.standalone === true;
-  if (standalone) return;
+
+  // Tant que le jeu n'est pas installé, l'accueil met en avant l'installation
+  // à la place du bouton de mise à jour — et ce sur TOUS les navigateurs, y
+  // compris ceux qui n'émettent jamais « beforeinstallprompt » (Safari,
+  // Firefox). La mise à jour reste accessible depuis les réglages.
+  const installed = isInstalled();
+  btn.hidden = installed;
+  $('btn-update-home').hidden = !installed;
+  if (installed) return;
 
   let deferredPrompt = null;
 
@@ -365,13 +392,7 @@ function initInstall() {
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    btn.hidden = false;
   });
-
-  // iOS Safari n'a pas cet événement : le bouton affiche la marche à suivre.
-  if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
-    btn.hidden = false;
-  }
 
   btn.addEventListener('click', async () => {
     if (deferredPrompt) {
@@ -380,12 +401,13 @@ function initInstall() {
       deferredPrompt = null;
       if (choice && choice.outcome === 'accepted') btn.hidden = true;
     } else {
-      ui.toast(t('install_ios'), 6500);
+      ui.toast(installHint(), 7000);
     }
   });
 
   window.addEventListener('appinstalled', () => {
     btn.hidden = true;
+    $('btn-update-home').hidden = false;
     ui.toast(t('install_done'));
   });
 }
