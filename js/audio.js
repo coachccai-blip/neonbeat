@@ -12,6 +12,8 @@ import * as storage from './storage.js';
 let ctx = null;
 let musicGain = null;
 let sfxGain = null;
+let analyser = null;
+let spectrum = null;
 const buffers = new Map();   // id → AudioBuffer
 const waveforms = new Map(); // id → { peaks: Float32Array, rate }
 const gains = new Map();     // id → gain de normalisation de volume
@@ -24,6 +26,14 @@ export function context() {
     ctx = new AC({ latencyHint: 'interactive' });
     musicGain = ctx.createGain();
     musicGain.gain.value = storage.get('volume');
+    // Analyseur en dérivation : le décor réagit au spectre RÉEL du morceau.
+    // Branché en sortie de musicGain (donc après normalisation de volume) et
+    // non sur destination, pour ignorer les bruitages d'interface.
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 256;              // 128 bandes : largement assez, très peu coûteux
+    analyser.smoothingTimeConstant = 0.72;
+    spectrum = new Uint8Array(analyser.frequencyBinCount);
+    musicGain.connect(analyser);
     musicGain.connect(ctx.destination);
     sfxGain = ctx.createGain();
     sfxGain.gain.value = 0.35;
@@ -46,6 +56,63 @@ export function unlock() {
   s.connect(c.destination);
   s.start(0);
   return c.state;
+}
+
+/* ─── Spectre en direct (décor réactif) ──────────────────────────────
+   Le rendu appelle bands() une fois par frame : une seule lecture de
+   l'analyseur, trois moyennes, aucune allocation.                        */
+
+const BANDS = { bass: [1, 6], mid: [6, 34], high: [34, 96] };
+const levels = { bass: 0, mid: 0, high: 0 };
+
+/**
+ * Énergie des graves / médiums / aigus, entre 0 et 1, lissée.
+ * Renvoie des zéros tant qu'aucune musique ne joue.
+ */
+export function bands() {
+  if (!analyser || !spectrum) return levels;
+  analyser.getByteFrequencyData(spectrum);
+  for (const k of Object.keys(BANDS)) {
+    const [a, b] = BANDS[k];
+    let sum = 0;
+    const end = Math.min(b, spectrum.length);
+    for (let i = a; i < end; i++) sum += spectrum[i];
+    const v = sum / Math.max(1, (end - a) * 255);
+    // Lissage d'attaque rapide / relâchement lent : les coups ressortent,
+    // le décor ne clignote pas.
+    levels[k] = v > levels[k] ? v : levels[k] + (v - levels[k]) * 0.18;
+  }
+  return levels;
+}
+
+/**
+ * Spectre réduit à `n` barres (0..1), pour la silhouette de fond.
+ * Réutilise le même tableau à chaque appel : zéro allocation par frame.
+ */
+let barsOut = null;
+export function spectrumBars(n = 24) {
+  if (!barsOut || barsOut.length !== n) barsOut = new Float32Array(n);
+  if (!analyser || !spectrum) return barsOut;
+  // Découpage LOGARITHMIQUE, comme l'oreille : en linéaire, les graves
+  // tiennent dans deux bandes et la moitié des barres reste morte au-dessus
+  // de 12 kHz, où un MP3 n'a plus rien.
+  const from = 1, to = Math.min(spectrum.length - 1, 70);   // ~190 Hz → ~13 kHz
+  const ratio = to / from;
+  let prev = from;
+  for (let i = 0; i < n; i++) {
+    const next = from * Math.pow(ratio, (i + 1) / n);
+    const a = Math.floor(prev);
+    const b = Math.max(a + 1, Math.floor(next));
+    let sum = 0;
+    for (let k = a; k < b; k++) sum += spectrum[k];
+    const v = sum / ((b - a) * 255);
+    // Les aigus sont naturellement plus faibles : on relève progressivement
+    // pour que la silhouette reste lisible sur toute sa largeur.
+    const tilt = 1 + (i / n) * 0.85;
+    barsOut[i] = Math.min(1, v * tilt * 0.92);
+    prev = next;
+  }
+  return barsOut;
 }
 
 export function setVolume(v) {

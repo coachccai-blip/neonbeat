@@ -140,6 +140,10 @@ body { overflow: hidden; }
 .btn[disabled] { opacity: .38; pointer-events: none; }
 .menu { display: flex; flex-direction: column; gap: 12px; }
 .menu-small { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+/* L'accueil en compte quatre (trophées inclus) : ils tiennent sur une seule
+   rangée, y compris sur un écran de 360 px. */
+.wrap-home .menu-small { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.wrap-home .menu-small .btn-tiny { font-size: 10px; letter-spacing: .05em; padding: 12px 3px; }
 .btn-back {
   align-self: flex-start; background: none; border: 0; color: var(--ink-dim);
   font-family: inherit; font-size: 14px; letter-spacing: .12em; padding: 12px 12px 12px 0;
@@ -518,6 +522,55 @@ input[type=range]::-moz-range-thumb { width: 30px; height: 30px; border-radius: 
   font-size: min(30vw, 22vh); font-weight: 800; color: var(--cyan); text-shadow: 0 0 50px rgba(34,224,200,.6);
 }
 .countdown.go { color: var(--magenta); font-size: min(17vw, 13vh); letter-spacing: .06em; }
+
+/* ─── Trophées & skins ─── */
+
+/* Compteurs de tête : SS, S+, S et combo maximal, lisibles d'un coup d'œil. */
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 6px; }
+.stat-tile {
+  background: rgba(255,255,255,.045); border-radius: 12px; padding: 12px 6px;
+  text-align: center; box-shadow: inset 0 0 0 1px var(--line);
+}
+.stat-tile .v { font-size: 26px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.stat-tile .k { font-size: 10px; letter-spacing: .14em; color: var(--ink-dim); margin-top: 5px; }
+.stat-tile.ss .v    { color: #ffd76a; }
+.stat-tile.splus .v { color: var(--magenta); }
+.stat-tile.s .v     { color: var(--cyan); }
+.stat-tile.combo .v { color: var(--violet); }
+
+/* Cartes de skin : l'échantillon de couleurs vaut mieux qu'un long nom. */
+.skin-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 4px; }
+.skin-card {
+  border: 0; border-radius: 12px; padding: 10px; cursor: pointer; text-align: left;
+  background: rgba(255,255,255,.04); color: var(--ink); font-family: inherit;
+  box-shadow: inset 0 0 0 1.5px var(--line); transition: transform .12s ease, box-shadow .12s ease;
+}
+.skin-card:active { transform: scale(.98); }
+.skin-card.is-on { box-shadow: inset 0 0 0 2px var(--cyan); background: rgba(47,216,255,.10); }
+.skin-card.is-locked { opacity: .5; cursor: default; }
+.skin-card .sw { display: flex; gap: 3px; margin-bottom: 7px; }
+.skin-card .sw i { flex: 1; height: 12px; border-radius: 3px; }
+.skin-card .sn { font-size: 13px; font-weight: 800; letter-spacing: .1em; }
+.skin-card .sl { font-size: 10px; letter-spacing: .08em; color: var(--ink-dim); margin-top: 3px; line-height: 1.35; }
+
+/* Liste des défis : icône, libellé, barre de progression, avancement. */
+.trophy-list { display: flex; flex-direction: column; gap: 7px; }
+.trophy {
+  display: flex; align-items: center; gap: 11px; padding: 10px 12px;
+  background: rgba(255,255,255,.035); border-radius: 11px;
+  box-shadow: inset 0 0 0 1px rgba(122,92,255,.14);
+}
+.trophy.is-done { background: rgba(47,216,255,.09); box-shadow: inset 0 0 0 1px rgba(47,216,255,.35); }
+.trophy .ti { font-size: 20px; flex: none; filter: grayscale(1) opacity(.55); }
+.trophy.is-done .ti { filter: none; }
+.trophy .tb { flex: 1; min-width: 0; }
+.trophy .tn { display: block; font-size: 12.5px; font-weight: 700; letter-spacing: .02em; }
+.trophy .tn em { font-style: normal; color: var(--cyan); font-weight: 800; }
+.trophy .tp { display: block; height: 4px; border-radius: 3px; background: rgba(255,255,255,.10); margin-top: 6px; overflow: hidden; }
+.trophy .tp span { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--cyan), var(--magenta)); }
+.trophy.is-done .tp span { background: var(--cyan); }
+.trophy .tv { font-size: 11px; font-weight: 800; color: var(--ink-dim); flex: none; font-variant-numeric: tabular-nums; }
+.trophy.is-done .tv { color: var(--cyan); font-size: 15px; }
 
 /* ─── Résultats ─── */
 .grade {

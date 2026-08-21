@@ -465,6 +465,56 @@ export function renderResults(track, res, ranking, myId, celebrate = true) {
   }
 }
 
+/* ─── Trophées & skins ─── */
+
+/**
+ * Peint l'écran des trophées.
+ * @param {object} d { counts, stats, progress, skins, activeSkin }
+ * @param {(id:string)=>void} onPickSkin
+ */
+export function renderTrophies(d, onPickSkin) {
+  // Compteurs de tête : ce que le joueur veut voir en un coup d'œil.
+  $('tr-stats').innerHTML = [
+    ['SS', d.counts.SS, 'ss'],
+    ['S+', d.counts['S+'], 'splus'],
+    ['S', d.counts.S, 's'],
+    [t('trophies_maxcombo'), d.stats.maxCombo, 'combo']
+  ].map(([k, v, cls]) => `
+    <div class="stat-tile ${cls}"><div class="v">${v || 0}</div><div class="k">${esc(String(k))}</div></div>`
+  ).join('');
+
+  const box = $('tr-skins');
+  box.innerHTML = '';
+  for (const sk of d.skins) {
+    const locked = !d.unlocked.includes(sk.id);
+    const b = document.createElement('button');
+    b.className = 'skin-card' + (sk.id === d.activeSkin ? ' is-on' : '') + (locked ? ' is-locked' : '');
+    b.disabled = locked;
+    const swatch = sk.lanes4.map((c) => `<i style="background:${c}"></i>`).join('');
+    const need = sk.unlock ? t('trophy_' + sk.unlock) : '';
+    b.innerHTML = `
+      <div class="sw">${swatch}</div>
+      <div class="sn">${esc(t('skin_' + sk.id))}</div>
+      <div class="sl">${locked ? '🔒 ' + esc(need) : (sk.id === d.activeSkin ? t('skin_active') : t('skin_use'))}</div>`;
+    if (!locked) b.addEventListener('click', () => onPickSkin(sk.id));
+    box.appendChild(b);
+  }
+
+  $('tr-list').innerHTML = d.progress.map((tr) => {
+    const pct = Math.round((100 * tr.current) / tr.target);
+    const skin = d.skinFor[tr.id];
+    return `
+      <div class="trophy${tr.done ? ' is-done' : ''}">
+        <span class="ti">${tr.icon}</span>
+        <span class="tb">
+          <span class="tn">${esc(t('trophy_' + tr.id))}${skin ? ` <em>· ${esc(t('skin_' + skin))}</em>` : ''}</span>
+          <span class="tp"><span style="width:${pct}%"></span></span>
+        </span>
+        <span class="tv">${tr.done ? '✓' : `${tr.current}/${tr.target}`}</span>
+      </div>`;
+  }).join('');
+}
+
 /* ─── Rivaux (barres latérales en jeu) ─── */
 
 export function renderRivals(list) {

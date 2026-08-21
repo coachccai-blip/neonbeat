@@ -1,5 +1,5 @@
 {
- "version": "1.21",
+ "version": "1.23",
  "files": [
   "./",
   "./index.html",
@@ -20,8 +20,10 @@
   "./js/mods.js",
   "./js/net.js",
   "./js/render.js",
+  "./js/skins.js",
   "./js/storage.js",
   "./js/synth.js",
+  "./js/trophies.js",
   "./js/ui.js",
   "./js/version.js",
   "./js/songs/circuit-storm.js",

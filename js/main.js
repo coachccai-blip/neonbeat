@@ -11,6 +11,8 @@ import { Calibration } from './calibration.js';
 import { ClockSync } from './clock.js';
 import { Host, Client, normalizeCode, MAX_PLAYERS } from './net.js';
 import { MODS, multiplierFor, modsLabel } from './mods.js';
+import { SKINS, skinById, DEFAULT_SKIN } from './skins.js';
+import { TROPHIES, gradeCounts, progress, earned, applyResult, EMPTY_STATS } from './trophies.js';
 import * as i18n from './i18n.js';
 import { APP_VERSION } from './version.js';
 const { t } = i18n;
@@ -95,6 +97,7 @@ function boot() {
   });
 
   $('btn-settings').addEventListener('click', () => { audio.unlock(); ui.show('settings'); });
+  $('btn-trophies').addEventListener('click', () => { audio.unlock(); openTrophies(); });
   $('btn-credits').addEventListener('click', () => { openCredits(); });
   $('btn-calib-home').addEventListener('click', () => { audio.unlock(); goCalibrate('home'); });
 
@@ -347,6 +350,66 @@ async function initPrefetch() {
 
   el.textContent = t('dl_done');
   setTimeout(() => { el.hidden = true; }, 6000);
+}
+
+/* ══════════════════ Trophées & skins ══════════════════ */
+
+/** Skin actif, en retombant sur le skin par défaut s'il n'est pas débloqué. */
+function activeSkin() {
+  const skin = skinById(storage.get('skin'));
+  return isSkinUnlocked(skin) ? skin : DEFAULT_SKIN;
+}
+
+function trophyState() {
+  const stats = { ...EMPTY_STATS, ...storage.readStats() };
+  return { stats, counts: gradeCounts(storage.allScores()) };
+}
+
+function isSkinUnlocked(skin) {
+  if (!skin || !skin.unlock) return true;
+  const { stats, counts } = trophyState();
+  return earned(stats, counts).includes(skin.unlock);
+}
+
+/**
+ * Annonce les trophées franchis depuis la dernière partie. La liste des
+ * trophées déjà notifiés est mémorisée pour ne jamais répéter une annonce.
+ */
+function announceTrophies(stats) {
+  const counts = gradeCounts(storage.allScores());
+  const now = earned({ ...EMPTY_STATS, ...stats }, counts);
+  const seen = new Set(stats.unlocked || []);
+  const fresh = now.filter((id) => !seen.has(id));
+  if (!fresh.length) return;
+  storage.writeStats({ ...stats, unlocked: now });
+  // Une annonce à la fois, espacées : deux toasts simultanés s'écrasent.
+  fresh.forEach((id, i) => {
+    const t0 = TROPHIES.find((x) => x.id === id);
+    const skin = SKINS.find((sk) => sk.unlock === id);
+    setTimeout(() => {
+      audio.gradeJingle('S', false);
+      ui.toast(skin
+        ? t('trophy_new_skin', { name: t('trophy_' + id), skin: t('skin_' + skin.id) })
+        : t('trophy_new', { name: t('trophy_' + id) }), 5200);
+    }, 900 + i * 5600);
+  });
+}
+
+function openTrophies() {
+  const { stats, counts } = trophyState();
+  const unlockedTrophies = earned(stats, counts);
+  // Un skin est jouable si son trophée est obtenu (ou s'il n'en demande pas).
+  const unlocked = SKINS.filter((sk) => !sk.unlock || unlockedTrophies.includes(sk.unlock)).map((sk) => sk.id);
+  const skinFor = Object.fromEntries(SKINS.filter((sk) => sk.unlock).map((sk) => [sk.unlock, sk.id]));
+  ui.show('trophies');
+  ui.renderTrophies(
+    { counts, stats, progress: progress(stats, counts), skins: SKINS, unlocked, skinFor, activeSkin: activeSkin().id },
+    (id) => {
+      storage.set('skin', id);
+      audio.uiToggle(true);
+      openTrophies();                 // repeint pour montrer la nouvelle sélection
+    }
+  );
 }
 
 /* ══════════════════ Bruitages de navigation ══════════════════ */
@@ -794,6 +857,7 @@ class Game {
     if (this.keysMode === '2') notes = to2Keys(notes);
     this.engine = new Engine(notes);
     this.renderer = new Renderer($('game-canvas'));
+    this.renderer.setSkin(activeSkin());
     this.finished = false;
     this.paused = false;
     this.userOffset = storage.get('offset') / 1000;
@@ -1127,6 +1191,10 @@ function onGameFinished(res) {
       mods: res.mods || []
     }, res.keysMode || '4');
   }
+  // Trophées : on met à jour les compteurs, puis on annonce les nouveaux
+  // paliers franchis (et les skins qu'ils débloquent).
+  announceTrophies(storage.writeStats(applyResult(storage.readStats(), res)));
+
   if (S.mode === 'solo') {
     ui.renderResults({ title: S.selectedTrack.title }, res, null, S.myId);
     ui.renderLocalBoard(

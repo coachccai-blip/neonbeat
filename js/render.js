@@ -8,12 +8,13 @@
 //  - itération sur une fenêtre glissante de notes, jamais tout le tableau.
 
 import { travelTime } from './storage.js';
+import * as audio from './audio.js';
+import { DEFAULT_SKIN, laneColors } from './skins.js';
 
 const JUDGE_Y = 0.82;            // ligne de jugement à 18 % du bas
-const LANE_SETS = {
-  4: { colors: ['#22e0c8', '#8b5cff', '#ff3d8b', '#ffb020'], keys: ['Z', 'E', 'I', 'O'] },
-  2: { colors: ['#22e0c8', '#ff3d8b'], keys: ['E', 'I'] }
-};
+// Les couleurs viennent désormais du skin actif (js/skins.js) ; il ne reste
+// ici que le mappage des touches, qui ne dépend que du mode de jeu.
+const LANE_KEYS = { 4: ['Z', 'E', 'I', 'O'], 2: ['E', 'I'] };
 const JUDGE_COLORS = { PERFECT: '#22e0c8', GREAT: '#7ce0ff', GOOD: '#ffb020', MISS: '#ff4d4d' };
 const FEVER_COLORS = { 2: '#22e0c8', 3: '#8b5cff', 4: '#ff3d8b', 5: '#ffb020' };
 const FONT = "'Inter', 'Segoe UI', Roboto, Arial, sans-serif";
@@ -52,6 +53,9 @@ export class Renderer {
     this.showKeys = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
     this.wave = null;
     this.waveColor = '#8b5cff';
+    this.skin = DEFAULT_SKIN;
+    this.bands = { bass: 0, mid: 0, high: 0 };
+    this.bars = null;
     this._onResize = () => this.resize();
     window.addEventListener('resize', this._onResize);
     this.resize();
@@ -113,9 +117,8 @@ export class Renderer {
     this.comboFont = `800 ${Math.round(w * 0.13)}px ${FONT}`;
     this.comboDigitW = 0;        // mesuré au premier draw (police chargée)
 
-    const set = LANE_SETS[this.lanes];
-    this.laneColors = set.colors;
-    this.laneKeys = set.keys;
+    this.laneColors = laneColors(this.skin, this.lanes);
+    this.laneKeys = LANE_KEYS[this.lanes];
 
     // fond
     this.bgGrad = this.ctx.createLinearGradient(0, 0, 0, h);
@@ -175,27 +178,62 @@ export class Renderer {
     });
   }
 
+  /** Change l'habillage : les sprites sont recuits avec les nouvelles teintes. */
+  setSkin(skin) {
+    this.skin = skin || DEFAULT_SKIN;
+    this.resize();
+  }
+
   _makeNoteSprite(color, missed) {
     const m = this.noteMargin;
     const nw = Math.round(this.laneW * 0.90);
     const nh = Math.round(this.noteH);
     const r = nh * 0.42;
     return makeCanvas(nw + 2 * m, nh + 2 * m, (c) => {
+      const style = missed ? 'gloss' : (this.skin.note || 'gloss');
+      const glow = missed ? 0 : (this.skin.glow || 1);
       // halo néon, cuit une fois pour toutes
-      if (!missed) {
+      if (!missed && glow > 0) {
         c.shadowColor = color;
-        c.shadowBlur = m * 0.85;
+        c.shadowBlur = m * 0.85 * glow;
         c.fillStyle = color;
         rr(c, m, m, nw, nh, r);
         c.fill();
-        c.fill();
+        if (glow >= 1) c.fill();
         c.shadowBlur = 0;
       }
-      // corps glossy : cœur clair en haut → couleur saturée en bas
+
+      if (style === 'outline') {
+        // Contour lumineux, cœur presque vide : lecture très nette sur les
+        // charts denses, le fond reste visible à travers la note.
+        c.fillStyle = mix(color, '#000000', 0.72);
+        rr(c, m, m, nw, nh, r); c.fill();
+        c.strokeStyle = color;
+        c.lineWidth = 2.6;
+        rr(c, m + 1.3, m + 1.3, nw - 2.6, nh - 2.6, r);
+        c.stroke();
+        c.strokeStyle = 'rgba(255,255,255,0.8)';
+        c.lineWidth = 1;
+        rr(c, m + 3.4, m + 3.4, nw - 6.8, nh - 6.8, r * 0.8);
+        c.stroke();
+        return;
+      }
+
+      // corps : dégradé selon le style
       const g = c.createLinearGradient(0, m, 0, m + nh);
       if (missed) {
         g.addColorStop(0, 'rgba(160,165,195,0.5)');
         g.addColorStop(1, 'rgba(110,115,150,0.4)');
+      } else if (style === 'flat') {
+        g.addColorStop(0, color);
+        g.addColorStop(1, color);
+      } else if (style === 'chrome') {
+        // Métal poli : bandes claires et sombres alternées.
+        g.addColorStop(0, mix(color, '#ffffff', 0.85));
+        g.addColorStop(0.30, mix(color, '#ffffff', 0.25));
+        g.addColorStop(0.52, mix(color, '#000000', 0.30));
+        g.addColorStop(0.70, mix(color, '#ffffff', 0.55));
+        g.addColorStop(1, mix(color, '#000000', 0.18));
       } else {
         g.addColorStop(0, mix(color, '#ffffff', 0.62));
         g.addColorStop(0.42, mix(color, '#ffffff', 0.18));
@@ -204,17 +242,18 @@ export class Renderer {
       c.fillStyle = g;
       rr(c, m, m, nw, nh, r);
       c.fill();
-      // reflet supérieur
-      if (!missed) {
+      // reflet supérieur (pas sur le style plat, qui doit rester mat)
+      if (!missed && style !== 'flat') {
         const gl = c.createLinearGradient(0, m + 1, 0, m + nh * 0.5);
-        gl.addColorStop(0, 'rgba(255,255,255,0.75)');
+        gl.addColorStop(0, `rgba(255,255,255,${style === 'chrome' ? 0.9 : 0.75})`);
         gl.addColorStop(1, 'rgba(255,255,255,0)');
         c.fillStyle = gl;
         rr(c, m + nw * 0.06, m + 2, nw * 0.88, nh * 0.44, r * 0.7);
         c.fill();
       }
       // liseré
-      c.strokeStyle = missed ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.65)';
+      c.strokeStyle = missed ? 'rgba(255,255,255,0.15)'
+        : style === 'flat' ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.65)';
       c.lineWidth = 1.4;
       rr(c, m + 0.7, m + 0.7, nw - 1.4, nh - 1.4, r);
       c.stroke();
@@ -298,6 +337,11 @@ export class Renderer {
     const beatPulse = Math.pow(1 - beatFrac, 2.4);
     const nowIdx = this.wave ? Math.floor(songT * this.wave.rate) : -1;
     const nowV = nowIdx >= 0 && this.wave && nowIdx < this.wave.peaks.length ? this.wave.peaks[nowIdx] : 0;
+    // Spectre RÉEL du morceau en cours : une lecture, trois moyennes, aucune
+    // allocation. C'est lui qui fait respirer tout le décor.
+    const bnd = audio.bands();
+    this.bands = bnd;
+    this.bars = audio.spectrumBars(28);
 
     // secousse (fever ×4/×5)
     let shaken = false;
@@ -316,15 +360,26 @@ export class Renderer {
     ctx.fillStyle = this.bgGrad;
     ctx.fillRect(-8, -8, w + 16, h + 16);
 
+    // ─── Lueur d'horizon gonflée par les graves ───
+    if (songT > -1 && bnd.bass > 0.02) {
+      const gy = h * 0.56;
+      const rad = Math.min(w, h) * (0.30 + bnd.bass * 0.55);
+      const gl = ctx.createRadialGradient(w / 2, gy, 0, w / 2, gy, rad);
+      gl.addColorStop(0, hexA(this.skin.line, Math.min(0.22, bnd.bass * 0.30)));
+      gl.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = gl;
+      ctx.fillRect(0, gy - rad, w, rad * 2);
+    }
+
     // ─── Scène de fond réactive ───
-    if (songT > -1) this._drawScene(songT, beatFrac, nowV);
+    if (songT > -1) this._drawScene(songT, beatFrac, nowV, bnd);
 
     // ─── Soundwave ───
-    if (this.wave && songT > -1) this._drawWave(songT, nowV);
+    if (this.wave && songT > -1) this._drawWave(songT, nowV, bnd);
 
     // ─── Rails latéraux pulsés sur le temps ───
     {
-      const railA = 0.28 + beatPulse * 0.5 + (this.feverLevel >= 2 ? 0.12 : 0);
+      const railA = 0.22 + beatPulse * 0.34 + bnd.mid * 0.55 + (this.feverLevel >= 2 ? 0.12 : 0);
       ctx.globalAlpha = railA;
       ctx.fillStyle = this.feverLevel >= 2
         ? hexA(FEVER_COLORS[this.feverLevel], 0.9)
@@ -372,8 +427,9 @@ export class Renderer {
     this.flashes = this.flashes.filter((f) => now - f.t0 < 180);
 
     // ligne de jugement + marqueurs en forme de note
-    ctx.fillStyle = '#eef0ff';
-    ctx.fillRect(0, judgeY - 1.5, w, 3);
+    ctx.fillStyle = this.skin.line;
+    const lt = 3 + bnd.bass * 2.6;
+    ctx.fillRect(0, judgeY - lt / 2, w, lt);
     const hh = this.noteH;
     const recScale = 1 + beatPulse * 0.04;
     for (let l = 0; l < this.lanes; l++) {
@@ -643,17 +699,19 @@ export class Renderer {
     ctx.fillText('COMBO', w / 2, y0 + w * 0.045);
   }
 
-  _drawScene(songT, beatFrac, nowV) {
+  _drawScene(songT, beatFrac, nowV, bnd) {
     const { ctx, w, h } = this;
     const tint = this.waveColor;
-    const boost = 0.5 + nowV * 0.9;
+    // La forme d'onde pré-calculée donne la tendance, le spectre en direct
+    // donne l'accent : les deux se cumulent.
+    const boost = 0.45 + nowV * 0.7 + bnd.mid * 1.1;
     if (this.scene === 0) {
       // grille en perspective qui défile vers le bas de l'écran
       const horizon = h * 0.56;
       ctx.strokeStyle = hexA(tint, 0.10 * boost);
       ctx.lineWidth = 1;
       ctx.beginPath();
-      const off = (songT * 0.55) % 1;
+      const off = (songT * (0.55 + bnd.bass * 0.9)) % 1;
       for (let i = 0; i < 9; i++) {
         const p = (i + off) / 9;
         const y = horizon + p * p * (h - horizon);
@@ -672,7 +730,7 @@ export class Renderer {
         const p = (beatFrac + k) / 3;
         ctx.strokeStyle = hexA(tint, (1 - p) * 0.12 * boost);
         ctx.beginPath();
-        ctx.arc(w / 2, h * 0.30, 20 + p * w * 0.75, 0, Math.PI * 2);
+        ctx.arc(w / 2, h * 0.30, 20 + p * w * (0.65 + bnd.bass * 0.45), 0, Math.PI * 2);
         ctx.stroke();
       }
       ctx.lineWidth = 1;
@@ -681,7 +739,7 @@ export class Renderer {
       ctx.fillStyle = hexA(tint, 0.09 * boost);
       for (let i = 0; i < 22; i++) {
         const speed = 130 + ((i * 37) % 170);
-        const len = 40 + ((i * 53) % 90);
+        const len = (40 + ((i * 53) % 90)) * (0.6 + bnd.high * 1.5);
         const x = ((i * 271) % 997) / 997 * w;
         const y = ((songT * speed + i * 131) % (h + len)) - len;
         ctx.fillRect(x, y, 2, len);
@@ -689,33 +747,45 @@ export class Renderer {
     }
   }
 
-  _drawWave(songT, nowV) {
+  /**
+   * LA visualisation du morceau : le spectre en direct, en miroir autour
+   * d'une ligne centrale. Un seul élément fait tout le travail — les graves
+   * au centre (le kick fait battre le cœur de l'écran), les aigus vers les
+   * bords. Bien plus vivant que l'ancienne forme d'onde pré-calculée, qui
+   * ne faisait que défiler.
+   */
+  _drawWave(songT, nowV, bnd) {
     const { ctx, w, h } = this;
-    const { peaks, rate } = this.wave;
-    const half = 2.1;
+    const src = this.bars;
+    if (!src || !src.length) return;
     const cy = h * 0.30;
-    const amp = h * 0.15 * (1 + nowV * 0.18);
+    // Volontairement contenue : c'est un décor, la trajectoire des notes
+    // doit rester lisible par-dessus.
+    const amp = h * 0.098 * (1 + nowV * 0.12 + bnd.bass * 0.30);
     const bars = 64;
     const bw = w / bars;
+    const half = (bars - 1) / 2;
     for (let k = 0; k < bars; k++) {
-      const frac = k / (bars - 1);
-      const tt = songT + (frac - 0.5) * half * 2;
-      const idx = Math.floor(tt * rate);
-      const v = idx >= 0 && idx < peaks.length ? peaks[idx] : 0;
-      const dist = Math.abs(frac - 0.5) * 2;
-      const edge = 1 - dist * dist * 0.8;
+      // Symétrie gauche/droite : le centre lit la bande la plus grave.
+      const dist = Math.abs(k - half) / half;              // 0 au centre, 1 aux bords
+      const band = Math.min(src.length - 1, Math.round(dist * (src.length - 1)));
+      const v = src[band];
+      // Léger affaissement vers les bords : la silhouette garde une forme
+      // de vague plutôt qu'un mur.
+      const edge = 1 - dist * dist * 0.55;
       const bh = Math.max(3, v * amp * edge);
       const x = k * bw + bw * 0.2;
-      const alpha = 0.55 - dist * 0.38;
-      ctx.fillStyle = hexA(this.waveColor, alpha * 0.30);
+      const alpha = 0.42 - dist * 0.26;
+      ctx.fillStyle = hexA(this.waveColor, alpha * 0.26);
       ctx.fillRect(x - bw * 0.14, cy - bh * 1.22, bw * 0.88, bh * 2.44);
       ctx.fillStyle = hexA(this.waveColor, alpha);
       ctx.fillRect(x, cy - bh, bw * 0.6, bh * 2);
     }
     ctx.fillStyle = hexA(this.waveColor, 0.28);
     ctx.fillRect(0, cy - 0.5, w, 1);
-    ctx.fillStyle = hexA('#eef0ff', 0.35 + nowV * 0.45);
-    ctx.fillRect(w / 2 - 1.5, cy - amp * 1.1, 3, amp * 2.2);
+    // Repère central, dilaté par les graves.
+    ctx.fillStyle = hexA(this.skin.line, 0.32 + bnd.bass * 0.5);
+    ctx.fillRect(w / 2 - 1.5, cy - amp * (0.7 + bnd.bass * 0.5), 3, amp * (1.4 + bnd.bass));
   }
 }
 

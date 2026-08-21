@@ -19,6 +19,7 @@ const DEFAULTS = {
   hitsound: false,
   vibrate: false,
   uisound: true,      // bruitages de navigation dans les menus
+  skin: 'neon',       // habillage de la zone de jeu (voir js/skins.js)
   lastTrack: null,
   lastDiff: 'NORMAL',
   lang: 'fr',
@@ -152,6 +153,37 @@ export function saveScore(trackId, diffName, entry, keysMode = '4') {
     .slice(0, 8);
   writeScores();
   return { record, best: store.scores[key] };
+}
+
+/* ─── Statistiques de trophées ───────────────────────────────────────
+   Rangées à part (comme les scores) : une mise à jour du jeu ne doit jamais
+   effacer la progression du joueur.                                      */
+
+const STATS_KEY = 'neonbeat.stats';
+let statsCache = null;
+
+export function readStats() {
+  if (statsCache) return statsCache;
+  try {
+    statsCache = JSON.parse(localStorage.getItem(STATS_KEY) || '{}');
+  } catch {
+    statsCache = {};
+  }
+  if (!Array.isArray(statsCache.unlocked)) statsCache.unlocked = [];
+  return statsCache;
+}
+
+export function writeStats(next) {
+  statsCache = next;
+  try {
+    localStorage.setItem(STATS_KEY, JSON.stringify(next));
+  } catch { /* stockage plein ou privé : la progression reste en mémoire */ }
+  return statsCache;
+}
+
+/** Tous les meilleurs scores, pour le calcul des compteurs de grades. */
+export function allScores() {
+  return readScores().scores;
 }
 
 export function bestFor(trackId, diffName, keysMode = '4') {

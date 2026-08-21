@@ -41,6 +41,7 @@
       <button class="btn btn-ghost" id="btn-join" data-i18n="home_join">REJOINDRE UNE PARTIE</button>
     </div>
     <div class="menu-small">
+      <button class="btn btn-tiny" id="btn-trophies" data-i18n="home_trophies">TROPHÉES</button>
       <button class="btn btn-tiny" id="btn-settings" data-i18n="home_settings">RÉGLAGES</button>
       <button class="btn btn-tiny" id="btn-calib-home" data-i18n="home_calib">CALIBRER</button>
       <button class="btn btn-tiny" id="btn-credits" data-i18n="home_credits">CRÉDITS</button>
@@ -307,6 +308,21 @@
 </section>
 
 <!-- ─────────────────────────── CRÉDITS ─────────────────────────── -->
+<section class="screen" id="screen-trophies" data-screen="trophies">
+  <div class="wrap wide">
+    <button class="btn-back" data-back="home" data-i18n="back">‹ RETOUR</button>
+    <h2 class="title" data-i18n="trophies_title">TROPHÉES</h2>
+
+    <div class="stat-row" id="tr-stats"></div>
+
+    <div class="label" data-i18n="trophies_skins">SKINS JOUABLES</div>
+    <div class="skin-grid" id="tr-skins"></div>
+
+    <div class="label" data-i18n="trophies_list">DÉFIS</div>
+    <div class="trophy-list" id="tr-list"></div>
+  </div>
+</section>
+
 <section class="screen" id="screen-credits" data-screen="credits">
   <div class="wrap wide">
     <button class="btn-back" data-back="home">‹ RETOUR</button>
