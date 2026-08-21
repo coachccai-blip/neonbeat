@@ -68,6 +68,24 @@ export async function prepare(trackId, onProgress, audioUrl) {
     if (onProgress) onProgress(1);
     return buffers.get(trackId);
   }
+  // Un même morceau peut être demandé deux fois en parallèle (la préversion
+  // télécharge encore quand le joueur appuie sur JOUER) : on partage la même
+  // promesse au lieu de lancer deux téléchargements concurrents.
+  const pending = inflight.get(trackId);
+  if (pending) {
+    if (onProgress) pending.listeners.push(onProgress);
+    return pending.promise;
+  }
+  const entry = { listeners: onProgress ? [onProgress] : [], promise: null };
+  const fanout = (p) => { for (const fn of entry.listeners) { try { fn(p); } catch { /* ignore */ } } };
+  entry.promise = decodeTrack(trackId, fanout, audioUrl).finally(() => inflight.delete(trackId));
+  inflight.set(trackId, entry);
+  return entry.promise;
+}
+
+const inflight = new Map();  // id → { listeners, promise }
+
+async function decodeTrack(trackId, onProgress, audioUrl) {
   const c = context();
   const song = SONGS_BY_ID[trackId];
   let buf;
@@ -149,27 +167,53 @@ async function fetchWithProgress(url, onProgress) {
   if ('caches' in window) {
     try {
       const hit = await caches.match(new URL(url, location.href).href);
-      if (hit) return hit.arrayBuffer();
-    } catch { /* navigation privée : on passe par le réseau */ }
+      if (hit && hit.ok) return await hit.arrayBuffer();
+    } catch { /* navigation privée ou entrée illisible : on passe au réseau */ }
   }
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`audio introuvable : ${url}`);
-  const total = parseInt(res.headers.get('content-length') || '0', 10);
-  if (!res.body || !total) return res.arrayBuffer();
-  const reader = res.body.getReader();
-  const chunks = [];
-  let got = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    got += value.length;
-    if (onProgress) onProgress((got / total) * 0.85);
+  // Une connexion mobile peut « caler » sans jamais échouer : fetch n'a aucun
+  // délai d'expiration natif, l'écran de chargement resterait figé pour
+  // toujours. On abandonne après 20 s sans le moindre octet, et on retente
+  // une fois avant d'abandonner pour de bon.
+  try {
+    return await downloadOnce(url, onProgress);
+  } catch (e) {
+    if (e && e.name === 'AbortError') return await downloadOnce(url, onProgress);
+    throw e;
   }
-  const out = new Uint8Array(got);
-  let off = 0;
-  for (const ch of chunks) { out.set(ch, off); off += ch.length; }
-  return out.buffer;
+}
+
+const STALL_MS = 20000;   // aucun octet reçu pendant ce délai → on abandonne
+
+async function downloadOnce(url, onProgress) {
+  const ctrl = new AbortController();
+  let timer = setTimeout(() => ctrl.abort(), STALL_MS);
+  const keepAlive = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => ctrl.abort(), STALL_MS);
+  };
+  try {
+    const res = await fetch(url, { signal: ctrl.signal });
+    if (!res.ok) throw new Error(`audio introuvable : ${url}`);
+    const total = parseInt(res.headers.get('content-length') || '0', 10);
+    if (!res.body || !total) { const b = await res.arrayBuffer(); return b; }
+    const reader = res.body.getReader();
+    const chunks = [];
+    let got = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      keepAlive();
+      chunks.push(value);
+      got += value.length;
+      if (onProgress) onProgress((got / total) * 0.85);
+    }
+    const out = new Uint8Array(got);
+    let off = 0;
+    for (const ch of chunks) { out.set(ch, off); off += ch.length; }
+    return out.buffer;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /**

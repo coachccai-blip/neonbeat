@@ -176,6 +176,8 @@ function boot() {
   });
 
   // Jeu
+  $('btn-loading-cancel').addEventListener('click', cancelLoading);
+
   $('btn-pause').addEventListener('click', () => S.game && S.game.pause());
   $('btn-resume').addEventListener('click', () => S.game && S.game.resume());
   $('btn-restart').addEventListener('click', () => S.game && S.game.restart());
@@ -280,6 +282,17 @@ const TRACKS_CACHE = 'neonbeat-tracks';
  * parties (et pendant le chargement d'une map) pour ne pas voler la bande
  * passante ni le CPU au jeu.
  */
+let prefetchAbort = null;
+
+/**
+ * Coupe net le téléchargement de fond en cours. Appelé dès qu'une map se
+ * charge : sur une connexion mobile, un MP3 de fond monopolise la bande
+ * passante et le morceau demandé mettrait une éternité à arriver.
+ */
+function pausePrefetch() {
+  if (prefetchAbort) { prefetchAbort.abort(); prefetchAbort = null; }
+}
+
 async function initPrefetch() {
   if (!('caches' in window)) return; // navigation privée / navigateur ancien
   let cache;
@@ -302,15 +315,34 @@ async function initPrefetch() {
   const idle = () => !S.game && ui.screen() !== 'loading' && ui.screen() !== 'game';
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  for (const u of missing) {
-    while (!idle()) await wait(2000);
+  // On laisse d'abord l'accueil se mettre en place : personne n'attend ces
+  // fichiers, autant ne pas saturer la connexion dès la première seconde.
+  await wait(3000);
+
+  // File d'attente : un fichier interrompu par une partie repart en fin de
+  // file (3 tentatives max, sinon on l'abandonne pour cette session — jamais
+  // de boucle infinie sur un fichier introuvable).
+  const queue = missing.slice();
+  const tries = new Map();
+  while (queue.length) {
+    const u = queue.shift();
+    while (!idle()) await wait(1500);
+    prefetchAbort = new AbortController();
+    let ok = false;
     try {
-      const res = await fetch(u);
-      if (res.ok) await cache.put(u, res);
-    } catch { /* hors-ligne ou espace plein : on réessaiera au prochain lancement */ }
-    done++;
-    paint();
+      const res = await fetch(u, { signal: prefetchAbort.signal });
+      if (res.ok) { await cache.put(u, res); ok = true; }
+    } catch { /* interruption, hors-ligne ou espace plein */ }
+    prefetchAbort = null;
+    const n = (tries.get(u) || 0) + 1;
+    tries.set(u, n);
+    if (ok) { done++; paint(); }
+    else if (n < 3) queue.push(u);
+    // Une courte respiration entre deux fichiers : le jeu reste fluide et la
+    // connexion respire si le joueur navigue dans le catalogue.
+    await wait(400);
   }
+  if (done < total) { el.hidden = true; return; }  // reste des manquants : on réessaiera au prochain lancement
 
   el.textContent = t('dl_done');
   setTimeout(() => { el.hidden = true; }, 6000);
@@ -944,29 +976,66 @@ class Game {
 /* ══════════════════ Solo ══════════════════ */
 
 async function startSolo() {
-  const t = S.selectedTrack;
-  if (!t) return;
-  storage.set('lastTrack', t.id);
+  // NB : surtout pas `const t` ici — `t` est la fonction de traduction, et
+  // l'écraser faisait planter le catch (donc écran de chargement figé).
+  const sel = S.selectedTrack;
+  if (!sel) return;
+  storage.set('lastTrack', sel.id);
   try {
-    const track = await withLoading(t.id);
+    const track = await withLoading(sel.id);
     S.game = new Game(track, S.myDiff, { multi: false });
   } catch (e) {
-    ui.toast(t('loading_error'));
+    if (e && e.message === CANCELLED) return;   // le joueur a annulé lui-même
+    ui.toast(t('loading_error'), 5000);
     ui.show('select');
   }
 }
 
+/**
+ * Jeton de chargement : incrémenté à chaque nouveau chargement ET par le
+ * bouton ANNULER. Un chargement dont le jeton a changé est abandonné — sans
+ * ça, une partie pourrait démarrer alors que le joueur est revenu en arrière.
+ */
+let loadToken = 0;
+
+const CANCELLED = 'nb-cancelled';
+
+function cancelLoading() {
+  loadToken++;
+  pausePrefetch();
+  $('btn-loading-cancel').hidden = true;
+  ui.show(S.mode === 'solo' ? 'select' : 'lobby');
+}
+
 async function withLoading(trackId) {
+  pausePrefetch();
+  const token = ++loadToken;
   ui.show('loading');
   $('loader-bar').style.width = '0%';
-  const track = await loadTrack(trackId);
-  const imported = !!track.audio;
-  $('loading-title').textContent = t(imported ? 'loading_load' : 'loading_synth');
-  $('loading-hint').textContent = t(imported ? 'loading_load_hint' : 'loading_synth_hint');
-  await audio.prepare(trackId, (p) => {
-    $('loader-bar').style.width = Math.round(p * 100) + '%';
-  }, track.audio);
-  return track;
+  const cancelBtn = $('btn-loading-cancel');
+  cancelBtn.hidden = true;
+  // Au bout de 8 s, on propose une porte de sortie : mieux vaut un bouton
+  // ANNULER qu'un écran de chargement dont on ne peut plus rien faire.
+  const slowTimer = setTimeout(() => {
+    if (token !== loadToken) return;
+    cancelBtn.hidden = false;
+    $('loading-hint').textContent = t('loading_slow');
+  }, 8000);
+  try {
+    const track = await loadTrack(trackId);
+    if (token !== loadToken) throw new Error(CANCELLED);
+    const imported = !!track.audio;
+    $('loading-title').textContent = t(imported ? 'loading_load' : 'loading_synth');
+    $('loading-hint').textContent = t(imported ? 'loading_load_hint' : 'loading_synth_hint');
+    await audio.prepare(trackId, (p) => {
+      if (token === loadToken) $('loader-bar').style.width = Math.round(p * 100) + '%';
+    }, track.audio);
+    if (token !== loadToken) throw new Error(CANCELLED);
+    return track;
+  } finally {
+    clearTimeout(slowTimer);
+    cancelBtn.hidden = true;
+  }
 }
 
 function onGameFinished(res) {
@@ -1433,10 +1502,12 @@ function refreshLobby() {
   if (playing && S.mode === 'client' && !S.game) {
     $('lobby-status').textContent = t('lobby_playing');
   }
-  const t = S.selectedTrack;
-  if (t) {
-    if (!t.levels.some((l) => l.name === S.myDiff)) S.myDiff = t.levels[0].name;
-    ui.renderDiffSeg($('lobby-diff'), t.levels, S.myDiff, ((name) => {
+  // Surtout pas `const t` : `t` est la fonction de traduction, et l'écraser
+  // cassait tout le reste de la fonction (bouton PRÊT des clients).
+  const sel = S.selectedTrack;
+  if (sel) {
+    if (!sel.levels.some((l) => l.name === S.myDiff)) S.myDiff = sel.levels[0].name;
+    ui.renderDiffSeg($('lobby-diff'), sel.levels, S.myDiff, ((name) => {
       S.myDiff = name;
       storage.set('lastDiff', name);
       applyAutoSpeed();
@@ -1450,7 +1521,7 @@ function refreshLobby() {
         refreshLobby();
       }
     }), (diffName) => {
-      const best = storage.bestFor(t.id, diffName, storage.get('keys'));
+      const best = storage.bestFor(sel.id, diffName, storage.get('keys'));
       return best ? best.grade : null;
     });
   }

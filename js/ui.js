@@ -12,6 +12,9 @@ const $ = (id) => document.getElementById(id);
 let currentScreen = null;    // null tant qu'aucun écran n'a été affiché
 const listeners = [];
 let wiping = false;
+let pendingTimer = null;     // basculement différé pendant un wipe
+let pendingName = null;      // écran vers lequel ce wipe est en route
+let wipeGen = 0;
 
 function switchScreens(name) {
   document.querySelectorAll('.screen').forEach((s) => {
@@ -22,20 +25,40 @@ function switchScreens(name) {
   for (const fn of listeners) fn(name);
 }
 
+function clearPending() {
+  if (pendingTimer) clearTimeout(pendingTimer);
+  pendingTimer = null;
+  pendingName = null;
+}
+
 export function show(name) {
-  if (name === currentScreen) return;
+  // La cible réelle, c'est l'écran vers lequel un wipe est déjà en route —
+  // sinon l'écran courant. Sans ça, un affichage instantané (morceau déjà en
+  // cache : chargement → jeu en moins de 120 ms) se faisait recouvrir par le
+  // basculement différé du wipe précédent, et l'écran de chargement restait
+  // affiché par-dessus la partie en cours, définitivement.
+  const target = pendingName !== null ? pendingName : currentScreen;
+  if (name === target) return;
+  clearPending();            // toute demande plus récente annule la précédente
   // Wipe diagonal express entre les menus. Jamais autour de l'écran de jeu ni
   // au premier affichage : le timing du canvas n'attend aucune animation.
-  const skip = name === 'game' || currentScreen === 'game' || currentScreen === null || wiping;
   const wipe = document.getElementById('wipe');
+  const skip = name === 'game' || target === 'game' || currentScreen === null || wiping;
   if (skip || !wipe) {
     switchScreens(name);
     return;
   }
+  const gen = ++wipeGen;
   wiping = true;
+  pendingName = name;
   wipe.classList.add('run');
-  setTimeout(() => switchScreens(name), 120);
+  pendingTimer = setTimeout(() => {
+    pendingTimer = null;
+    pendingName = null;
+    switchScreens(name);
+  }, 120);
   setTimeout(() => {
+    if (gen !== wipeGen) return;
     wipe.classList.remove('run');
     wiping = false;
   }, 270);
