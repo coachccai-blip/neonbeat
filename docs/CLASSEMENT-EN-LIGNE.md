@@ -100,6 +100,12 @@ alter table public.scores drop constraint if exists combo_plausible;
 alter table public.scores add constraint combo_plausible
   check (combo >= 0 and combo <= 200000);
 
+-- Sans cette politique, les mises à jour (renommage, avatar) sont
+-- silencieusement ignorées : la base répond 204 et ne change rien.
+drop policy if exists "maj publique" on public.scores;
+create policy "maj publique" on public.scores
+  for update using (true) with check (true);
+
 create or replace view public.leaderboard as
 select
   player_id,
@@ -115,6 +121,12 @@ group by player_id;
 
 grant select on public.leaderboard to anon;
 ```
+
+La politique de mise à jour mérite une mention à part : sans elle,
+PostgREST répond « tout va bien » (204) à chaque renommage ou changement
+d'avatar… sans rien modifier. C'est la panne la plus trompeuse du lot, et
+la seule que le jeu ne peut pas deviner sans écrire pour de bon — c'est
+justement ce que fait **VÉRIFIER LE CLASSEMENT** (voir plus bas).
 
 Tant que cette migration n'est pas jouée, **le jeu continue de fonctionner** :
 il détecte les refus de la base et republie sans l'avatar, puis avec le combo
@@ -137,6 +149,26 @@ l'accueil (le classement de tous les joueurs), et **PUBLIER MES SCORES**
 dans les réglages.
 
 ### Vérifier que ça marche
+
+**Réglages → VÉRIFIER LE CLASSEMENT** fait le tour en une fois et affiche
+un rapport ligne par ligne : table joignable, colonne `avatar` dans la
+table *et* dans la vue, nombre de tes scores publiés, et — le plus
+important — un vrai test d'écriture suivi d'une relecture.
+
+Ce test d'écriture est là parce que trois pannes différentes produisent
+exactement le même symptôme (« mon avatar ne change pas ») et que deux
+d'entre elles ne remontent aucune erreur :
+
+| Ce que dit le rapport | Ce qui manque |
+|---|---|
+| Colonne « avatar » ABSENTE de la table | l'`alter table` |
+| Colonne « avatar » ABSENTE de la vue | le `create or replace view` |
+| La base accepte l'écriture mais ne change rien | la politique `maj publique` |
+
+Quand tout est vert, le rapport ne propose aucun SQL, et il en profite
+pour reposer ton avatar sur toutes tes lignes déjà publiées.
+
+### Vérifier à la main
 
 1. Ouvre le jeu, va dans **Réglages → PUBLIER MES SCORES**.
 2. Un message confirme le nombre de scores envoyés.

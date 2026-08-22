@@ -777,6 +777,82 @@ export function renderAvatars(list, active, onPick) {
   $('set-avatar-name').textContent = cur ? t('av_' + cur.id) : '';
 }
 
+/* ─── Diagnostic du classement ─── */
+
+const SQL_MIGRATION = `alter table public.scores add column if not exists avatar text;
+
+alter table public.scores drop constraint if exists combo_plausible;
+alter table public.scores add constraint combo_plausible
+  check (combo >= 0 and combo <= 200000);
+
+create or replace view public.leaderboard as
+select
+  player_id,
+  max(name)                                       as name,
+  (array_agg(avatar order by updated_at desc))[1] as avatar,
+  count(*) filter (where grade = 'SS')            as ss,
+  count(*) filter (where grade = 'S+')            as splus,
+  count(*) filter (where grade = 'S')             as s,
+  max(combo)                                      as max_combo,
+  count(*)                                        as charts
+from public.scores
+group by player_id;
+
+grant select on public.leaderboard to anon;
+
+drop policy if exists "maj publique" on public.scores;
+create policy "maj publique" on public.scores
+  for update using (true) with check (true);`;
+
+/**
+ * Peint le rapport de diagnostic. Chaque ligne dit ce qui va ou ne va pas,
+ * et le SQL de réparation n'apparaît QUE si quelque chose manque — l'afficher
+ * en permanence donnerait l'impression qu'il reste une action à faire.
+ * @param {object} d rapport de online.diagnose()
+ */
+export function renderDiag(d) {
+  const el = $('diag-out');
+  el.hidden = false;
+  if (!d || !d.actif) { el.innerHTML = `<div class="verdict souci">${esc(t('diag_off'))}</div>`; return; }
+  if (!d.table) { el.innerHTML = `<div class="verdict souci">${esc(t('diag_unreachable'))}</div>`; return; }
+
+  const ligne = (ok, texte) => `<li><i>${ok ? '✅' : '❌'}</i><span>${esc(texte)}</span></li>`;
+  const items = [
+    ligne(true, t('diag_table_ok')),
+    ligne(d.tableAvatar, t(d.tableAvatar ? 'diag_col_ok' : 'diag_col_ko')),
+    ligne(d.vue, t(d.vue ? 'diag_view_ok' : 'diag_view_ko')),
+    ligne(d.vueAvatar, t(d.vueAvatar ? 'diag_viewcol_ok' : 'diag_viewcol_ko')),
+    ligne(d.lignes > 0, t('diag_rows', { n: d.lignes }))
+  ];
+  if (d.ecriture) {
+    items.push(ligne(d.ecriture === 'ok',
+      t(d.ecriture === 'ok' ? 'diag_write_ok' : d.ecriture === 'ignorée' ? 'diag_write_ignored' : 'diag_write_ko')));
+  }
+  if (d.comboBride) items.push(ligne(false, t('diag_combo_ko')));
+
+  const parfait = d.tableAvatar && d.vue && d.vueAvatar && !d.comboBride
+    && (d.ecriture === 'ok' || (!d.lignes && d.ecriture === null));
+  el.innerHTML =
+    `<div class="verdict ${parfait ? 'bon' : 'souci'}">${esc(t(parfait ? 'diag_all_ok' : 'diag_todo'))}</div>`
+    + `<ul>${items.join('')}</ul>`
+    + (parfait ? '' : `<div>${esc(t('diag_paste'))}</div>`
+        + `<button class="btn btn-small diag-copy" id="diag-copy">${esc(t('diag_copy'))}</button>`
+        + `<pre>${esc(SQL_MIGRATION)}</pre>`);
+  const copier = $('diag-copy');
+  // Sur mobile, sélectionner vingt lignes de SQL à la main est pénible :
+  // le bouton fait le travail, et dit ce qu'il a fait.
+  if (copier) {
+    copier.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(SQL_MIGRATION);
+        copier.textContent = t('diag_copied');
+      } catch {
+        copier.textContent = t('diag_copy_ko');
+      }
+    });
+  }
+}
+
 export function refreshSettings() {
   $('set-speed').value = storage.get('speed');
   $('set-speed-val').textContent = fmtSpeed(storage.get('speed'));
