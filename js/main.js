@@ -12,6 +12,7 @@ import { ClockSync } from './clock.js';
 import { Host, Client, normalizeCode, MAX_PLAYERS } from './net.js';
 import { MODS, multiplierFor, modsLabel } from './mods.js';
 import { SKINS, skinById, DEFAULT_SKIN } from './skins.js';
+import * as online from './online.js';
 import { TROPHIES, gradeCounts, progress, earned, applyResult, EMPTY_STATS } from './trophies.js';
 import * as i18n from './i18n.js';
 import { APP_VERSION } from './version.js';
@@ -98,6 +99,16 @@ function boot() {
 
   $('btn-settings').addEventListener('click', () => { audio.unlock(); ui.show('settings'); });
   $('btn-trophies').addEventListener('click', () => { audio.unlock(); openTrophies(); });
+
+  // Classement en ligne : les points d'entrée n'apparaissent que s'il est
+  // configuré (voir js/online-config.js). Sinon le jeu ignore tout de lui.
+  if (online.enabled()) {
+    $('btn-board').hidden = false;
+    $('btn-publish').hidden = false;
+    $('btn-board').addEventListener('click', openTrackBoard);
+    $('btn-publish').addEventListener('click', publishAllScores);
+  }
+  $('board-back').addEventListener('click', () => { closeSheet(); ui.show('select'); });
   $('btn-credits').addEventListener('click', () => { openCredits(); });
   $('btn-calib-home').addEventListener('click', () => { audio.unlock(); goCalibrate('home'); });
 
@@ -395,6 +406,34 @@ function announceTrophies(stats) {
   });
 }
 
+/** Classement du morceau sélectionné, pour la difficulté et le mode courants. */
+async function openTrackBoard() {
+  const sel = S.selectedTrack;
+  if (!sel) return;
+  const keys = storage.get('keys') || '4';
+  closeSheet();
+  ui.show('board');
+  $('board-sub').textContent = `${sel.title} — ${S.myDiff} · ${keys} ${t('mode_keys')}`;
+  ui.boardLoading('board-list');
+  ui.renderTrackBoard(await online.trackBoard(sel.id, S.myDiff, keys), online.playerId());
+}
+
+/** Renvoie tous les meilleurs scores locaux d'un coup. */
+async function publishAllScores() {
+  if (!online.enabled()) return;
+  const name = displayName();
+  const list = [];
+  for (const [key, entry] of Object.entries(storage.allScores())) {
+    const [trackId, diff, k2] = key.split('|');
+    if (!trackId || !diff) continue;
+    list.push({ trackId, diff, keys: k2 === '2K' ? '2' : '4', entry });
+  }
+  if (!list.length) return ui.toast(t('board_none'));
+  ui.toast(t('board_sending', { n: list.length }), 3000);
+  const ok = await online.publishMany(name, list);
+  ui.toast(ok ? t('board_sent', { n: list.length }) : t('board_error'), 4000);
+}
+
 function openTrophies() {
   const { stats, counts } = trophyState();
   const unlockedTrophies = earned(stats, counts);
@@ -402,6 +441,11 @@ function openTrophies() {
   const unlocked = SKINS.filter((sk) => !sk.unlock || unlockedTrophies.includes(sk.unlock)).map((sk) => sk.id);
   const skinFor = Object.fromEntries(SKINS.filter((sk) => sk.unlock).map((sk) => [sk.unlock, sk.id]));
   ui.show('trophies');
+  if (online.enabled()) {
+    ui.boardLoading('tr-global');
+    $('tr-global').hidden = false;
+    online.globalBoard().then((rows) => ui.renderGlobalBoard(rows, online.playerId()));
+  }
   ui.renderTrophies(
     { counts, stats, progress: progress(stats, counts), skins: SKINS, unlocked, skinFor, activeSkin: activeSkin().id },
     (id) => {
@@ -1211,6 +1255,13 @@ function onGameFinished(res) {
   // Trophées : on met à jour les compteurs, puis on annonce les nouveaux
   // paliers franchis (et les skins qu'ils débloquent).
   announceTrophies(storage.writeStats(applyResult(storage.readStats(), res)));
+
+  // Classement en ligne : on ne publie QUE si le meilleur local a changé —
+  // inutile de renvoyer un score déjà connu de la base à chaque partie.
+  if (online.enabled() && recordInfo && recordInfo.record && S.selectedTrack) {
+    online.publishScore(displayName(), S.selectedTrack.id, res.diffName,
+                        res.keysMode || '4', recordInfo.best);
+  }
 
   if (S.mode === 'solo') {
     ui.renderResults({ title: S.selectedTrack.title }, res, null, S.myId);

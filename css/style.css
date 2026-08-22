@@ -528,6 +528,34 @@ input[type=range]::-moz-range-thumb { width: 30px; height: 30px; border-radius: 
 .maxcombo strong { color: var(--cyan); font-size: 14px; font-variant-numeric: tabular-nums; }
 .maxcombo:empty { display: none; }
 
+/* ─── Classements en ligne ─── */
+
+.board-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+.board-msg { text-align: center; font-size: 13px; color: var(--ink-dim); padding: 18px 10px; line-height: 1.5; }
+.board-row {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+  background: rgba(255,255,255,.035); border-radius: 10px;
+  font-size: 13px; box-shadow: inset 0 0 0 1px rgba(122,92,255,.12);
+}
+.board-row.head {
+  background: none; box-shadow: none; padding: 0 12px 2px;
+  font-size: 10px; letter-spacing: .12em; color: var(--ink-dim); font-weight: 700;
+}
+/* La ligne du joueur ressort : on doit se retrouver sans lire les pseudos. */
+.board-row.is-me { background: rgba(47,216,255,.12); box-shadow: inset 0 0 0 1.5px rgba(47,216,255,.45); }
+.board-row.p1 .pos { color: #ffd76a; }
+.board-row .pos { width: 22px; flex: none; text-align: center; font-weight: 800; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.board-row .bn { flex: 1; min-width: 0; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board-row .bg { flex: none; font-weight: 800; color: var(--cyan); min-width: 26px; text-align: right; }
+.board-row .bs { flex: none; font-weight: 800; font-variant-numeric: tabular-nums; min-width: 72px; text-align: right; }
+.board-row .bc { flex: none; width: 34px; text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
+.board-row .bc.mc { width: 52px; }
+.board-row .bc.ss { color: #ffd76a; }
+.board-row .bc.sp { color: var(--magenta); }
+.board-row .bc.sg { color: var(--cyan); }
+.board-row.head .bc { color: var(--ink-dim); }
+.btn-board { margin-bottom: 8px; }
+
 /* ─── Trophées & skins ─── */
 
 /* Compteurs de tête : SS, S+, S et combo maximal, lisibles d'un coup d'œil. */

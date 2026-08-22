@@ -164,6 +164,7 @@
       <p class="hint speed-hint" id="speed-hint"></p>
       <p class="maxcombo" id="sheet-maxcombo"></p>
     </div>
+    <button class="btn btn-ghost btn-board" id="btn-board" data-i18n="board_open" hidden>CLASSEMENT EN LIGNE</button>
     <button class="btn btn-primary" id="btn-play">JOUER</button>
   </div>
 </section>
@@ -296,6 +297,7 @@
         <span class="speed-val" id="ver-current"></span>
       </div>
       <button class="btn btn-small" id="btn-update" data-i18n="ver_update">METTRE À JOUR</button>
+      <button class="btn btn-small" id="btn-publish" data-i18n="board_publish" hidden>PUBLIER MES SCORES</button>
     </div>
 
     <div class="field">
@@ -310,6 +312,15 @@
 </section>
 
 <!-- ─────────────────────────── CRÉDITS ─────────────────────────── -->
+<section class="screen" id="screen-board" data-screen="board">
+  <div class="wrap wide">
+    <button class="btn-back" id="board-back" data-i18n="back">‹ RETOUR</button>
+    <h2 class="title" data-i18n="board_title">CLASSEMENT</h2>
+    <p class="res-song" id="board-sub"></p>
+    <div class="board-list" id="board-list"></div>
+  </div>
+</section>
+
 <section class="screen" id="screen-trophies" data-screen="trophies">
   <div class="wrap wide">
     <button class="btn-back" data-back="home" data-i18n="back">‹ RETOUR</button>
@@ -319,6 +330,9 @@
 
     <div class="label" data-i18n="trophies_skins">SKINS JOUABLES</div>
     <div class="skin-grid" id="tr-skins"></div>
+
+    <div class="label" id="tr-global-label" data-i18n="board_global" hidden>CLASSEMENT GÉNÉRAL</div>
+    <div class="board-list" id="tr-global" hidden></div>
 
     <div class="label" data-i18n="trophies_list">DÉFIS</div>
     <div class="trophy-list" id="tr-list"></div>

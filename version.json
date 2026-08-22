@@ -1,5 +1,5 @@
 {
- "version": "1.27",
+ "version": "1.28",
  "files": [
   "./",
   "./index.html",
@@ -19,6 +19,8 @@
   "./js/main.js",
   "./js/mods.js",
   "./js/net.js",
+  "./js/online-config.js",
+  "./js/online.js",
   "./js/render.js",
   "./js/skins.js",
   "./js/storage.js",

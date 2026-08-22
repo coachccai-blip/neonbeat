@@ -365,6 +365,7 @@ export class Renderer {
     // Spectre RÉEL du morceau en cours : une lecture, trois moyennes, aucune
     // allocation. C'est lui qui fait respirer tout le décor.
     const bnd = audio.bands();
+    audio.pushLevel(now);          // alimente l'historique d'amplitude
     this.bands = bnd;
     this.bars = audio.spectrumBars(28);
 
@@ -853,44 +854,42 @@ export class Renderer {
   }
 
   /**
-   * LA visualisation du morceau : le spectre en direct, en miroir autour
-   * d'une ligne centrale. Un seul élément fait tout le travail — les graves
-   * au centre (le kick fait battre le cœur de l'écran), les aigus vers les
-   * bords. Bien plus vivant que l'ancienne forme d'onde pré-calculée, qui
-   * ne faisait que défiler.
+   * LA visualisation du morceau : l'amplitude sonore accumulée image après
+   * image, qui défile de droite à gauche — le plus récent au bord droit.
+   *
+   * Le spectre seul donnait une silhouette stable : sa FORME change peu, un
+   * mix ayant toujours à peu près la même couleur. L'amplitude n'est qu'un
+   * nombre, mais empilée dans le temps elle dessine le morceau : couplets,
+   * refrains, ruptures et montées deviennent lisibles à l'écran.
    */
   _drawWave(songT, nowV, bnd) {
     const { ctx, w, h } = this;
-    const src = this.bars;
+    const bars = 64;
+    const src = audio.levelHistory(bars);
     if (!src || !src.length) return;
     const cy = h * 0.30;
-    // Volontairement contenue : c'est un décor, la trajectoire des notes
-    // doit rester lisible par-dessus.
-    const amp = h * 0.098 * (1 + nowV * 0.12 + bnd.bass * 0.30);
-    const bars = 64;
+    // Contenue : c'est un décor, la trajectoire des notes doit rester
+    // parfaitement lisible par-dessus.
+    const amp = h * 0.075;
     const bw = w / bars;
-    const half = (bars - 1) / 2;
     for (let k = 0; k < bars; k++) {
-      // Symétrie gauche/droite : le centre lit la bande la plus grave.
-      const dist = Math.abs(k - half) / half;              // 0 au centre, 1 aux bords
-      const band = Math.min(src.length - 1, Math.round(dist * (src.length - 1)));
-      const v = src[band];
-      // Léger affaissement vers les bords : la silhouette garde une forme
-      // de vague plutôt qu'un mur.
-      const edge = 1 - dist * dist * 0.55;
-      const bh = Math.max(3, v * amp * edge);
+      const bh = Math.max(2, src[k] * amp);
       const x = k * bw + bw * 0.2;
-      const alpha = 0.42 - dist * 0.26;
-      ctx.fillStyle = hexA(this.waveColor, alpha * 0.26);
-      ctx.fillRect(x - bw * 0.14, cy - bh * 1.22, bw * 0.88, bh * 2.44);
+      // Le plus récent (à droite) est le plus lumineux : on lit le sens du
+      // défilement sans avoir à y penser.
+      const age = k / (bars - 1);
+      const alpha = 0.14 + age * 0.28;
+      ctx.fillStyle = hexA(this.waveColor, alpha * 0.28);
+      ctx.fillRect(x - bw * 0.14, cy - bh * 1.25, bw * 0.88, bh * 2.5);
       ctx.fillStyle = hexA(this.waveColor, alpha);
       ctx.fillRect(x, cy - bh, bw * 0.6, bh * 2);
     }
-    ctx.fillStyle = hexA(this.waveColor, 0.28);
+    ctx.fillStyle = hexA(this.waveColor, 0.26);
     ctx.fillRect(0, cy - 0.5, w, 1);
-    // Repère central, dilaté par les graves.
-    ctx.fillStyle = hexA(this.skin.line, 0.32 + bnd.bass * 0.5);
-    ctx.fillRect(w / 2 - 1.5, cy - amp * (0.7 + bnd.bass * 0.5), 3, amp * (1.4 + bnd.bass));
+    // Tête de lecture au bord droit, dilatée par les graves.
+    const head = Math.max(2, src[bars - 1] * amp);
+    ctx.fillStyle = hexA(this.skin.line, 0.35 + bnd.bass * 0.5);
+    ctx.fillRect(w - 3, cy - head * (1.1 + bnd.bass * 0.4), 3, head * (2.2 + bnd.bass * 0.8));
   }
 }
 

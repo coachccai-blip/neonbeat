@@ -519,6 +519,57 @@ export function renderResults(track, res, ranking, myId, celebrate = true) {
   }
 }
 
+/* ─── Classements en ligne ─── */
+
+/** État de chargement / d'erreur, partagé par les deux classements. */
+function boardMessage(el, key) {
+  el.innerHTML = `<p class="board-msg">${esc(t(key))}</p>`;
+}
+
+/**
+ * Classement d'un morceau. `me` met en évidence la ligne du joueur, pour
+ * qu'il se retrouve sans avoir à lire tous les pseudos.
+ */
+export function renderTrackBoard(rows, me) {
+  const el = $('board-list');
+  if (!rows) return boardMessage(el, 'board_error');
+  if (!rows.length) return boardMessage(el, 'board_empty');
+  el.innerHTML = rows.map((r, i) => `
+    <div class="board-row${r.player_id === me ? ' is-me' : ''}${i === 0 ? ' p1' : ''}">
+      <span class="pos">${i + 1}</span>
+      <span class="bn">${esc(r.name || '—')}</span>
+      <span class="bg">${esc(r.grade || '')}</span>
+      <span class="bs">${(r.score || 0).toLocaleString('fr-FR')}</span>
+    </div>`).join('');
+}
+
+/** Classement général : SS, S+, S et meilleur combo, tous joueurs confondus. */
+export function renderGlobalBoard(rows, me) {
+  const el = $('tr-global');
+  const lab = $('tr-global-label');
+  if (!rows || !rows.length) { el.hidden = true; lab.hidden = true; return; }
+  lab.hidden = false;
+  el.hidden = false;
+  el.innerHTML = `
+    <div class="board-row head">
+      <span class="pos"></span><span class="bn"></span>
+      <span class="bc ss">SS</span><span class="bc sp">S+</span>
+      <span class="bc sg">S</span><span class="bc mc">${esc(t('trophies_maxcombo'))}</span>
+    </div>` + rows.map((r, i) => `
+    <div class="board-row${r.player_id === me ? ' is-me' : ''}${i === 0 ? ' p1' : ''}">
+      <span class="pos">${i + 1}</span>
+      <span class="bn">${esc(r.name || '—')}</span>
+      <span class="bc ss">${r.ss || 0}</span>
+      <span class="bc sp">${r.splus || 0}</span>
+      <span class="bc sg">${r.s || 0}</span>
+      <span class="bc mc">${r.max_combo || 0}</span>
+    </div>`).join('');
+}
+
+export function boardLoading(id) {
+  boardMessage($(id), 'board_loading');
+}
+
 /* ─── Trophées & skins ─── */
 
 /**

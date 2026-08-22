@@ -14,6 +14,7 @@ let musicGain = null;
 let sfxGain = null;
 let analyser = null;
 let spectrum = null;
+let timeData = null;
 const buffers = new Map();   // id → AudioBuffer
 const waveforms = new Map(); // id → { peaks: Float32Array, rate }
 const gains = new Map();     // id → gain de normalisation de volume
@@ -31,8 +32,12 @@ export function context() {
     // non sur destination, pour ignorer les bruitages d'interface.
     analyser = ctx.createAnalyser();
     analyser.fftSize = 256;              // 128 bandes : largement assez, très peu coûteux
-    analyser.smoothingTimeConstant = 0.72;
+    // Lissage volontairement faible : à 0,72 l'analyseur moyennait sur
+    // plusieurs frames et gommait exactement ce qui fait vibrer un décor —
+    // l'attaque des kicks et des caisses claires.
+    analyser.smoothingTimeConstant = 0.25;
     spectrum = new Uint8Array(analyser.frequencyBinCount);
+    timeData = new Uint8Array(analyser.fftSize);
     musicGain.connect(analyser);
     musicGain.connect(ctx.destination);
     sfxGain = ctx.createGain();
@@ -113,6 +118,61 @@ export function spectrumBars(n = 24) {
     prev = next;
   }
   return barsOut;
+}
+
+/* ─── Historique d'amplitude ─────────────────────────────────────────
+   Le spectre dit la COULEUR du son à l'instant t ; sa forme est stable par
+   nature, donc peu spectaculaire. L'amplitude, elle, ne vaut qu'un nombre —
+   mais accumulée image après image elle dessine le morceau qui défile.
+   C'est ce tampon glissant qui fait vivre l'onde de fond.               */
+
+const HIST = 128;                       // ~2 s à 60 images/s
+const hist = new Float32Array(HIST);
+let histHead = 0;
+let lastPush = 0;
+let peakRef = 0.02;          // référence de crête, adaptative
+
+/**
+ * Échantillonne le niveau sonore instantané (RMS du signal, pas du spectre)
+ * et le range dans le tampon circulaire. À appeler une fois par image.
+ */
+export function pushLevel(nowMs) {
+  if (!analyser || !timeData) return;
+  // Un échantillon toutes les ~16 ms au plus : le défilement garde la même
+  // vitesse quelle que soit la fréquence d'affichage de l'écran.
+  if (nowMs - lastPush < 15) return;
+  lastPush = nowMs;
+  analyser.getByteTimeDomainData(timeData);
+  let sum = 0;
+  for (let i = 0; i < timeData.length; i += 2) {
+    const v = (timeData[i] - 128) / 128;
+    sum += v * v;
+  }
+  const rms = Math.sqrt(sum / (timeData.length / 2));
+  // Normalisation ADAPTATIVE plutôt qu'un facteur fixe : le niveau crête
+  // sert de référence et décroît lentement, si bien que l'onde occupe
+  // toute sa hauteur quel que soit le morceau — et se réajuste seule d'un
+  // passage calme à un refrain.
+  peakRef = Math.max(rms, peakRef * 0.9985);
+  const norm = peakRef > 1e-5 ? rms / peakRef : 0;
+  // Courbe douce : les passages discrets restent visibles sans écraser les
+  // pics, alors qu'un rapport brut les collerait au fond.
+  hist[histHead] = Math.min(1, Math.pow(norm, 0.65));
+  histHead = (histHead + 1) % HIST;
+}
+
+/**
+ * Historique du plus ANCIEN au plus RÉCENT, dans un tableau réutilisé.
+ * @param {number} n  nombre de points voulus (≤ HIST)
+ */
+let histOut = null;
+export function levelHistory(n = HIST) {
+  const k = Math.min(n, HIST);
+  if (!histOut || histOut.length !== k) histOut = new Float32Array(k);
+  for (let i = 0; i < k; i++) {
+    histOut[i] = hist[(histHead - k + i + HIST * 2) % HIST];
+  }
+  return histOut;
 }
 
 export function setVolume(v) {
