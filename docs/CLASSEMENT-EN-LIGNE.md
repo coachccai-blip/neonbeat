@@ -19,120 +19,123 @@ créer — pas de compte, pas de mot de passe.
 
 ## 2. Créer la table et la vue
 
-Dans le projet : **SQL Editor** → **New query**, colle ceci, puis **Run**.
+Dans le projet : **SQL Editor** → **New query**, colle le script ci-dessous,
+puis **Run**.
+
+C'est le **script complet et rejouable** : il crée ce qui manque, met à
+jour ce qui existe, et le relancer n'a aucun effet de bord. Que ta base
+soit vierge ou déjà peuplée, c'est celui-ci qu'il faut passer — il n'y a
+pas de « script de migration » séparé.
+
+> Deux pièges valent d'être signalés, parce qu'ils ont réellement fait
+> échouer des mises à jour :
+>
+> - `create or replace view` **refuse** d'insérer une colonne ailleurs
+>   qu'à la fin de la liste (`cannot change name of view column "ss" to
+>   "avatar"`). D'où le `drop view` puis `create view`.
+> - `create policy` sans `drop policy if exists` échoue sur une base
+>   existante (`policy already exists`).
+>
+> Dans l'éditeur SQL de Supabase, **tout le script s'exécute en une seule
+> transaction** : une seule de ces erreurs annule le reste — colonne
+> `avatar` comprise. C'est silencieux côté jeu, et c'est précisément ce
+> que **VÉRIFIER LE CLASSEMENT** sert à débusquer.
 
 ```sql
--- Un score par joueur, par morceau, par difficulté et par mode.
--- La clé primaire fait tout le travail : republier ÉCRASE la ligne.
+-- ═══════════════════════════════════════════════════════════════════
+--  NEONBEAT — classement en ligne (v1.36)
+--  Script COMPLET et REJOUABLE : il crée ce qui manque et met à jour
+--  ce qui existe. Le lancer deux fois de suite ne change rien.
+--  Supabase → SQL Editor → New query → coller → Run.
+-- ═══════════════════════════════════════════════════════════════════
+
+-- ── 1. La table : un score par joueur, par morceau, par difficulté,
+--       par mode. La clé primaire fait tout : republier ÉCRASE la ligne.
 create table if not exists public.scores (
   player_id  uuid    not null,
   track_id   text    not null,
   diff       text    not null,
   keys       text    not null default '4',
   name       text    not null,
-  avatar     text,
   score      int     not null,
   grade      text    not null,
   precision  numeric not null,
   combo      int     not null,
   mods       text[]  not null default '{}',
   updated_at timestamptz not null default now(),
-  primary key (player_id, track_id, diff, keys),
-
-  -- Garde-fous : ils n'empêchent pas la triche déterminée, mais ils
-  -- rejettent les valeurs impossibles.
-  constraint score_plausible     check (score >= 0 and score <= 2000000),
-  constraint precision_plausible check (precision >= 0 and precision <= 1),
-  -- Le combo est pondéré par le fever depuis la v1.35 : une chaîne
-  -- complète sur une chart longue dépasse largement 10 000.
-  constraint combo_plausible     check (combo >= 0 and combo <= 200000),
-  constraint grade_connu         check (grade in ('SS','S+','S','A','B','C','D')),
-  constraint mode_connu          check (keys in ('2','4')),
-  constraint nom_court           check (char_length(name) between 1 and 12),
-  constraint avatar_court        check (avatar is null or char_length(avatar) <= 24)
+  primary key (player_id, track_id, diff, keys)
 );
+
+-- ── 2. Colonnes ajoutées après coup (bases créées avant la v1.34).
+alter table public.scores add column if not exists avatar text;
+
+-- ── 3. Garde-fous. Ils n'empêchent pas la triche déterminée, mais ils
+--       rejettent l'impossible. On les repose à chaque exécution : c'est
+--       ce qui met à jour une base ancienne sans avoir à y penser.
+alter table public.scores drop constraint if exists score_plausible;
+alter table public.scores drop constraint if exists precision_plausible;
+alter table public.scores drop constraint if exists combo_plausible;
+alter table public.scores drop constraint if exists grade_connu;
+alter table public.scores drop constraint if exists mode_connu;
+alter table public.scores drop constraint if exists nom_court;
+alter table public.scores drop constraint if exists avatar_court;
+
+alter table public.scores
+  add constraint score_plausible     check (score >= 0 and score <= 2000000),
+  -- Depuis la v1.35 le fever multiplie le combo : une chaîne complète sur
+  -- une chart longue dépasse largement 10 000. L'ancienne limite de 5 000
+  -- rejetait ces scores.
+  add constraint combo_plausible     check (combo >= 0 and combo <= 200000),
+  add constraint precision_plausible check (precision >= 0 and precision <= 1),
+  add constraint grade_connu         check (grade in ('SS','S+','S','A','B','C','D')),
+  add constraint mode_connu          check (keys in ('2','4')),
+  add constraint nom_court           check (char_length(name) between 1 and 12),
+  add constraint avatar_court        check (avatar is null or char_length(avatar) <= 24);
 
 create index if not exists scores_par_chart
   on public.scores (track_id, diff, keys, score desc);
 
--- Classement général : le calcul est fait par la base, le jeu n'affiche.
-create or replace view public.leaderboard as
+-- ── 4. Classement général : le calcul est fait par la base, le jeu
+--       n'affiche. DROP puis CREATE, jamais CREATE OR REPLACE : ce
+--       dernier refuse d'insérer une colonne ailleurs qu'à la fin
+--       (« cannot change name of view column »), ce qui faisait échouer
+--       toute la migration — et donc annuler la transaction entière.
+drop view if exists public.leaderboard;
+create view public.leaderboard as
 select
   player_id,
-  max(name)                                   as name,
-  -- L'avatar de la ligne la PLUS RÉCENTE : en changer doit se voir tout de
-  -- suite, alors qu'un max() renverrait le dernier dans l'ordre alphabétique.
-  (array_agg(avatar order by updated_at desc))[1] as avatar,
-  count(*) filter (where grade = 'SS')        as ss,
-  count(*) filter (where grade = 'S+')        as splus,
-  count(*) filter (where grade = 'S')         as s,
-  max(combo)                                  as max_combo,
-  count(*)                                    as charts
+  max(name)                                        as name,
+  -- L'avatar de la ligne la plus récente qui en porte un : en changer
+  -- doit se voir tout de suite, là où max() renverrait le dernier dans
+  -- l'ordre alphabétique.
+  (array_agg(avatar order by updated_at desc)
+     filter (where avatar is not null))[1]         as avatar,
+  count(*) filter (where grade = 'SS')             as ss,
+  count(*) filter (where grade = 'S+')             as splus,
+  count(*) filter (where grade = 'S')              as s,
+  max(combo)                                       as max_combo,
+  count(*)                                         as charts
 from public.scores
 group by player_id;
 
--- Accès public en lecture et en écriture (jeu sans inscription).
+-- ── 5. Accès public, en lecture ET en écriture : le jeu n'a pas de
+--       comptes. DROP avant CREATE, sinon rejouer le script échoue sur
+--       « policy already exists » et annule tout le reste.
 alter table public.scores enable row level security;
+
+drop policy if exists "lecture publique"  on public.scores;
+drop policy if exists "ecriture publique" on public.scores;
+drop policy if exists "maj publique"      on public.scores;
 
 create policy "lecture publique"  on public.scores for select using (true);
 create policy "ecriture publique" on public.scores for insert with check (true);
+-- Sans CELLE-CI, changer de pseudo ou d'avatar ne remonte aucune erreur
+-- et ne modifie rien : la base répond « 204 OK » et ignore la demande.
 create policy "maj publique"      on public.scores for update using (true) with check (true);
 
-grant select on public.leaderboard to anon;
+grant select, insert, update on public.scores to anon, authenticated;
+grant select on public.leaderboard to anon, authenticated;
 ```
-
-## 2 bis. Mettre à jour une base déjà en service
-
-Si tu as créé la table **avant la version 1.35**, il lui manque la colonne
-`avatar` et sa contrainte de combo est trop étroite (le fever multiplie
-désormais le combo : une chaîne complète dépasse largement 5 000). Colle
-ceci dans le SQL Editor, puis **Run** — c'est sans risque, rien n'est
-effacé :
-
-```sql
-alter table public.scores add column if not exists avatar text;
-
-alter table public.scores drop constraint if exists avatar_court;
-alter table public.scores add constraint avatar_court
-  check (avatar is null or char_length(avatar) <= 24);
-
-alter table public.scores drop constraint if exists combo_plausible;
-alter table public.scores add constraint combo_plausible
-  check (combo >= 0 and combo <= 200000);
-
--- Sans cette politique, les mises à jour (renommage, avatar) sont
--- silencieusement ignorées : la base répond 204 et ne change rien.
-drop policy if exists "maj publique" on public.scores;
-create policy "maj publique" on public.scores
-  for update using (true) with check (true);
-
-create or replace view public.leaderboard as
-select
-  player_id,
-  max(name)                                       as name,
-  (array_agg(avatar order by updated_at desc))[1] as avatar,
-  count(*) filter (where grade = 'SS')            as ss,
-  count(*) filter (where grade = 'S+')            as splus,
-  count(*) filter (where grade = 'S')             as s,
-  max(combo)                                      as max_combo,
-  count(*)                                        as charts
-from public.scores
-group by player_id;
-
-grant select on public.leaderboard to anon;
-```
-
-La politique de mise à jour mérite une mention à part : sans elle,
-PostgREST répond « tout va bien » (204) à chaque renommage ou changement
-d'avatar… sans rien modifier. C'est la panne la plus trompeuse du lot, et
-la seule que le jeu ne peut pas deviner sans écrire pour de bon — c'est
-justement ce que fait **VÉRIFIER LE CLASSEMENT** (voir plus bas).
-
-Tant que cette migration n'est pas jouée, **le jeu continue de fonctionner** :
-il détecte les refus de la base et republie sans l'avatar, puis avec le combo
-ramené sous l'ancienne limite — classements compris. Tout se remet en place
-de soi-même dès que le SQL ci-dessus est passé : les joueurs n'ont rien à
-faire, la synchronisation du lancement s'en charge.
 
 ## 3. Brancher le jeu
 
@@ -161,12 +164,16 @@ d'entre elles ne remontent aucune erreur :
 
 | Ce que dit le rapport | Ce qui manque |
 |---|---|
-| Colonne « avatar » ABSENTE de la table | l'`alter table` |
-| Colonne « avatar » ABSENTE de la vue | le `create or replace view` |
+| Colonne « avatar » ABSENTE de la table | l'`alter table … add column avatar` |
+| Colonne « avatar » ABSENTE de la vue | le `drop view` + `create view` |
 | La base accepte l'écriture mais ne change rien | la politique `maj publique` |
 
-Quand tout est vert, le rapport ne propose aucun SQL, et il en profite
-pour reposer ton avatar sur toutes tes lignes déjà publiées.
+Dans les trois cas, la réponse est la même : repasser le script de
+l'étape 2 en entier. Le rapport le propose directement, avec un bouton de
+copie.
+
+Quand tout est vert, il ne propose aucun SQL, et il en profite pour
+reposer ton avatar sur toutes tes lignes déjà publiées.
 
 ### Vérifier à la main
 

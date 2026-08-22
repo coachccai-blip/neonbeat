@@ -779,30 +779,66 @@ export function renderAvatars(list, active, onPick) {
 
 /* ─── Diagnostic du classement ─── */
 
-const SQL_MIGRATION = `alter table public.scores add column if not exists avatar text;
+const SQL_MIGRATION = `-- NEONBEAT — classement en ligne. Rejouable sans risque.
+create table if not exists public.scores (
+  player_id uuid not null, track_id text not null, diff text not null,
+  keys text not null default '4', name text not null, score int not null,
+  grade text not null, precision numeric not null, combo int not null,
+  mods text[] not null default '{}',
+  updated_at timestamptz not null default now(),
+  primary key (player_id, track_id, diff, keys)
+);
 
+alter table public.scores add column if not exists avatar text;
+
+alter table public.scores drop constraint if exists score_plausible;
+alter table public.scores drop constraint if exists precision_plausible;
 alter table public.scores drop constraint if exists combo_plausible;
-alter table public.scores add constraint combo_plausible
-  check (combo >= 0 and combo <= 200000);
+alter table public.scores drop constraint if exists grade_connu;
+alter table public.scores drop constraint if exists mode_connu;
+alter table public.scores drop constraint if exists nom_court;
+alter table public.scores drop constraint if exists avatar_court;
+alter table public.scores
+  add constraint score_plausible     check (score >= 0 and score <= 2000000),
+  add constraint combo_plausible     check (combo >= 0 and combo <= 200000),
+  add constraint precision_plausible check (precision >= 0 and precision <= 1),
+  add constraint grade_connu         check (grade in ('SS','S+','S','A','B','C','D')),
+  add constraint mode_connu          check (keys in ('2','4')),
+  add constraint nom_court           check (char_length(name) between 1 and 12),
+  add constraint avatar_court        check (avatar is null or char_length(avatar) <= 24);
 
-create or replace view public.leaderboard as
+create index if not exists scores_par_chart
+  on public.scores (track_id, diff, keys, score desc);
+
+-- DROP puis CREATE : « create or replace view » refuse d'insérer une
+-- colonne ailleurs qu'à la fin, et ferait échouer tout le script.
+drop view if exists public.leaderboard;
+create view public.leaderboard as
 select
   player_id,
-  max(name)                                       as name,
-  (array_agg(avatar order by updated_at desc))[1] as avatar,
-  count(*) filter (where grade = 'SS')            as ss,
-  count(*) filter (where grade = 'S+')            as splus,
-  count(*) filter (where grade = 'S')             as s,
-  max(combo)                                      as max_combo,
-  count(*)                                        as charts
+  max(name) as name,
+  (array_agg(avatar order by updated_at desc)
+     filter (where avatar is not null))[1] as avatar,
+  count(*) filter (where grade = 'SS')  as ss,
+  count(*) filter (where grade = 'S+')  as splus,
+  count(*) filter (where grade = 'S')   as s,
+  max(combo) as max_combo,
+  count(*)   as charts
 from public.scores
 group by player_id;
 
-grant select on public.leaderboard to anon;
+alter table public.scores enable row level security;
 
-drop policy if exists "maj publique" on public.scores;
-create policy "maj publique" on public.scores
-  for update using (true) with check (true);`;
+-- DROP avant CREATE : sinon rejouer échoue sur « policy already exists ».
+drop policy if exists "lecture publique"  on public.scores;
+drop policy if exists "ecriture publique" on public.scores;
+drop policy if exists "maj publique"      on public.scores;
+create policy "lecture publique"  on public.scores for select using (true);
+create policy "ecriture publique" on public.scores for insert with check (true);
+create policy "maj publique"      on public.scores for update using (true) with check (true);
+
+grant select, insert, update on public.scores to anon, authenticated;
+grant select on public.leaderboard to anon, authenticated;`;
 
 /**
  * Peint le rapport de diagnostic. Chaque ligne dit ce qui va ou ne va pas,
