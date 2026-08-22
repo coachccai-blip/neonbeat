@@ -359,6 +359,86 @@ export class Renderer {
 
   /* ════════════════ Frame ════════════════ */
 
+  /**
+   * Bandes latérales façon DJ Max : le multiplicateur de combo défile du
+   * bas vers le haut le long des deux bords intérieurs du gear, écrit à la
+   * verticale (quart de tour dans le sens anti-horaire), aux couleurs du
+   * fever en cours.
+   *
+   * Le motif est recuit dans une tuile hors écran et reposé en boucle :
+   * réécrire le texte une dizaine de fois par bord et par image coûterait
+   * bien plus cher que dix `drawImage`, sur un rendu déjà serré à 60 fps.
+   *
+   * Dessinée AVANT les notes et à faible opacité : c'est un repère qu'on
+   * lit du coin de l'œil, il ne doit jamais disputer la lisibilité d'une
+   * chart dense.
+   */
+  _drawComboBands(now, beatPulse) {
+    const lv = this.feverLevel;
+    if (lv < 2) return;
+    const { ctx, w, h } = this;
+    const fs = Math.max(9, Math.round(w * 0.031));
+    const bandW = Math.round(fs * 1.8);
+    const tile = this._comboTile(lv, fs, bandW);
+    // Plus le fever monte, plus la bande file : la vitesse dit à elle
+    // seule qu'il se passe quelque chose.
+    const vitesse = h * (0.16 + lv * 0.018);
+    const periode = tile.height;
+    // `defile` croît avec le temps et la tuile est posée à −défile : le
+    // motif REMONTE. Le poser à +défile le ferait descendre — l'ordonnée
+    // d'un drawImage est un y d'écran, pas la coordonnée locale du texte,
+    // qui est pivoté.
+    const defile = ((now / 1000) * vitesse) % periode;
+
+    ctx.save();
+    ctx.globalAlpha = 0.34 + beatPulse * 0.16;
+    for (const [x, sens] of [[4, 1], [w - 4 - bandW, -1]]) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x, 0, bandW, h);
+      ctx.clip();
+      // Voile dégradé sous le texte, le plus dense contre le rail : c'est
+      // ce qui fait lire « bande » plutôt que « lettres qui flottent ».
+      const g = ctx.createLinearGradient(x, 0, x + bandW, 0);
+      const c = feverColor(lv);
+      g.addColorStop(sens > 0 ? 0 : 1, hexA(c, 0.16));
+      g.addColorStop(sens > 0 ? 1 : 0, hexA(c, 0));
+      ctx.fillStyle = g;
+      ctx.fillRect(x, 0, bandW, h);
+      for (let y = -defile; y < h; y += periode) {
+        ctx.drawImage(tile, x, Math.round(y));
+      }
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  /** Tuile du motif défilant, recuite au changement de fever ou de taille. */
+  _comboTile(lv, fs, bandW) {
+    const cle = `${lv}|${fs}|${bandW}`;
+    if (this.comboTile && this.comboTileKey === cle) return this.comboTile;
+    const c = document.createElement('canvas');
+    const x = c.getContext('2d');
+    const texte = `COMBO \u00d7${lv}`;
+    x.font = `800 ${fs}px ${FONT}`;
+    const respiration = fs * 3.2;
+    c.width = bandW;
+    c.height = Math.ceil(x.measureText(texte).width + respiration);
+    // Le contexte est réinitialisé par l'affectation de width/height.
+    const g = c.getContext('2d');
+    g.font = `800 ${fs}px ${FONT}`;
+    g.textAlign = 'left';
+    g.textBaseline = 'middle';
+    g.fillStyle = feverColor(lv);
+    // Un quart de tour anti-horaire : le texte se lit de bas en haut.
+    g.translate(bandW / 2, c.height);
+    g.rotate(-Math.PI / 2);
+    g.fillText(texte, respiration / 2, 0);
+    this.comboTile = c;
+    this.comboTileKey = cle;
+    return c;
+  }
+
   draw(songT) {
     const { ctx, w, h, laneW, judgeY, travel } = this;
     const now = performance.now();
@@ -435,6 +515,9 @@ export class Renderer {
       ctx.lineTo(l * laneW + 0.5, h);
     }
     ctx.stroke();
+
+    // ─── Bandes de combo défilantes, sur les deux bords du gear ───
+    this._drawComboBands(now, beatPulse);
 
     // ─── Colonnes de lumière des frappes ───
     for (const p of this.pillars) {

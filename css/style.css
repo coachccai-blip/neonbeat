@@ -593,27 +593,6 @@ input[type=range]::-moz-range-thumb { width: 30px; height: 30px; border-radius: 
 .stat-tile.combo .v { color: var(--violet); }
 
 /* Cartes de skin : l'échantillon de couleurs vaut mieux qu'un long nom. */
-/* ─── Diagnostic du classement (réglages) ─── */
-.diag {
-  margin-top: 8px; padding: 10px 12px; border-radius: 10px;
-  background: rgba(255,255,255,.04); box-shadow: inset 0 0 0 1px rgba(122,92,255,.16);
-  font-size: 12px; line-height: 1.5;
-}
-.diag ul { list-style: none; margin: 0 0 8px; padding: 0; }
-.diag li { display: flex; gap: 7px; align-items: baseline; }
-.diag li i { font-style: normal; flex: none; width: 14px; }
-.diag .verdict { font-weight: 800; letter-spacing: .04em; margin-bottom: 6px; }
-.diag .verdict.bon { color: #31e0a8; }
-.diag .verdict.souci { color: var(--amber); }
-/* Le SQL doit pouvoir être sélectionné et copié tel quel, sans que la
-   page se mette à défiler horizontalement. */
-.diag-copy { margin-top: 7px; min-height: 40px; font-size: 11px; letter-spacing: .05em; }
-.diag pre {
-  margin: 6px 0 0; padding: 9px 10px; border-radius: 8px; overflow-x: auto;
-  background: rgba(0,0,0,.35); font-size: 10.5px; line-height: 1.45;
-  white-space: pre; user-select: text; -webkit-user-select: text;
-}
-
 /* ─── Choix de l'avatar (réglages) ─── */
 .avatar-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
 .avatar-card {

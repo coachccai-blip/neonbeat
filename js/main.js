@@ -113,8 +113,6 @@ function boot() {
     $('board-btns').hidden = false;
     $('btn-publish').hidden = false;
     $('btn-ranking').hidden = false;
-    $('btn-diag').hidden = false;
-    $('btn-diag').addEventListener('click', runDiag);
     $('btn-ranking').addEventListener('click', openGlobalRanking);
     $('btn-board').addEventListener('click', () => openTrackBoard('global'));
     $('btn-mine').addEventListener('click', () => openTrackBoard('mine'));
@@ -550,23 +548,6 @@ function localScoreList() {
 function autoPublish() {
   if (!online.enabled()) return;
   online.autoSync(displayName(), displayAvatar(), localScoreList()).catch(() => {});
-}
-
-/**
- * Vérifie l'installation du classement et affiche un rapport.
- *
- * Trois pannes donnent le même symptôme muet — « mon avatar ne change
- * pas » — et une seule d'entre elles remonte une erreur. Le rapport les
- * départage et livre le SQL exact à coller. En cas de succès, il republie
- * dans la foulée : l'avatar rattrape les lignes déjà en base.
- */
-async function runDiag() {
-  const el = $('diag-out');
-  el.hidden = false;
-  el.innerHTML = `<div class="verdict">${t('diag_running')}</div>`;
-  const rapport = await online.diagnose(displayAvatar());
-  ui.renderDiag(rapport);
-  if (rapport.actif && rapport.ecriture === 'ok') autoPublish();
 }
 
 /** Renvoie tous les meilleurs scores locaux d'un coup. */

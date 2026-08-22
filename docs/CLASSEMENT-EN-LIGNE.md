@@ -153,37 +153,17 @@ dans les réglages.
 
 ### Vérifier que ça marche
 
-**Réglages → VÉRIFIER LE CLASSEMENT** fait le tour en une fois et affiche
-un rapport ligne par ligne : table joignable, colonne `avatar` dans la
-table *et* dans la vue, nombre de tes scores publiés, et — le plus
-important — un vrai test d'écriture suivi d'une relecture.
-
-Ce test d'écriture est là parce que trois pannes différentes produisent
-exactement le même symptôme (« mon avatar ne change pas ») et que deux
-d'entre elles ne remontent aucune erreur :
-
-| Ce que dit le rapport | Ce qui manque |
-|---|---|
-| Colonne « avatar » ABSENTE de la table | l'`alter table … add column avatar` |
-| Colonne « avatar » ABSENTE de la vue | le `drop view` + `create view` |
-| La base accepte l'écriture mais ne change rien | la politique `maj publique` |
-
-Dans les trois cas, la réponse est la même : repasser le script de
-l'étape 2 en entier. Le rapport le propose directement, avec un bouton de
-copie.
-
-Quand tout est vert, il ne propose aucun SQL, et il en profite pour
-reposer ton avatar sur toutes tes lignes déjà publiées.
-
-### Vérifier à la main
-
 1. Ouvre le jeu, va dans **Réglages → PUBLIER MES SCORES**.
 2. Un message confirme le nombre de scores envoyés.
 3. Dans Supabase, **Table Editor → scores** : les lignes doivent y être.
 
-Si le message annonce une erreur, c'est presque toujours que le SQL de
-l'étape 2 n'a pas été exécuté (la table `scores` ou la vue `leaderboard`
-n'existe pas), ou que les politiques d'accès manquent.
+Si quelque chose cloche — avatar qui ne change pas, renommage sans effet,
+score refusé —, la réponse est toujours la même : **repasser le script de
+l'étape 2 en entier**. Il est rejouable, et il remet d'aplomb les trois
+choses qui échouent en silence : la colonne `avatar` dans la table, la
+même colonne dans la vue `leaderboard`, et la politique `maj publique`
+sans laquelle la base répond « 204 OK » à des mises à jour qu'elle
+ignore.
 
 ---
 

@@ -148,13 +148,6 @@ const avatarOk = { scores: true, leaderboard: true };
 let bigComboOk = true;
 const COMBO_LEGACY_MAX = 5000;
 
-/** Remet les sondes à zéro : la base a pu être migrée entre-temps. */
-export function resetProbes() {
-  avatarOk.scores = true;
-  avatarOk.leaderboard = true;
-  bigComboOk = true;
-}
-
 /**
  * @param {'scores'|'leaderboard'} res  ressource visée
  * @param {(o:{avatar:boolean, clampCombo:boolean}) => Promise<{ok:boolean,status:number,data:*}>} run
@@ -325,93 +318,4 @@ export async function globalBoard(limit = 50) {
   });
   const r = await withFallbacks('leaderboard', (o) => request(`leaderboard?${q(o.avatar)}`, { headers: headers() }));
   return r.ok && Array.isArray(r.data) ? r.data : null;
-}
-
-/* ─── Diagnostic ─────────────────────────────────────────────────────
-   Trois pannes donnent exactement le même symptôme — « mon avatar ne
-   change pas » — et aucune ne remonte d'erreur visible :
-
-   1. la colonne `avatar` manque dans la table `scores` ;
-   2. elle manque dans la VUE `leaderboard` (l'`alter table` a été joué,
-      mais la vue n'a pas été recréée) ;
-   3. la politique RLS de mise à jour manque : PostgREST répond 204, tout
-      va bien… sauf que zéro ligne a été modifiée. C'est la plus sournoise,
-      parce qu'elle laisse croire à un succès.
-
-   Ce diagnostic les distingue en ÉCRIVANT vraiment puis en relisant : rien
-   d'autre ne peut départager « accepté » de « réellement enregistré ». Il
-   n'écrit que sur les lignes du joueur, et n'y remet que son propre
-   avatar — le repasser deux fois ne change rien.                        */
-
-/**
- * @param {string} avatar avatar actuellement choisi dans les réglages
- * @returns {Promise<object>} rapport lisible par l'écran des réglages
- */
-export async function diagnose(avatar) {
-  if (!enabled()) return { actif: false };
-  resetProbes();                       // la base a pu être migrée entre-temps
-  const id = playerId();
-  const av = cleanAvatar(avatar);
-  const q = (path) => request(path, { headers: headers() });
-
-  const table = await q('scores?select=player_id&limit=1');
-  const tableAvatar = await q('scores?select=avatar&limit=1');
-  const vue = await q('leaderboard?select=player_id&limit=1');
-  const vueAvatar = await q('leaderboard?select=avatar&limit=1');
-
-  const rep = {
-    actif: true,
-    table: table.ok,
-    tableAvatar: tableAvatar.ok,
-    vue: vue.ok,
-    vueAvatar: vueAvatar.ok,
-    lignes: 0,
-    aJour: 0,
-    ecriture: null,                    // null = non testée
-    comboBride: !bigComboOk
-  };
-  if (!table.ok) return rep;
-
-  // Compter mes lignes ne doit PAS dépendre de la colonne litigieuse :
-  // demander `avatar` à une base qui ne l'a pas ferait échouer la requête
-  // et afficher « 0 score publié » alors qu'ils sont tous là.
-  const champs = rep.tableAvatar ? 'avatar' : 'player_id';
-  const mes = await q(`scores?select=${champs}&player_id=eq.${encodeURIComponent(id)}`);
-  rep.lignes = Array.isArray(mes.data) ? mes.data.length : 0;
-  rep.aJour = (Array.isArray(mes.data) ? mes.data : []).filter((r) => r.avatar === av).length;
-  if (!rep.lignes) return rep;
-
-  const path = `scores?player_id=eq.${encodeURIComponent(id)}`;
-  const ecrire = (corps) => request(path, {
-    method: 'PATCH',
-    headers: headers({ Prefer: 'return=minimal' }),
-    body: JSON.stringify(corps)
-  });
-
-  // Sonde d'écriture. Elle porte sur `updated_at` et non sur l'avatar : il
-  // faut écrire une valeur FORCÉMENT différente de celle en place, sinon
-  // une base qui ignore les mises à jour est indiscernable d'une base qui
-  // les applique. Et `updated_at` ne s'affiche nulle part : le rapport ne
-  // peut pas abîmer ce que voit le joueur.
-  const marque = new Date().toISOString();
-  const sonde = await ecrire({ updated_at: marque });
-  if (!sonde.ok) { rep.ecriture = 'refusée'; return rep; }
-  const relu = await q(`scores?select=updated_at&player_id=eq.${encodeURIComponent(id)}`);
-  const vues = Array.isArray(relu.data) ? relu.data : [];
-  rep.ecriture = vues.length && vues.every((r) => r.updated_at === marque) ? 'ok' : 'ignorée';
-  if (rep.ecriture !== 'ok') return rep;
-
-  // L'écriture passe : on en profite pour réparer, c'est-à-dire reposer
-  // l'avatar sur toutes les lignes déjà publiées.
-  if (rep.tableAvatar) {
-    await ecrire({ avatar: av, updated_at: new Date().toISOString() });
-    const apres = await q(`scores?select=avatar&player_id=eq.${encodeURIComponent(id)}`);
-    const lignes = Array.isArray(apres.data) ? apres.data : [];
-    rep.aJour = lignes.filter((r) => r.avatar === av).length;
-    if (rep.aJour === rep.lignes) {
-      const p = readPlayer() || { id, name: '' };
-      writePlayer({ ...p, avatar: av });
-    }
-  }
-  return rep;
 }
