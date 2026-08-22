@@ -293,6 +293,17 @@ export class Engine {
     this.events.push({ type: 'judge', lane, judgment, t: note.time, combo: this.combo });
   }
 
+  /**
+   * Applique un jugement décidé AILLEURS que par une frappe : c'est ce qui
+   * permet aux bots (js/bots.js) de marquer dans ce moteur-ci, donc avec
+   * exactement le barème des humains. Les événements de rendu sont vidés
+   * au passage — personne ne les consomme sur un moteur de bot.
+   */
+  applySynthetic(note, judgment) {
+    this._apply(judgment, note, note.lane);
+    this.events.length = 0;
+  }
+
   _downgrade(note, judgment) {
     if (note.judgment === judgment) return;
     this.counts[note.judgment]--;

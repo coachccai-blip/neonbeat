@@ -13,6 +13,7 @@ import { Host, Client, normalizeCode, MAX_PLAYERS } from './net.js';
 import { MODS, multiplierFor, modsLabel } from './mods.js';
 import { SKINS, skinById, DEFAULT_SKIN } from './skins.js';
 import { AVATARS, avatarById, DEFAULT_AVATAR } from './avatars.js';
+import * as bots from './bots.js';
 import * as online from './online.js';
 import { TROPHIES, gradeCounts, progress, earned, applyResult, EMPTY_STATS } from './trophies.js';
 import * as i18n from './i18n.js';
@@ -104,6 +105,10 @@ function boot() {
     $('join-code').focus();
   });
 
+  $('btn-leave-game').addEventListener('click', () => {
+    if (S.game && S.game.opts.multi) S.game.retourAuSalon();
+  });
+
   $('btn-settings').addEventListener('click', () => { audio.unlock(); ui.show('settings'); });
   $('btn-trophies').addEventListener('click', () => { audio.unlock(); openTrophies(); });
 
@@ -136,6 +141,11 @@ function boot() {
   $('btn-change-track').addEventListener('click', () => {
     S.selectPurpose = 'lobby';
     openSelect();
+  });
+  $('btn-add-bot').addEventListener('click', ajouterBot);
+  $('team-seg').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-team-mode]');
+    if (b) setTeamMode(b.dataset.teamMode === 'teams');
   });
   $('select-back').addEventListener('click', () => {
     closeSheet();
@@ -1077,7 +1087,10 @@ class Game {
     $('hud-score').textContent = '0';
     $('life-bar').style.width = '70%';
     $('pause-overlay').hidden = true;
+    // Solo : pause. Multijoueur : retour au salon — la musique continue
+    // pour les autres, une vraie pause n'aurait aucun sens.
     $('btn-pause').style.display = opts.multi ? 'none' : '';
+    $('btn-leave-game').hidden = !opts.multi;
     $('rivals').innerHTML = '';
     ui.show('game');
 
@@ -1298,6 +1311,25 @@ class Game {
     else ui.show('lobby');
   }
 
+  /**
+   * Multijoueur : on rend la main et on regagne le salon sans attendre la
+   * fin du morceau. Le score partiel EST transmis — sans ça, l'hôte
+   * attendrait indéfiniment un résultat qui ne viendrait jamais — mais il
+   * n'est ni enregistré en local, ni publié, ni compté aux trophées : une
+   * partie abandonnée n'est pas une performance.
+   */
+  retourAuSalon() {
+    if (this.finished) return;
+    this.finished = true;
+    this.input.enabled = false;
+    const res = this.engine.results();
+    res.score = Math.round(res.score * this.mult);
+    res.diffName = this.diffName;
+    this.dispose();
+    audio.stop();
+    onGameAbandoned(res);
+  }
+
   finish() {
     this.finished = true;
     this.input.enabled = false;
@@ -1441,6 +1473,31 @@ function onGameFinished(res) {
   }
 }
 
+/**
+ * Un joueur a regagné le salon en cours de morceau. Il y attend la fin,
+ * en voyant les scores des autres avancer.
+ */
+function onGameAbandoned(res) {
+  const partiel = { ...publicResult(res), left: true };
+  if (S.mode === 'client' && S.net) {
+    S.net.send({ t: 'FINISHED', ...partiel });
+  }
+  ui.toast(t('game_left'), 3500);
+  ui.show('lobby');
+  refreshLobby();
+  // L'hôte ne conclut la manche qu'APRÈS être passé au salon : dans l'autre
+  // ordre, l'écran des résultats s'affichait puis se faisait aussitôt
+  // recouvrir par le salon.
+  if (S.mode === 'host') {
+    S.myResult = { ...res, left: true };
+    const me = S.players.get(HOST_ID);
+    if (me) { me.result = partiel; me.left = true; }
+    // La boucle de jeu diffusait les scores : elle vient de s'arrêter.
+    startHostTicker();
+    hostMaybeSendResults();
+  }
+}
+
 function publicResult(res) {
   return {
     score: res.score, precision: res.precision, comboMax: res.comboMax,
@@ -1468,12 +1525,20 @@ function updateRivals(scores) {
     const prog = scores[id] || p.progress || {};
     list.push({ name: p.name, color: p.color, score: prog.score || 0, off: p.off });
   }
+  // Les bots aussi : sans eux, on jouerait contre des adversaires qu'on ne
+  // voit pas avancer, et la barre latérale mentirait sur le classement.
+  for (const b of botsCommeJoueurs()) {
+    list.push({ name: b.name, color: b.color, score: (scores[b.id] || {}).score || 0, off: false });
+  }
   ui.renderRivals(list);
 }
 
 function leaveRoom() {
   if (S.net) { S.net.close(); S.net = null; }
+  stopHostTicker();
   S.players.clear();
+  S.bots = [];
+  S.teamMode = false;
   S.roomCode = null;
   S.mode = 'solo';
   S.hostLeft = false;
@@ -1481,8 +1546,118 @@ function leaveRoom() {
   history.replaceState(null, '', location.pathname + location.search);
 }
 
+/**
+ * Les bots ne vivent PAS dans S.players : cette table pilote l'attente du
+ * chargement et des résultats, et y glisser des joueurs qui ne répondront
+ * jamais bloquerait le lancement. Ils sont fusionnés au seul moment où
+ * c'est utile — l'affichage et la diffusion du salon.
+ */
+function botsCommeJoueurs() {
+  // Chez un client, les bots arrivent déjà tout faits dans le message LOBBY.
+  if (S.mode === 'client') return (S.bots || []);
+  const diff = (S.players.get(HOST_ID) || {}).difficulty || S.myDiff;
+  return (S.bots || []).map((b) => ({
+    id: b.id, name: b.name, color: b.color, ready: true, off: false,
+    difficulty: diff, bot: b.level, team: b.team || null
+  }));
+}
+
 function lobbyPlayersArray() {
-  return [...S.players.entries()].map(([id, p]) => ({ id, ...p, isHost: id === HOST_ID }));
+  const humains = [...S.players.entries()].map(([id, p]) => ({ id, ...p, isHost: id === HOST_ID }));
+  return [...humains, ...botsCommeJoueurs()];
+}
+
+/* ══════════════════ Bots ══════════════════ */
+
+const BOT_COULEURS = ['#8f93b8', '#a8b0d8', '#7f8bbf', '#9aa4cc'];
+
+function ajouterBot() {
+  if (S.mode !== 'host') return;
+  if (S.players.size + S.bots.length >= MAX_PLAYERS) return ui.toast(t('room_full', { n: MAX_PLAYERS }));
+  const i = S.bots.length;
+  S.bots.push({
+    id: `bot:${Date.now().toString(36)}${i}`,
+    name: bots.botName(i),
+    level: 5,
+    color: BOT_COULEURS[i % BOT_COULEURS.length],
+    team: S.teamMode ? equipeLaMoinsFournie() : null
+  });
+  audio.uiToggle(true);
+  hostBroadcastLobby();
+  refreshLobby();
+}
+
+function reglerBot(id, champ, valeur) {
+  const b = S.bots.find((x) => x.id === id);
+  if (!b) return;
+  if (champ === 'level') b.level = Math.max(bots.BOT_MIN, Math.min(bots.BOT_MAX, valeur));
+  else if (champ === 'team') b.team = valeur;
+  else if (champ === 'remove') S.bots = S.bots.filter((x) => x.id !== id);
+  hostBroadcastLobby();
+  refreshLobby();
+}
+
+/** Équipe la moins peuplée, pour que l'ajout automatique reste équilibré. */
+function equipeLaMoinsFournie() {
+  let r = 0, b = 0;
+  for (const p of lobbyPlayersArray()) {
+    if (p.team === 'R') r++; else if (p.team === 'B') b++;
+  }
+  return r <= b ? 'R' : 'B';
+}
+
+/** Lance la simulation de chaque bot pour le morceau qui démarre. */
+function simulerLesBots(track, diffName) {
+  const def = getDifficulty(track, diffName);
+  if (!def) { for (const b of S.bots) b.run = null; return; }
+  const niveau = (track.difficulties || track.levels || []).find((d) => d.name === diffName);
+  let notes = def.notes;
+  if ((storage.get('keys') || '4') === '2') notes = to2Keys(notes);
+  for (const b of S.bots) {
+    b.run = bots.simuler(notes, b.level, (niveau && niveau.level) || 5,
+      (Date.now() ^ b.id.length * 2654435761 ^ b.level * 40503) >>> 0);
+  }
+}
+
+/** Score d'un bot à l'instant courant du morceau. */
+function scoreBot(b, tempsMorceau) {
+  if (!b.run) return 0;
+  return bots.scoreA(b.run.frise, tempsMorceau);
+}
+
+/**
+ * Temps écoulé du morceau, mesuré sur l'horloge de départ plutôt que sur
+ * la partie de l'hôte : les bots doivent continuer d'avancer même si
+ * l'hôte a regagné le salon en cours de route.
+ */
+function tempsMorceau() {
+  if (!S.botStartPerf) return 0;
+  return (performance.now() - S.botStartPerf) / 1000;
+}
+
+/* Quand l'hôte quitte sa partie, plus rien ne cadence la diffusion des
+   scores : ce battement prend le relais jusqu'aux résultats. */
+let hostTicker = 0;
+function startHostTicker() {
+  stopHostTicker();
+  hostTicker = setInterval(() => {
+    if (S.mode !== 'host' || S.resultsSent) return stopHostTicker();
+    hostBroadcastScores();
+    if (finDeMorceauAtteinte()) hostMaybeSendResults(true);
+  }, 250);
+}
+function stopHostTicker() {
+  if (hostTicker) { clearInterval(hostTicker); hostTicker = 0; }
+}
+
+/**
+ * Le morceau est-il terminé pour tout le monde ? La marge est large : un
+ * client qui finit pile à la fin doit avoir le temps d'envoyer son
+ * résultat avant qu'on ne conclue sans lui.
+ */
+function finDeMorceauAtteinte() {
+  const d = (S.selectedTrack && S.selectedTrack.duration) || 0;
+  return d > 0 && tempsMorceau() > d + 5;
 }
 
 /* ══════════════════ Hôte ══════════════════ */
@@ -1496,9 +1671,10 @@ function createRoom() {
   $('lobby-status').textContent = t('lobby_opening');
   $('room-code').textContent = '····';
 
+  S.bots = [];
   S.players.set(HOST_ID, {
     name: displayName(), color: storage.get('color'),
-    ready: false, difficulty: S.myDiff, off: false
+    ready: false, difficulty: S.myDiff, off: false, team: null
   });
   refreshLobby();
 
@@ -1578,11 +1754,17 @@ function hostOnMessage(peerId, msg) {
     case 'PROGRESS':
       p.progress = { score: msg.score, combo: msg.combo, precision: msg.precision, life: msg.life };
       break;
+    case 'TEAM':
+      p.team = msg.team === 'R' || msg.team === 'B' ? msg.team : null;
+      refreshLobby();
+      hostBroadcastLobby();
+      break;
     case 'FINISHED':
       p.result = {
         score: msg.score, precision: msg.precision, comboMax: msg.comboMax,
         counts: msg.counts, grade: msg.grade
       };
+      p.left = !!msg.left;
       hostMaybeSendResults();
       break;
   }
@@ -1603,12 +1785,13 @@ function hostBroadcastLobby() {
   if (S.mode !== 'host' || !S.net) return;
   S.net.broadcast({
     t: 'LOBBY',
-    players: lobbyPlayersArray().map(({ id, name, color, ready, difficulty, off }) =>
-      ({ id, name, color, ready, difficulty, off })),
+    players: lobbyPlayersArray().map(({ id, name, color, ready, difficulty, off, bot, team }) =>
+      ({ id, name, color, ready, difficulty, off, bot, team })),
     trackId: S.selectedTrack ? S.selectedTrack.id : null,
     audioMode: S.audioMode,
+    teamMode: S.teamMode,
     hostName: displayName(),
-    state: S.game ? 'playing' : 'lobby'
+    state: enPartie() ? 'playing' : 'lobby'
   });
 }
 
@@ -1626,10 +1809,19 @@ function hostBroadcastScores() {
       p.off = true;
       hostMaybeSendResults();
     }
-    if (p.progress && !p.off) scores[id] = { score: p.progress.score };
+    if (p.result) scores[id] = { score: p.result.score };
+    else if (p.progress && !p.off) scores[id] = { score: p.progress.score };
   }
+  const tm = tempsMorceau();
+  for (const b of S.bots) scores[b.id] = { score: scoreBot(b, tm) };
   S.net.broadcast({ t: 'SCORES', scores });
   updateRivals(scores);
+  if (!S.game && ui.screen() === 'lobby') { S.liveScores = scores; refreshLobby(); }
+}
+
+/** Une manche est-elle en cours ? Vrai même si l'hôte a regagné le salon. */
+function enPartie() {
+  return !!S.game || (!!S.botStartPerf && !S.resultsSent);
 }
 
 async function hostStartGame() {
@@ -1641,7 +1833,10 @@ async function hostStartGame() {
   // Phase de chargement : chacun synthétise le morceau, puis LOADED.
   S.resultsSent = false;
   S.myResult = null;
-  for (const [, p] of S.players) { p.loaded = false; p.result = null; p.progress = null; p.lastSeen = 0; }
+  S.botStartPerf = 0;
+  for (const [, p] of S.players) {
+    p.loaded = false; p.result = null; p.progress = null; p.lastSeen = 0; p.left = false;
+  }
   S.net.broadcast({ t: 'LOAD', trackId: S.selectedTrack.id, audioMode: S.audioMode });
 
   try {
@@ -1666,6 +1861,7 @@ function hostMaybeLaunch(force = false) {
   clearTimeout(S.loadDeadline);
 
   const startAtHostTime = performance.now() + 3500;    // décompte 3‑2‑1 partout
+  S.botStartPerf = startAtHostTime;
   S.net.broadcast({
     t: 'START',
     trackId: S.selectedTrack.id,
@@ -1674,6 +1870,7 @@ function hostMaybeLaunch(force = false) {
   });
 
   loadTrack(S.selectedTrack.id).then((track) => {
+    simulerLesBots(track, S.players.get(HOST_ID).difficulty || S.myDiff);
     S.game = new Game(track, S.players.get(HOST_ID).difficulty || S.myDiff, {
       multi: true,
       silent: false,                        // l'hôte diffuse toujours le son
@@ -1688,25 +1885,50 @@ function hostMaybeSendResults(force = false) {
   if (S.mode !== 'host' || S.resultsSent || !S.myResult) return;
   const entries = [...S.players.entries()];
   if (!force && entries.some(([, p]) => !p.result && !p.off)) return;
-  const ranking = entries
+  const humains = entries
     .filter(([, p]) => p.result || p.progress)     // jamais joué → pas classé
     .map(([id, p]) => ({
-      id, name: p.name, color: p.color,
-      off: !p.result,
+      id, name: p.name, color: p.color, team: p.team || null,
+      off: !p.result && !p.left,
+      left: !!p.left,
       // Déconnecté en cours de morceau : classé sur son dernier score connu.
       ...(p.result || { score: (p.progress && p.progress.score) || 0, grade: '—' })
-    }))
-    .sort((a, b) => (b.score || 0) - (a.score || 0));
+    }));
+  const robots = S.bots.filter((b) => b.run).map((b) => ({
+    id: b.id, name: b.name, color: b.color, team: b.team || null,
+    bot: b.level, off: false, left: false,
+    score: b.run.result.score, precision: b.run.result.precision,
+    comboMax: b.run.result.comboMax, counts: b.run.result.counts,
+    grade: b.run.result.failed ? 'FAILED' : b.run.result.grade
+  }));
+  const ranking = [...humains, ...robots].sort((a, b) => (b.score || 0) - (a.score || 0));
+  const teams = S.teamMode ? totauxEquipes(ranking) : null;
   S.resultsSent = true;
+  stopHostTicker();
   clearTimeout(S.resultsDeadline);
   S.liveScores = null;
-  S.net.broadcast({ t: 'RESULTS', ranking });
+  S.botStartPerf = 0;
+  S.net.broadcast({ t: 'RESULTS', ranking, teams });
   // Le classement arrive après coup : on redessine l'écran sans rejouer
   // l'animation ni le jingle du grade.
-  ui.renderResults({ title: S.selectedTrack.title }, { ...S.myResult, diffName: '' }, ranking, S.myId, false);
+  ui.renderResults({ title: S.selectedTrack.title }, { ...S.myResult, diffName: '' }, ranking, S.myId, false, teams);
+  ui.show('results');
   for (const [, p] of S.players) { p.ready = false; }
   hostBroadcastLobby();
   refreshLobby();
+}
+
+/**
+ * Cumul par équipe. Le vainqueur est l'équipe au total le plus élevé ;
+ * une égalité parfaite reste une égalité, on ne départage pas au hasard.
+ */
+function totauxEquipes(ranking) {
+  let R = 0, B = 0, nR = 0, nB = 0;
+  for (const r of ranking) {
+    if (r.team === 'R') { R += r.score || 0; nR++; }
+    else if (r.team === 'B') { B += r.score || 0; nB++; }
+  }
+  return { R, B, nR, nB, winner: R === B ? null : (R > B ? 'R' : 'B') };
 }
 
 /* ══════════════════ Client ══════════════════ */
@@ -1770,7 +1992,12 @@ function clientOnMessage(msg) {
       break;
     case 'LOBBY': {
       S.players.clear();
-      for (const p of msg.players) S.players.set(p.id, p);
+      S.bots = [];
+      for (const p of msg.players) {
+        if (p.bot) S.bots.push({ ...p, level: p.bot });
+        else S.players.set(p.id, p);
+      }
+      S.teamMode = !!msg.teamMode;
       S.roomState = msg.state || 'lobby';
       refreshLobby();
       const t = S.tracks.find((x) => x.id === msg.trackId);
@@ -1812,7 +2039,7 @@ function clientOnMessage(msg) {
       ui.renderResults(
         { title: S.selectedTrack ? S.selectedTrack.title : '' },
         { ...(S.myResult || emptyResult()), diffName: '' },
-        msg.ranking, S.myId, false
+        msg.ranking, S.myId, false, msg.teams || null
       );
       ui.show('results');
       break;
@@ -1899,6 +2126,24 @@ function refreshLobby() {
       return best ? best.grade : null;
     });
   }
+  for (const b of $('team-seg').querySelectorAll('[data-team-mode]')) {
+    b.classList.toggle('is-on', (b.dataset.teamMode === 'teams') === !!S.teamMode);
+  }
+
+  // Bots : réglables par l'hôte, en lecture seule chez les clients.
+  ui.renderBots(
+    (S.bots || []).map((b) => ({ id: b.id, name: b.name, level: b.level, team: b.team })),
+    S.mode === 'host', S.teamMode, reglerBot
+  );
+
+  // Choix d'équipe du joueur local. Les bots, eux, sont assignés par l'hôte.
+  if (S.teamMode) {
+    const moi = S.players.get(S.myId);
+    ui.renderTeamPick(moi ? moi.team : null, choisirEquipe);
+  } else {
+    ui.hideTeamPick();
+  }
+
   if (S.mode === 'host') {
     const others = [...S.players.entries()].filter(([id]) => id !== HOST_ID);
     const allReady = others.every(([, p]) => p.ready || p.off);
@@ -1909,6 +2154,39 @@ function refreshLobby() {
     const me = S.players.get(S.myId);
     $('btn-ready').textContent = t(me && me.ready ? 'lobby_unready' : 'lobby_ready');
   }
+}
+
+/** Le joueur local rejoint une équipe (hôte comme client). */
+function choisirEquipe(code) {
+  audio.uiToggle(true);
+  if (S.mode === 'host') {
+    const me = S.players.get(HOST_ID);
+    if (me) me.team = code;
+    hostBroadcastLobby();
+  } else if (S.mode === 'client' && S.net) {
+    const me = S.players.get(S.myId);
+    if (me) me.team = code;
+    S.net.send({ t: 'TEAM', team: code });
+  }
+  refreshLobby();
+}
+
+/**
+ * Bascule chacun-pour-soi / équipes (hôte). En entrant en mode équipes, on
+ * répartit d'office tout le monde : un salon où personne n'a d'équipe ne
+ * pourrait désigner aucun vainqueur.
+ */
+function setTeamMode(on) {
+  if (S.mode !== 'host') return;
+  S.teamMode = on;
+  if (on) {
+    let i = 0;
+    for (const [, p] of S.players) if (!p.team) p.team = (i++ % 2) ? 'B' : 'R';
+    for (const b of S.bots) if (!b.team) b.team = (i++ % 2) ? 'B' : 'R';
+  }
+  audio.uiToggle(true);
+  hostBroadcastLobby();
+  refreshLobby();
 }
 
 function toggleReady() {

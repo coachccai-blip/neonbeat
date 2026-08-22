@@ -219,6 +219,9 @@ function fmtDur(sec) {
 /**
  * @param {Array<{id,name,color,ready,difficulty,isHost,off}>} players
  */
+export const TEAM_R = '#ff4d6d';
+export const TEAM_B = '#3d9bff';
+
 export function renderPlayers(players, myId) {
   const box = $('players');
   box.innerHTML = '';
@@ -230,12 +233,14 @@ export function renderPlayers(players, myId) {
     div.className = 'player'
       + (p.ready ? ' is-ready' : '')
       + (p.isHost ? ' is-host' : '')
-      + (p.off ? ' is-off' : '');
-    div.style.borderLeftColor = p.color;
+      + (p.off ? ' is-off' : '')
+      + (p.bot ? ' is-bot' : '')
+      + (p.team === 'R' ? ' team-r' : p.team === 'B' ? ' team-b' : '');
+    div.style.borderLeftColor = p.team === 'R' ? TEAM_R : p.team === 'B' ? TEAM_B : p.color;
     div.innerHTML = `
       <span class="dot" style="background:${p.color}"></span>
-      <span class="pname">${esc(p.name)}${p.id === myId ? t('player_you') : ''}</span>
-      <span class="pdiff">${p.difficulty || ''}</span>
+      <span class="pname">${p.bot ? '🤖 ' : ''}${esc(p.name)}${p.id === myId ? t('player_you') : ''}</span>
+      <span class="pdiff">${p.bot ? t('bot_level', { n: p.bot }) : (p.difficulty || '')}</span>
       <span class="pready">${p.off ? t('player_off')
         : p.liveScore !== undefined ? p.liveScore.toLocaleString('fr-FR')
         : p.ready ? t('player_ready') : t('player_wait')}</span>`;
@@ -445,7 +450,7 @@ let fxTimer = 0;
  * @param {boolean} [celebrate=true]  false quand on redessine le même
  *        résultat pour y ajouter le classement : la fête ne se rejoue pas.
  */
-export function renderResults(track, res, ranking, myId, celebrate = true) {
+export function renderResults(track, res, ranking, myId, celebrate = true, teams = null) {
   const gradeEl = $('res-grade');
   const stage = $('res-grade-stage');
   const tier = tierOf(res.grade, res.failed);
@@ -506,14 +511,36 @@ export function renderResults(track, res, ranking, myId, celebrate = true) {
 
   const box = $('res-ranking');
   box.innerHTML = '';
+  // Bandeau d'équipes : il passe AVANT le classement individuel, parce que
+  // c'est lui qui dit qui a gagné la manche.
+  if (teams) {
+    const gagne = (c) => (teams.winner === c ? ' is-win' : teams.winner ? ' is-lose' : '');
+    const ban = document.createElement('div');
+    ban.className = 'team-score';
+    ban.innerHTML = `
+      <div class="ts r${gagne('R')}">
+        <div class="tl">${esc(t('team_r'))}</div>
+        <div class="tv">${(teams.R || 0).toLocaleString('fr-FR')}</div>
+        <div class="tn">${t('team_members', { n: teams.nR || 0 })}</div>
+      </div>
+      <div class="tvs">${esc(teams.winner ? t('team_wins', { team: t(teams.winner === 'R' ? 'team_r' : 'team_b') }) : t('team_draw'))}</div>
+      <div class="ts b${gagne('B')}">
+        <div class="tl">${esc(t('team_b'))}</div>
+        <div class="tv">${(teams.B || 0).toLocaleString('fr-FR')}</div>
+        <div class="tn">${t('team_members', { n: teams.nB || 0 })}</div>
+      </div>`;
+    box.appendChild(ban);
+  }
   if (ranking && ranking.length > 1) {
     ranking.forEach((r, i) => {
       const row = document.createElement('div');
-      row.className = 'rank-row' + (i === 0 ? ' p1' : '');
+      row.className = 'rank-row' + (i === 0 ? ' p1' : '')
+        + (r.team === 'R' ? ' team-r' : r.team === 'B' ? ' team-b' : '');
+      const etat = r.left ? t('rank_left') : r.off ? t('rank_off') : '';
       row.innerHTML = `
         <span class="pos">${i + 1}</span>
-        <span class="dot" style="width:10px;height:10px;border-radius:50%;background:${r.color};flex:none"></span>
-        <span class="rn">${esc(r.name)}${r.id === myId ? t('player_you') : ''}${r.off ? t('rank_off') : ''}</span>
+        <span class="dot" style="width:10px;height:10px;border-radius:50%;background:${r.team === 'R' ? TEAM_R : r.team === 'B' ? TEAM_B : r.color};flex:none"></span>
+        <span class="rn">${r.bot ? '🤖 ' : ''}${esc(r.name)}${r.id === myId ? t('player_you') : ''}${esc(etat)}</span>
         <span class="rs">${(r.score || 0).toLocaleString('fr-FR')}</span>
         <span class="rg">${r.grade || ''}</span>`;
       box.appendChild(row);
@@ -610,6 +637,77 @@ export function renderMyScores(rows, rank) {
 function modsLabelOf(mods) {
   if (!mods || !mods.length) return t('board_nomods');
   return mods.map((id) => ({ MIRROR: 'MI', FADE: 'FD', SUDDEN: 'SU', NIGHTCORE: 'NC' }[id] || id)).join('·');
+}
+
+/**
+ * Panneau des bots, côté hôte : niveau, équipe, retrait.
+ *
+ * Chez un client, la liste est en lecture seule — les bots appartiennent à
+ * l'hôte, qui seul les simule.
+ * @param {Array} list        [{ id, name, level, team }]
+ * @param {boolean} host      l'utilisateur est-il l'hôte ?
+ * @param {boolean} teamMode  affiche le choix d'équipe
+ * @param {(id:string, champ:string, valeur:*)=>void} onChange
+ */
+export function renderBots(list, host, teamMode, onChange) {
+  const box = $('bots');
+  box.innerHTML = '';
+  const bloc = box.closest('.bots-block');
+  if (bloc) bloc.hidden = !host && !list.length;
+  for (const b of list) {
+    const div = document.createElement('div');
+    div.className = 'bot' + (b.team === 'R' ? ' team-r' : b.team === 'B' ? ' team-b' : '');
+    div.innerHTML = `
+      <span class="bn">🤖 ${esc(b.name)}</span>
+      <span class="blv">${esc(t('bot_level', { n: b.level }))}</span>`;
+    if (host) {
+      const moins = document.createElement('button');
+      moins.className = 'bot-btn'; moins.textContent = '−';
+      moins.setAttribute('aria-label', t('bot_down'));
+      moins.addEventListener('click', () => onChange(b.id, 'level', b.level - 1));
+      const plus = document.createElement('button');
+      plus.className = 'bot-btn'; plus.textContent = '+';
+      plus.setAttribute('aria-label', t('bot_up'));
+      plus.addEventListener('click', () => onChange(b.id, 'level', b.level + 1));
+      div.append(moins, plus);
+      if (teamMode) {
+        for (const [code, couleur] of [['R', TEAM_R], ['B', TEAM_B]]) {
+          const e = document.createElement('button');
+          e.className = 'team-btn' + (b.team === code ? ' is-on' : '');
+          e.style.setProperty('--tc', couleur);
+          e.textContent = t(code === 'R' ? 'team_r_short' : 'team_b_short');
+          e.addEventListener('click', () => onChange(b.id, 'team', code));
+          div.appendChild(e);
+        }
+      }
+      const x = document.createElement('button');
+      x.className = 'bot-btn bot-del'; x.textContent = '✕';
+      x.setAttribute('aria-label', t('bot_remove'));
+      x.addEventListener('click', () => onChange(b.id, 'remove'));
+      div.appendChild(x);
+    }
+    box.appendChild(div);
+  }
+}
+
+/** Choix d'équipe du joueur local, sous la liste des joueurs. */
+export function renderTeamPick(team, onPick) {
+  const box = $('team-pick');
+  box.hidden = false;
+  box.innerHTML = '';
+  for (const [code, couleur, cle] of [['R', TEAM_R, 'team_r'], ['B', TEAM_B, 'team_b']]) {
+    const b = document.createElement('button');
+    b.className = 'seg-btn team-choice' + (team === code ? ' is-on' : '');
+    b.style.setProperty('--tc', couleur);
+    b.textContent = t(cle);
+    b.addEventListener('click', () => onPick(code));
+    box.appendChild(b);
+  }
+}
+
+export function hideTeamPick() {
+  const box = $('team-pick');
+  if (box) box.hidden = true;
 }
 
 /* ─── Trophées & skins ─── */

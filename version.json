@@ -1,5 +1,5 @@
 {
- "version": "1.39",
+ "version": "1.40",
  "files": [
   "./",
   "./index.html",
@@ -9,6 +9,7 @@
   "./tracks/index.json",
   "./js/audio.js",
   "./js/avatars.js",
+  "./js/bots.js",
   "./js/calibration.js",
   "./js/chart.js",
   "./js/chartgen.js",

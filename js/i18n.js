@@ -6,6 +6,15 @@ import * as storage from './storage.js';
 
 const STRINGS = {
   fr: {
+    game_back_lobby: 'SALON',
+    game_left: 'Partie abandonnée — tu attends les autres dans le salon.',
+    rank_left: ' · abandon',
+    lobby_format: 'FORMAT', lobby_ffa: 'CHACUN POUR SOI', lobby_teams: 'ÉQUIPES',
+    lobby_bots: 'BOTS', lobby_add_bot: '+ AJOUTER UN BOT',
+    lobby_bots_hint: 'Un bot joue tout seul le morceau choisi. Niveau 1 : environ 80 % de précision sur une chart de niveau 5. Niveau 10 : presque imbattable.',
+    bot_level: 'NIVEAU {n}', bot_up: 'Monter le niveau', bot_down: 'Baisser le niveau', bot_remove: 'Retirer le bot',
+    team_r: 'ROUGE', team_b: 'BLEUE', team_r_short: 'R', team_b_short: 'B',
+    team_members: '{n} joueur(s)', team_wins: 'ÉQUIPE {team} GAGNE', team_draw: 'ÉGALITÉ',
     tagline: 'Jusqu’à 8 joueurs · 1 salon · 4 touches',
     pc_hint: 'Sur PC : touches <kbd>Z</kbd><kbd>E</kbd><kbd>I</kbd><kbd>O</kbd> (ou <kbd>D</kbd><kbd>F</kbd><kbd>J</kbd><kbd>K</kbd>)',
     home_solo: 'JOUER EN SOLO', home_create: 'CRÉER UNE PARTIE', home_join: 'REJOINDRE UNE PARTIE',
@@ -158,6 +167,15 @@ const STRINGS = {
   },
 
   en: {
+    game_back_lobby: 'ROOM',
+    game_left: 'Run abandoned — you are waiting for the others in the room.',
+    rank_left: ' · left',
+    lobby_format: 'FORMAT', lobby_ffa: 'FREE FOR ALL', lobby_teams: 'TEAMS',
+    lobby_bots: 'BOTS', lobby_add_bot: '+ ADD A BOT',
+    lobby_bots_hint: 'A bot plays the chosen track on its own. Level 1: about 80 % accuracy on a level-5 chart. Level 10: near unbeatable.',
+    bot_level: 'LEVEL {n}', bot_up: 'Raise level', bot_down: 'Lower level', bot_remove: 'Remove bot',
+    team_r: 'RED', team_b: 'BLUE', team_r_short: 'R', team_b_short: 'B',
+    team_members: '{n} player(s)', team_wins: 'TEAM {team} WINS', team_draw: 'DRAW',
     tagline: 'Up to 8 players · 1 room · 4 keys',
     pc_hint: 'On PC: keys <kbd>Z</kbd><kbd>E</kbd><kbd>I</kbd><kbd>O</kbd> (or <kbd>D</kbd><kbd>F</kbd><kbd>J</kbd><kbd>K</kbd>)',
     home_solo: 'PLAY SOLO', home_create: 'CREATE A ROOM', home_join: 'JOIN A ROOM',
@@ -310,6 +328,15 @@ const STRINGS = {
   },
 
   zh: {
+    game_back_lobby: '房间',
+    game_left: '已放弃本局——你在房间里等待其他人。',
+    rank_left: '· 已退出',
+    lobby_format: '赛制', lobby_ffa: '各自为战', lobby_teams: '组队',
+    lobby_bots: '机器人', lobby_add_bot: '+ 添加机器人',
+    lobby_bots_hint: '机器人会独自演奏所选曲目。等级 1：在 5 级谱面上约 80 % 准确率。等级 10：几乎无法战胜。',
+    bot_level: '等级 {n}', bot_up: '提升等级', bot_down: '降低等级', bot_remove: '移除机器人',
+    team_r: '红队', team_b: '蓝队', team_r_short: '红', team_b_short: '蓝',
+    team_members: '{n} 名玩家', team_wins: '{team}获胜', team_draw: '平局',
     tagline: '最多8名玩家 · 1个房间 · 4个按键',
     pc_hint: '电脑按键：<kbd>Z</kbd><kbd>E</kbd><kbd>I</kbd><kbd>O</kbd>（或 <kbd>D</kbd><kbd>F</kbd><kbd>J</kbd><kbd>K</kbd>）',
     home_solo: '单人游戏', home_create: '创建房间', home_join: '加入房间',

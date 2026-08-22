@@ -97,7 +97,25 @@
       </div>
     </div>
 
+    <div class="row host-only" id="team-mode-row">
+      <span class="label" data-i18n="lobby_format">FORMAT</span>
+      <div class="seg" id="team-seg" role="group" aria-label="Format de partie">
+        <button class="seg-btn is-on" data-team-mode="solo" data-i18n="lobby_ffa">CHACUN POUR SOI</button>
+        <button class="seg-btn" data-team-mode="teams" data-i18n="lobby_teams">ÉQUIPES</button>
+      </div>
+    </div>
+
     <div class="players" id="players"></div>
+    <div class="seg team-pick" id="team-pick" role="group" aria-label="Équipe" hidden></div>
+
+    <div class="bots-block">
+      <div class="bots-head">
+        <span class="label" data-i18n="lobby_bots">BOTS</span>
+        <button class="btn btn-small host-only" id="btn-add-bot" data-i18n="lobby_add_bot">+ AJOUTER UN BOT</button>
+      </div>
+      <div class="bots" id="bots"></div>
+      <p class="hint host-only" data-i18n="lobby_bots_hint"></p>
+    </div>
 
     <div class="row">
       <span class="label" data-i18n="mode_label">MODE</span>
@@ -252,6 +270,7 @@
     </div>
   </div>
   <button class="btn-pause" id="btn-pause" aria-label="Pause">II</button>
+  <button class="btn-pause btn-leave" id="btn-leave-game" hidden><span aria-hidden="true">‹</span><em data-i18n="game_back_lobby">SALON</em></button>
   <div class="countdown" id="countdown" hidden></div>
 </section>
 
