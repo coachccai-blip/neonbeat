@@ -12,11 +12,30 @@
 
 import { SUPABASE } from './online-config.js';
 
-const PLAYER_KEY = 'neonbeat.player';   // isolé : survit aux mises à jour
+const PLAYER_KEY = 'neonbeat.player';     // isolé : survit aux mises à jour
+const OVERRIDE_KEY = 'neonbeat.online-override';
+
+/**
+ * Configuration effective. Une surcharge locale peut viser un autre serveur
+ * — c'est ce dont se servent les tests automatisés, qui ne doivent SURTOUT
+ * pas modifier le fichier livré : une seule fois où un test s'interrompt
+ * avant de le restaurer, et c'est l'adresse d'essai qui part en production.
+ */
+function config() {
+  try {
+    const raw = localStorage.getItem(OVERRIDE_KEY);
+    if (raw) {
+      const o = JSON.parse(raw);
+      if (o && o.url && o.key) return o;
+    }
+  } catch { /* stockage illisible : configuration livrée */ }
+  return SUPABASE;
+}
 
 /** Le classement est-il configuré ? Sinon, tout ce module est inerte. */
 export function enabled() {
-  return !!(SUPABASE.url && SUPABASE.key);
+  const c = config();
+  return !!(c.url && c.key);
 }
 
 /**
@@ -66,11 +85,12 @@ function fallbackId() {
 }
 
 function headers(extra) {
-  const h = { apikey: SUPABASE.key, 'Content-Type': 'application/json', ...extra };
+  const key = config().key;
+  const h = { apikey: key, 'Content-Type': 'application/json', ...extra };
   // Les clés « anon » historiques sont des JWT et doivent aussi voyager en
   // Authorization ; les nouvelles (sb_publishable_…) n'en sont pas, et les
   // envoyer ainsi ferait échouer l'analyse du jeton côté serveur.
-  if (/^eyJ/.test(SUPABASE.key)) h.Authorization = `Bearer ${SUPABASE.key}`;
+  if (/^eyJ/.test(key)) h.Authorization = `Bearer ${key}`;
   return h;
 }
 
@@ -80,7 +100,7 @@ async function call(path, options = {}, timeoutMs = 8000) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const res = await fetch(`${SUPABASE.url}/rest/v1/${path}`, { ...options, signal: ctrl.signal });
+    const res = await fetch(`${config().url}/rest/v1/${path}`, { ...options, signal: ctrl.signal });
     if (!res.ok) return null;
     const txt = await res.text();
     return txt ? JSON.parse(txt) : true;

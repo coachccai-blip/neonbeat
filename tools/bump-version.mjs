@@ -9,6 +9,16 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+
+// Garde-fou : la v1.31 est partie avec l'adresse du faux serveur de test,
+// laissée par un test interrompu avant d'avoir restauré le fichier. Toute
+// version part désormais par ici : on refuse net.
+const online = readFileSync(join(root, 'js/online-config.js'), 'utf8');
+if (/127\.0\.0\.1|localhost/.test(online)) {
+  console.error('ARRÊT : js/online-config.js vise un serveur local.');
+  console.error('Rétablis l\'adresse du projet avant de publier une version.');
+  process.exit(1);
+}
 const vPath = join(root, 'js/version.js');
 const cur = readFileSync(vPath, 'utf8').match(/APP_VERSION = '([\d.]+)'/)[1];
 const next = (Math.round(parseFloat(cur) * 100) + 1) / 100;
