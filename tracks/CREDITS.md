@@ -68,6 +68,16 @@ de la responsabilité du propriétaire du site**. Les partitions jouables ont
 | We Touch | `we-touch.mp3` | 175 | 4 | fournie par l'utilisateur — droits à sa charge |
 | Contrejour | `contrejour.mp3` | 182 | 4 | fournie par l'utilisateur — droits à sa charge |
 | Exorciste bleu | `exorciste-bleu.mp3` | 182 | 4 | fournie par l'utilisateur — droits à sa charge |
+| Couronne de Corail | `couronne-de-corail.mp3` | 154.5 | 4 | fournie par l'utilisateur — droits à sa charge |
+| Dunk | `dunk.mp3` | 141 | 3 | fournie par l'utilisateur — droits à sa charge |
+| Élimination | `elimination.mp3` | 138 | 3 | fournie par l'utilisateur — droits à sa charge |
+| Hauts Espoirs | `hauts-espoirs.mp3` | 163 | 4 | fournie par l'utilisateur — droits à sa charge |
+| Monte | `monte.mp3` | 175.25 | 4 | fournie par l'utilisateur — droits à sa charge |
+| Oiseau de Feu | `oiseau-de-feu.mp3` | 164.25 | 4 | fournie par l'utilisateur — droits à sa charge |
+| Prendre le Contrôle | `prendre-le-controle.mp3` | 149 | 4 | fournie par l'utilisateur — droits à sa charge |
+| Punky Funky | `punky-funky.mp3` | 175.25 | 4 | fournie par l'utilisateur — droits à sa charge |
+| Souvenirs | `souvenirs.mp3` | 94 | 1 | fournie par l'utilisateur — droits à sa charge |
+| Tu Peux le Faire | `tu-peux-le-faire.mp3` | 97.75 | 2 | fournie par l'utilisateur — droits à sa charge |
 
 ## Bibliothèques embarquées
 

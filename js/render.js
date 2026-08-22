@@ -377,9 +377,11 @@ export class Renderer {
     const lv = this.feverLevel;
     if (lv < 2) return;
     const { ctx, w, h } = this;
-    const fs = Math.max(9, Math.round(w * 0.031));
-    const bandW = Math.round(fs * 1.8);
-    const tile = this._comboTile(lv, fs, bandW);
+    // Deux tailles : le mot sert d'étiquette, le NOMBRE est l'information.
+    const fs = Math.max(9, Math.round(w * 0.028));
+    const fsNum = Math.max(12, Math.round(w * 0.044));
+    const bandW = Math.round(fsNum * 1.55);
+    const tile = this._comboTile(lv, fs, fsNum, bandW);
     // Plus le fever monte, plus la bande file : la vitesse dit à elle
     // seule qu'il se passe quelque chose.
     const vitesse = h * (0.16 + lv * 0.018);
@@ -391,7 +393,7 @@ export class Renderer {
     const defile = ((now / 1000) * vitesse) % periode;
 
     ctx.save();
-    ctx.globalAlpha = 0.34 + beatPulse * 0.16;
+    ctx.globalAlpha = 0.38 + beatPulse * 0.16;
     for (const [x, sens] of [[4, 1], [w - 4 - bandW, -1]]) {
       ctx.save();
       ctx.beginPath();
@@ -413,27 +415,52 @@ export class Renderer {
     ctx.restore();
   }
 
-  /** Tuile du motif défilant, recuite au changement de fever ou de taille. */
-  _comboTile(lv, fs, bandW) {
-    const cle = `${lv}|${fs}|${bandW}`;
+  /**
+   * Tuile du motif défilant, recuite au changement de fever ou de taille.
+   *
+   * Le mot « COMBO » et le multiplicateur ne sont pas traités pareil : le
+   * premier est une étiquette, le second est ce que le joueur cherche. Il
+   * est donc nettement plus gros, opaque, et posé sur un halo — le graisser
+   * davantage ne servirait à rien, Inter s'arrête à 800.
+   */
+  _comboTile(lv, fs, fsNum, bandW) {
+    const cle = `${lv}|${fs}|${fsNum}|${bandW}`;
     if (this.comboTile && this.comboTileKey === cle) return this.comboTile;
+    const mot = 'COMBO';
+    const nombre = `\u00d7${lv}`;
     const c = document.createElement('canvas');
-    const x = c.getContext('2d');
-    const texte = `COMBO \u00d7${lv}`;
-    x.font = `800 ${fs}px ${FONT}`;
-    const respiration = fs * 3.2;
+    const m = c.getContext('2d');
+    m.font = `800 ${fs}px ${FONT}`;
+    const wMot = m.measureText(mot).width;
+    m.font = `800 ${fsNum}px ${FONT}`;
+    const wNum = m.measureText(nombre).width;
+    const ecart = fs * 0.55;                 // entre le mot et le nombre
+    const respiration = fsNum * 2.6;         // entre deux répétitions
     c.width = bandW;
-    c.height = Math.ceil(x.measureText(texte).width + respiration);
+    c.height = Math.ceil(wMot + ecart + wNum + respiration);
+
     // Le contexte est réinitialisé par l'affectation de width/height.
     const g = c.getContext('2d');
-    g.font = `800 ${fs}px ${FONT}`;
+    const couleur = feverColor(lv);
     g.textAlign = 'left';
     g.textBaseline = 'middle';
-    g.fillStyle = feverColor(lv);
     // Un quart de tour anti-horaire : le texte se lit de bas en haut.
     g.translate(bandW / 2, c.height);
     g.rotate(-Math.PI / 2);
-    g.fillText(texte, respiration / 2, 0);
+
+    let u = respiration / 2;
+    g.font = `800 ${fs}px ${FONT}`;
+    g.fillStyle = hexA(couleur, 0.55);
+    g.fillText(mot, u, 0);
+    u += wMot + ecart;
+    g.font = `800 ${fsNum}px ${FONT}`;
+    g.shadowColor = hexA(couleur, 0.85);
+    g.shadowBlur = fsNum * 0.7;
+    g.fillStyle = couleur;
+    // Deux passes de la MÊME couleur : le halo se cumule sans délaver la
+    // teinte, ce qu'un fond blanc aurait fait.
+    g.fillText(nombre, u, 0);
+    g.fillText(nombre, u, 0);
     this.comboTile = c;
     this.comboTileKey = cle;
     return c;

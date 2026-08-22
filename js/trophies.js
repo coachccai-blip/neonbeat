@@ -66,7 +66,7 @@ export const TROPHIES = [
   { id: 'hardfc',    icon: '🌋', target: 1,   value: (s) => s.hardFullCombos },
   { id: 'tracks10',  icon: '🎵', target: 10,  value: (s, g) => g.tracks },
   { id: 'tracks25',  icon: '🎚️', target: 25,  value: (s, g) => g.tracks },
-  { id: 'tracksAll', icon: '💿', target: 42,  value: (s, g) => g.tracks },
+  { id: 'tracksAll', icon: '💿', target: 52,  value: (s, g) => g.tracks },
   { id: 'keys2',     icon: '🎹', target: 5,   value: (s) => s.keys2Plays },
 
   // Palier « fin de jeu » : ceux-là débloquent les avatars et demandent

@@ -125,6 +125,37 @@
       ]
     },
     {
+      "id": "souvenirs",
+      "title": "Souvenirs",
+      "artist": "Piste importée",
+      "bpm": 94,
+      "duration": 90.28,
+      "color": "#ffd35c",
+      "tier": 1,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 2
+        },
+        {
+          "name": "EASY+",
+          "level": 3
+        },
+        {
+          "name": "NORMAL",
+          "level": 4
+        },
+        {
+          "name": "NORMAL+",
+          "level": 4
+        },
+        {
+          "name": "HARD",
+          "level": 5
+        }
+      ]
+    },
+    {
       "id": "za-warudo",
       "title": "Za Warudo",
       "artist": "Piste importée",
@@ -224,6 +255,37 @@
       "bpm": 97.75,
       "duration": 63.15,
       "color": "#ebd270",
+      "tier": 2,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 3
+        },
+        {
+          "name": "EASY+",
+          "level": 4
+        },
+        {
+          "name": "NORMAL",
+          "level": 5
+        },
+        {
+          "name": "NORMAL+",
+          "level": 6
+        },
+        {
+          "name": "HARD",
+          "level": 7
+        }
+      ]
+    },
+    {
+      "id": "tu-peux-le-faire",
+      "title": "Tu Peux le Faire",
+      "artist": "Piste importée",
+      "bpm": 97.75,
+      "duration": 90.67,
+      "color": "#4be0ff",
       "tier": 2,
       "levels": [
         {
@@ -683,6 +745,37 @@
       ]
     },
     {
+      "id": "elimination",
+      "title": "Élimination",
+      "artist": "Piste importée",
+      "bpm": 138,
+      "duration": 181.27,
+      "color": "#e0435f",
+      "tier": 3,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
+          "name": "NORMAL",
+          "level": 6
+        },
+        {
+          "name": "NORMAL+",
+          "level": 7
+        },
+        {
+          "name": "HARD",
+          "level": 9
+        }
+      ]
+    },
+    {
       "id": "les-legendes",
       "title": "Les légendes ne meurent pas",
       "artist": "Piste importée",
@@ -720,6 +813,37 @@
       "bpm": 141,
       "duration": 110.68,
       "color": "#95eb70",
+      "tier": 3,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
+          "name": "NORMAL",
+          "level": 6
+        },
+        {
+          "name": "NORMAL+",
+          "level": 7
+        },
+        {
+          "name": "HARD",
+          "level": 9
+        }
+      ]
+    },
+    {
+      "id": "dunk",
+      "title": "Dunk",
+      "artist": "Piste importée",
+      "bpm": 141,
+      "duration": 226.67,
+      "color": "#ff8a3d",
       "tier": 3,
       "levels": [
         {
@@ -1024,6 +1148,37 @@
       ]
     },
     {
+      "id": "prendre-le-controle",
+      "title": "Prendre le Contrôle",
+      "artist": "Piste importée",
+      "bpm": 149,
+      "duration": 213.5,
+      "color": "#a35cff",
+      "tier": 4,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "EASY+",
+          "level": 6
+        },
+        {
+          "name": "NORMAL",
+          "level": 7
+        },
+        {
+          "name": "NORMAL+",
+          "level": 9
+        },
+        {
+          "name": "HARD",
+          "level": 11
+        }
+      ]
+    },
+    {
       "id": "opposant",
       "title": "Opposant",
       "artist": "Piste importée",
@@ -1055,12 +1210,105 @@
       ]
     },
     {
+      "id": "couronne-de-corail",
+      "title": "Couronne de Corail",
+      "artist": "Piste importée",
+      "bpm": 154.5,
+      "duration": 244.91,
+      "color": "#5ce6c8",
+      "tier": 4,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
+          "name": "NORMAL",
+          "level": 7
+        },
+        {
+          "name": "NORMAL+",
+          "level": 9
+        },
+        {
+          "name": "HARD",
+          "level": 11
+        }
+      ]
+    },
+    {
+      "id": "hauts-espoirs",
+      "title": "Hauts Espoirs",
+      "artist": "Piste importée",
+      "bpm": 163,
+      "duration": 195.41,
+      "color": "#8ad6ff",
+      "tier": 4,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 5
+        },
+        {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
+          "name": "NORMAL",
+          "level": 7
+        },
+        {
+          "name": "NORMAL+",
+          "level": 9
+        },
+        {
+          "name": "HARD",
+          "level": 11
+        }
+      ]
+    },
+    {
       "id": "jusquou-je-peux-aller",
       "title": "Jusqu'où je peux aller",
       "artist": "Piste importée",
       "bpm": 164.25,
       "duration": 151.9,
       "color": "#ff9ecd",
+      "tier": 4,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
+          "name": "NORMAL",
+          "level": 7
+        },
+        {
+          "name": "NORMAL+",
+          "level": 9
+        },
+        {
+          "name": "HARD",
+          "level": 11
+        }
+      ]
+    },
+    {
+      "id": "oiseau-de-feu",
+      "title": "Oiseau de Feu",
+      "artist": "Piste importée",
+      "bpm": 164.25,
+      "duration": 200.45,
+      "color": "#ff5c2e",
       "tier": 4,
       "levels": [
         {
@@ -1190,6 +1438,68 @@
         {
           "name": "EASY",
           "level": 5
+        },
+        {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
+          "name": "NORMAL",
+          "level": 7
+        },
+        {
+          "name": "NORMAL+",
+          "level": 9
+        },
+        {
+          "name": "HARD",
+          "level": 11
+        }
+      ]
+    },
+    {
+      "id": "monte",
+      "title": "Monte",
+      "artist": "Piste importée",
+      "bpm": 175.25,
+      "duration": 198.93,
+      "color": "#c4ff5c",
+      "tier": 4,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
+        },
+        {
+          "name": "EASY+",
+          "level": 5
+        },
+        {
+          "name": "NORMAL",
+          "level": 7
+        },
+        {
+          "name": "NORMAL+",
+          "level": 9
+        },
+        {
+          "name": "HARD",
+          "level": 11
+        }
+      ]
+    },
+    {
+      "id": "punky-funky",
+      "title": "Punky Funky",
+      "artist": "Piste importée",
+      "bpm": 175.25,
+      "duration": 88.21,
+      "color": "#ff4bb8",
+      "tier": 4,
+      "levels": [
+        {
+          "name": "EASY",
+          "level": 4
         },
         {
           "name": "EASY+",
