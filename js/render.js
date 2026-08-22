@@ -334,7 +334,12 @@ export class Renderer {
   }
 
   setCombo(c) {
-    if (c > this.combo && c > 0 && c % 10 === 0) this.comboPop = performance.now();
+    // Le combo avance maintenant par bonds (×2, ×3, … avec le fever) : il
+    // ne tombe plus forcément sur un multiple de 10. On pulse au FRANCHI-
+    // SSEMENT de la dizaine, sinon la pulsation disparaîtrait à haut fever.
+    if (c > this.combo && c > 0 && Math.floor(c / 10) > Math.floor(this.combo / 10)) {
+      this.comboPop = performance.now();
+    }
     if (c !== this.combo) this._rollCombo(String(c));
     this.combo = c;
   }

@@ -121,27 +121,46 @@ async function call(path, options = {}, timeoutMs = 8000) {
   return r.ok ? r.data : null;
 }
 
-/* ─── Colonne « avatar » ──────────────────────────────────────────────
-   Elle est arrivée après coup : une base créée avec l'ancien SQL ne la
-   connaît pas, et PostgREST répond alors 400 à TOUTE requête qui la
-   mentionne — lecture comprise. Publier la mise à jour du jeu avant
-   d'avoir joué la migration casserait donc le classement entier.
+/* ─── Schémas de base plus anciens que le jeu ────────────────────────
+   Deux évolutions sont arrivées après la création de la table :
+   la colonne `avatar` (v1.34) et des combos bien plus grands qu'avant
+   (v1.35, où le fever multiplie le combo), qui débordent l'ancienne
+   contrainte `combo <= 5000`.
 
-   D'où ce filet : on tente avec l'avatar, et un 400 nous fait rejouer la
-   requête sans lui, définitivement pour la session. Un 400 venu d'ailleurs
-   (une contrainte violée) coûterait au pire les avatars jusqu'au prochain
-   rechargement — jamais le classement.                                  */
+   PostgREST répond 400 dans les deux cas — pour une colonne inconnue, il
+   refuse TOUTE requête qui la mentionne, lecture comprise. Sans filet,
+   publier le jeu avant d'avoir joué la migration SQL casserait le
+   classement entier.
+
+   D'où cette dégradation en cascade : requête complète, puis sans avatar,
+   puis avec le combo ramené sous l'ancienne limite. Chaque refus est
+   mémorisé pour ne pas retenter à chaque requête ; la sonde repart à zéro
+   dès que le joueur change d'avatar ou recharge la page, ce qui fait que
+   tout se répare tout seul une fois la migration jouée.                  */
 
 let avatarOk = true;
+let bigComboOk = true;
+const COMBO_LEGACY_MAX = 5000;
 
-/** @param {(withAvatar:boolean)=>Promise<{ok:boolean,status:number,data:*}>} run */
-async function withAvatar(run) {
-  if (avatarOk) {
-    const r = await run(true);
-    if (r.ok || r.status !== 400) return r;
+/**
+ * @param {(o:{avatar:boolean, clampCombo:boolean}) => Promise<{ok:boolean,status:number,data:*}>} run
+ */
+async function withFallbacks(run) {
+  const o = { avatar: avatarOk, clampCombo: !bigComboOk };
+  let r = await run(o);
+  if (r.ok || r.status !== 400) return r;
+  if (o.avatar) {
     avatarOk = false;
+    o.avatar = false;
+    r = await run(o);
+    if (r.ok || r.status !== 400) return r;
   }
-  return run(false);
+  if (!o.clampCombo) {
+    bigComboOk = false;
+    o.clampCombo = true;
+    r = await run(o);
+  }
+  return r;
 }
 
 /** L'identifiant d'avatar, ramené à une chaîne courte et inoffensive. */
@@ -176,18 +195,24 @@ export async function syncProfile(name, avatar) {
   if (!clean) return false;
   const p = readPlayer() || { id: playerId(), name: '' };
   if (p.name === clean && p.avatar === av) return false;   // déjà à jour
+  // L'avatar à publier n'est pas celui déjà en base : la base a peut-être
+  // été migrée depuis le dernier refus, on retente la colonne.
+  if (p.avatar !== av) avatarOk = true;
   const path = `scores?player_id=eq.${encodeURIComponent(p.id)}`;
-  const r = await withAvatar((withAv) => request(path, {
+  const r = await withFallbacks((o) => request(path, {
     method: 'PATCH',
     headers: headers({ Prefer: 'return=minimal' }),
     body: JSON.stringify({
       name: clean,
-      ...(withAv && av ? { avatar: av } : {}),
+      ...(o.avatar && av ? { avatar: av } : {}),
       updated_at: new Date().toISOString()
     })
   }));
   if (!r.ok) return null;                             // hors ligne : on réessaiera
-  writePlayer({ ...p, name: clean, avatar: av });
+  // Si la colonne a été refusée, l'avatar n'est PAS en base : ne pas le
+  // noter comme publié, sinon plus rien ne le renverrait jamais — c'est
+  // exactement ce qui gelait l'avatar sur les anciens scores.
+  writePlayer({ ...p, name: clean, avatar: avatarOk ? av : '' });
   return true;
 }
 
@@ -234,28 +259,28 @@ export async function publishMany(name, avatar, list) {
   // Toute publication répare au passage un renommage resté en suspens
   // (changement de pseudo ou d'avatar effectué hors ligne, par exemple).
   await syncProfile(name, av);
-  const row = ({ trackId, diff, keys, entry }, withAv) => ({
+  const row = ({ trackId, diff, keys, entry }, o) => ({
     player_id: id,
     track_id: trackId,
     diff,
     keys: keys || '4',
     name: String(name || 'JOUEUR').slice(0, 12),
-    ...(withAv && av ? { avatar: av } : {}),
+    ...(o.avatar && av ? { avatar: av } : {}),
     score: Math.round(entry.score || 0),
     grade: entry.grade || 'D',
     precision: Math.min(1, Math.max(0, entry.precision || 0)),
-    combo: Math.round(entry.comboMax || 0),
+    combo: Math.min(o.clampCombo ? COMBO_LEGACY_MAX : Infinity, Math.round(entry.comboMax || 0)),
     mods: entry.mods || []
   });
   // merge-duplicates : PostgREST traduit en « ON CONFLICT DO UPDATE ».
-  const r = await withAvatar((withAv) => request('scores', {
+  const r = await withFallbacks((o) => request('scores', {
     method: 'POST',
     headers: headers({ Prefer: 'resolution=merge-duplicates,return=minimal' }),
-    body: JSON.stringify(list.map((x) => row(x, withAv)))
+    body: JSON.stringify(list.map((x) => row(x, o)))
   }));
   if (r.ok) {
     const p = readPlayer() || { id, name: '' };
-    writePlayer({ ...p, name: String(name || 'JOUEUR').slice(0, 12), avatar: av });
+    writePlayer({ ...p, name: String(name || 'JOUEUR').slice(0, 12), avatar: avatarOk ? av : '' });
   }
   return r.ok ? r.data : null;
 }
@@ -270,7 +295,7 @@ export async function trackBoard(trackId, diff, keys = '4', limit = 50) {
     order: 'score.desc',
     limit: String(limit)
   });
-  const r = await withAvatar((withAv) => request(`scores?${q(withAv)}`, { headers: headers() }));
+  const r = await withFallbacks((o) => request(`scores?${q(o.avatar)}`, { headers: headers() }));
   return r.ok && Array.isArray(r.data) ? r.data : null;
 }
 
@@ -284,6 +309,6 @@ export async function globalBoard(limit = 50) {
     order: 'ss.desc,splus.desc,s.desc,max_combo.desc',
     limit: String(limit)
   });
-  const r = await withAvatar((withAv) => request(`leaderboard?${q(withAv)}`, { headers: headers() }));
+  const r = await withFallbacks((o) => request(`leaderboard?${q(o.avatar)}`, { headers: headers() }));
   return r.ok && Array.isArray(r.data) ? r.data : null;
 }

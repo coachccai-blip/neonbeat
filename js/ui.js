@@ -5,7 +5,7 @@ import * as storage from './storage.js';
 import { travelTime, notesOnScreen, clampSpeed } from './storage.js';
 import { t } from './i18n.js';
 import * as audio from './audio.js';
-import { avatarFile } from './avatars.js';
+import { avatarFile, DEFAULT_AVATAR } from './avatars.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -109,9 +109,10 @@ export function describeSpeed(speed, chartInfo) {
 }
 
 /**
- * Combo maximal théorique : le nombre de notes de la chart pour la
- * difficulté ET le mode de touches choisis — donc ce que vaut une chaîne
- * parfaite. Le mode 2 touches fusionne des notes, son total diffère.
+ * Combo maximal théorique : ce que rapporte la chaîne complète pour la
+ * difficulté ET le mode de touches choisis. Le fever multipliant le combo,
+ * il dépasse largement le nombre de notes. Le mode 2 touches fusionne des
+ * notes, son total diffère.
  */
 export function showMaxCombo(n) {
   const el = $('sheet-maxcombo');
@@ -480,7 +481,7 @@ export function renderResults(track, res, ranking, myId, celebrate = true) {
     <div class="stat great"><div class="v">${res.counts.GREAT}</div><div class="k">GREAT</div></div>
     <div class="stat good"><div class="v">${res.counts.GOOD}</div><div class="k">GOOD</div></div>
     <div class="stat miss"><div class="v">${res.counts.MISS}</div><div class="k">MISS</div></div>
-    <div class="stat"><div class="v">${res.comboMax}</div><div class="k">${t('res_combo_max')}</div></div>
+    <div class="stat"><div class="v">${(res.comboMax || 0).toLocaleString('fr-FR')}</div><div class="k">${t('res_combo_max')}</div></div>
     <div class="stat"><div class="v">${(res.precision * 100).toFixed(1)}%</div><div class="k">${t('res_precision')}</div></div>`;
   // apparition en cascade des tuiles
   $('res-stats').querySelectorAll('.stat').forEach((el, i) => {
@@ -535,10 +536,14 @@ function boardMessage(el, key) {
  * Pastille d'avatar précédant le pseudo. `avatarFile` ne rend un chemin que
  * pour un identifiant connu : une valeur fantaisiste venue de la base ne
  * peut donc pas se transformer en URL d'image.
+ *
+ * Rien de connu — un score publié avant que les avatars existent, un joueur
+ * qui n'en a jamais choisi — donne le premier avatar : une ligne de
+ * classement sans pastille laisserait un trou dans la colonne.
  */
 function avatarTag(id) {
-  const src = avatarFile(id);
-  return src ? `<img class="bav" src="${src}" alt="" loading="lazy">` : '<span class="bav is-none"></span>';
+  const src = avatarFile(id) || avatarFile(DEFAULT_AVATAR.id);
+  return `<img class="bav" src="${src}" alt="" loading="lazy">`;
 }
 
 export function renderTrackBoard(rows, me) {

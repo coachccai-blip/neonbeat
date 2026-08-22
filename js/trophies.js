@@ -30,12 +30,15 @@ export const EMPTY_STATS = {
  * @param {object} scores  storage.allScores() — clé « id|DIFF[|2K] » → entrée
  */
 export function gradeCounts(scores) {
-  const out = { SS: 0, 'S+': 0, S: 0, A: 0, tracks: new Set(), hardCleared: 0 };
+  const out = { SS: 0, 'S+': 0, S: 0, A: 0, tracks: new Set(), hardCleared: 0, splusNormal: 0 };
   for (const [key, e] of Object.entries(scores || {})) {
     if (!e || !e.grade) continue;
     if (out[e.grade] !== undefined) out[e.grade]++;
-    out.tracks.add(key.split('|')[0]);
-    if (key.split('|')[1] === 'HARD' && e.grade !== 'D') out.hardCleared++;
+    const [track, diff] = key.split('|');
+    out.tracks.add(track);
+    if (diff === 'HARD' && e.grade !== 'D') out.hardCleared++;
+    // Difficulté NORMAL au sens strict : « NORMAL+ » est une autre chart.
+    if (diff === 'NORMAL' && (e.grade === 'S+' || e.grade === 'SS')) out.splusNormal++;
   }
   return { ...out, tracks: out.tracks.size };
 }
@@ -47,9 +50,9 @@ export function gradeCounts(scores) {
  */
 export const TROPHIES = [
   { id: 'first',     icon: '🎬', target: 1,   value: (s) => s.plays },
-  { id: 'combo100',  icon: '🔗', target: 100, value: (s) => s.maxCombo },
-  { id: 'combo250',  icon: '⛓️', target: 250, value: (s) => s.maxCombo },
-  { id: 'combo500',  icon: '🌠', target: 500, value: (s) => s.maxCombo },
+  { id: 'combo100',  icon: '🔗', target: 250, value: (s) => s.maxCombo },
+  { id: 'combo250',  icon: '⛓️', target: 1000, value: (s) => s.maxCombo },
+  { id: 'combo500',  icon: '🌠', target: 3200, value: (s) => s.maxCombo },
   { id: 'fever5',    icon: '🔥', target: 5,   value: (s) => s.maxFever },
   { id: 'fever8',    icon: '☄️', target: 8,   value: (s) => s.maxFever },
   { id: 'fever12',   icon: '🌌', target: 12,  value: (s) => s.maxFever },
@@ -68,12 +71,14 @@ export const TROPHIES = [
 
   // Palier « fin de jeu » : ceux-là débloquent les avatars et demandent
   // des dizaines d'heures — c'est voulu, un avatar rare doit se voir.
-  { id: 'fever15',   icon: '🌟', target: 15,     value: (s) => s.maxFever },
-  { id: 'ss25',      icon: '🥇', target: 25,     value: (s, g) => g.SS },
-  { id: 'combo1000', icon: '🚀', target: 1000,   value: (s) => s.maxCombo },
-  { id: 'hardfc10',  icon: '🗻', target: 10,     value: (s) => s.hardFullCombos },
-  { id: 'ap10',      icon: '💎', target: 10,     value: (s) => s.allPerfects },
-  { id: 'notes100k', icon: '🎼', target: 100000, value: (s) => s.notesHit }
+  { id: 'fever15',    icon: '🌟', target: 15,     value: (s) => s.maxFever },
+  { id: 'ss10',       icon: '💎', target: 10,     value: (s, g) => g.SS },
+  { id: 'ss25',       icon: '🥇', target: 25,     value: (s, g) => g.SS },
+  { id: 'combo10k',   icon: '🚀', target: 10000,  value: (s) => s.maxCombo },
+  { id: 'splusnorm30', icon: '🎯', target: 30,    value: (s, g) => g.splusNormal },
+  { id: 'hardfc10',   icon: '🗻', target: 10,     value: (s) => s.hardFullCombos },
+  { id: 'ap10',       icon: '🔮', target: 10,     value: (s) => s.allPerfects },
+  { id: 'notes100k',  icon: '🎼', target: 100000, value: (s) => s.notesHit }
 ];
 
 export function trophyById(id) {

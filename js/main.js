@@ -4,7 +4,7 @@ import * as storage from './storage.js';
 import * as audio from './audio.js';
 import * as ui from './ui.js';
 import { loadIndex, loadTrack, getDifficulty, density, to2Keys } from './chart.js';
-import { Engine, feverBounds } from './engine.js';
+import { Engine, feverBounds, perfectCombo } from './engine.js';
 import { Renderer } from './render.js';
 import { Input } from './input.js';
 import { Calibration } from './calibration.js';
@@ -912,7 +912,9 @@ function updateSpeedHint() {
 function maxComboOf(track, diffName, keysMode) {
   const def = getDifficulty(track, diffName);
   if (!def || !def.notes) return 0;
-  return (keysMode === '2' ? to2Keys(def.notes) : def.notes).length;
+  // Le combo est pondéré par le fever : ce n'est plus le nombre de notes,
+  // mais ce que rapporte la chaîne complète en les enchaînant toutes.
+  return perfectCombo((keysMode === '2' ? to2Keys(def.notes) : def.notes).length);
 }
 
 /**

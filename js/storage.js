@@ -1,5 +1,7 @@
 // Accès typé au localStorage. Toutes les préférences joueur transitent par ici.
 
+import { perfectCombo } from './engine.js';
+
 const KEY = 'neonbeat.v1';
 
 // Huit teintes nettement distinctes : une par joueur d'un salon complet.
@@ -127,7 +129,31 @@ function readScores() {
     try { localStorage.setItem(KEY, JSON.stringify(legacy)); } catch { /* tant pis */ }
     writeScores();
   }
+  migrerCombo(scoresCache);
   return scoresCache;
+}
+
+/* ─── Combos pondérés par le fever (v1.35) ───────────────────────────
+   Avant, le combo comptait les notes ; désormais chaque note en vaut
+   autant que le fever en cours. Les valeurs déjà enregistrées sont donc
+   dans l'ANCIENNE échelle : les laisser telles quelles ferait passer tous
+   les records historiques pour ridicules à côté de la première partie
+   jouée après la mise à jour.
+
+   `perfectCombo` traduit un nombre de notes enchaînées en combo pondéré —
+   exactement la conversion qu'il faut, puisque l'ancienne valeur ÉTAIT ce
+   nombre de notes.                                                       */
+
+function migrerCombo(store) {
+  if (store.comboV2) return;
+  for (const e of Object.values(store.scores || {})) {
+    if (e && e.comboMax) e.comboMax = perfectCombo(e.comboMax);
+  }
+  for (const liste of Object.values(store.board || {})) {
+    for (const e of liste || []) if (e && e.comboMax) e.comboMax = perfectCombo(e.comboMax);
+  }
+  store.comboV2 = true;
+  writeScores();
 }
 
 function writeScores() {
@@ -180,6 +206,12 @@ export function readStats() {
     statsCache = {};
   }
   if (!Array.isArray(statsCache.unlocked)) statsCache.unlocked = [];
+  // Même conversion que pour les scores (voir migrerCombo).
+  if (!statsCache.comboV2) {
+    if (statsCache.maxCombo) statsCache.maxCombo = perfectCombo(statsCache.maxCombo);
+    statsCache.comboV2 = true;
+    writeStats(statsCache);
+  }
   return statsCache;
 }
 

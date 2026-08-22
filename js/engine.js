@@ -23,26 +23,58 @@ const wScale = (note) => (note.dur > 0 ? HOLD_SCALE : 1);
    reste sur 1 000 000 et comparable entre joueurs — mais casser son combo
    tôt coûte la rampe de fever, pas seulement le bonus de combo.          */
 
-export const FEVER_STEPS = [0, 25, 50, 100, 150];   // combo requis pour ×1…×5
-export const FEVER_EXTRA = 50;     // puis un palier tous les 50 de combo
+/* Depuis la v1.35, le fever ne multiplie plus seulement les points : il
+   multiplie AUSSI le combo. À ×2 chaque note en vaut deux, à ×3 elle en
+   vaut trois, et ainsi de suite sans plafond.
+
+   Les paliers restent EXACTEMENT les mêmes en nombre de notes qu'avant
+   (25 notes pour ×2, 25 de plus pour ×3, puis 50 notes par palier) — c'est
+   leur traduction en combo qui change :
+
+     ×2 à 25 · ×3 à 75 · ×4 à 225 · ×5 à 425 · ×6 à 675 · ×7 à 975 …
+
+   Fermé, le palier N (celui qui fait passer à ×(N+1)) tombe à
+   25·N·(N+1) − 75, sauf le premier qui vaut 25. La série se poursuit
+   indéfiniment : il n'y a pas de dernier fever.                          */
+
+export const FEVER_FIRST = 25;   // combo du premier palier (passage à ×2)
 
 /**
- * Multiplicateur de fever, SANS PLAFOND : ×1…×5 aux paliers historiques,
- * puis ×6, ×7, ×8… tous les 50 de combo supplémentaires.
+ * Combo auquel bascule le N-ième palier de fever (N ≥ 1 → ×(N+1)).
+ * N = 0 renvoie 0 : le début de partie, à ×1.
+ */
+export function comboAtStep(n) {
+  if (n <= 0) return 0;
+  if (n === 1) return FEVER_FIRST;
+  return 25 * n * (n + 1) - 75;
+}
+
+/**
+ * Nombre de paliers franchis pour ce combo. L'inverse de `comboAtStep` :
+ * on part de la solution exacte de 25·N·(N+1) − 75 ≤ combo, puis on
+ * recale d'un cran — la racine carrée peut tomber juste à côté d'un
+ * palier, et un fever qui clignote à cause d'un arrondi se verrait.
+ */
+function stepsPassed(combo) {
+  if (combo < FEVER_FIRST) return 0;
+  if (combo < comboAtStep(2)) return 1;
+  let n = Math.floor((Math.sqrt(1 + (4 * (combo + 75)) / 25) - 1) / 2);
+  while (comboAtStep(n + 1) <= combo) n++;
+  while (n > 1 && comboAtStep(n) > combo) n--;
+  return n;
+}
+
+/**
+ * Multiplicateur de fever, SANS PLAFOND : ×1 au départ, ×2 à 25 de combo,
+ * puis ×3, ×4, ×5… à chaque palier.
  *
  * Conséquence assumée : sur une chart longue, les dernières notes valent
  * bien plus que les premières. Le score reste sur 1 000 000 (le
- * dénominateur emprunte la même formule), mais casser son combo tard coûte
+ * dénominateur simule la même chaîne), mais casser son combo tard coûte
  * désormais très cher — c'est précisément ce qui rend la chaîne palpitante.
  */
 export function feverLevel(combo) {
-  const last = FEVER_STEPS[FEVER_STEPS.length - 1];
-  if (combo >= last) return FEVER_STEPS.length + Math.floor((combo - last) / FEVER_EXTRA);
-  let lv = 1;
-  for (let i = 1; i < FEVER_STEPS.length; i++) {
-    if (combo >= FEVER_STEPS[i]) lv = i + 1;
-  }
-  return lv;
+  return stepsPassed(combo) + 1;
 }
 
 /**
@@ -51,13 +83,21 @@ export function feverLevel(combo) {
  * @returns {{level:number, from:number, to:number}}
  */
 export function feverBounds(combo) {
-  const last = FEVER_STEPS[FEVER_STEPS.length - 1];
-  const lv = feverLevel(combo);
-  if (combo >= last) {
-    const from = last + (lv - FEVER_STEPS.length) * FEVER_EXTRA;
-    return { level: lv, from, to: from + FEVER_EXTRA };
-  }
-  return { level: lv, from: FEVER_STEPS[lv - 1], to: FEVER_STEPS[lv] };
+  const n = stepsPassed(combo);
+  return { level: n + 1, from: comboAtStep(n), to: comboAtStep(n + 1) };
+}
+
+/**
+ * Combo d'une chaîne parfaite de `notes` notes — le « combo max théorique ».
+ *
+ * Il se simule note à note plutôt que par une formule fermée : c'est la
+ * MÊME boucle que celle du moteur, donc le chiffre annoncé au joueur ne
+ * peut pas diverger de celui qu'il obtiendra réellement.
+ */
+export function perfectCombo(notes) {
+  let c = 0;
+  for (let i = 0; i < notes; i++) c += feverLevel(c);
+  return c;
 }
 
 export const GRADES = [
@@ -95,9 +135,17 @@ export class Engine {
     this.feverSum = 0;
     this.fever = 1;
     this.feverMax = 1;           // plus haut multiplicateur atteint (trophées)
-    // Somme de fever d'une partie parfaite : sert de dénominateur au score.
+    // Chaîne parfaite simulée une fois pour toutes : elle sert de
+    // dénominateur au score (somme des fevers) et de combo de référence.
+    // Depuis que le fever multiplie le combo, celui-ci n'est plus le
+    // numéro de la note — il faut vraiment dérouler la chaîne.
     this.maxFeverSum = 0;
-    for (let i = 1; i <= this.total; i++) this.maxFeverSum += feverLevel(i);
+    let cRef = 0;
+    for (let i = 0; i < this.total; i++) {
+      cRef += feverLevel(cRef);
+      this.maxFeverSum += feverLevel(cRef);
+    }
+    this.comboPerfect = cRef;
     this.combo = 0;
     this.comboMax = 0;
     this.life = 70;
@@ -218,7 +266,10 @@ export class Engine {
     if (judgment === 'MISS') {
       this.combo = 0;
     } else {
-      this.combo++;
+      // Le fever multiplie le combo : à ×3, la note en vaut trois. Le
+      // multiplicateur appliqué est celui EN COURS avant la note — sinon
+      // le calcul se mordrait la queue.
+      this.combo += feverLevel(this.combo);
       if (this.combo > this.comboMax) this.comboMax = this.combo;
     }
 
@@ -260,7 +311,10 @@ export class Engine {
   get score() {
     if (!this.total) return 0;
     const feverPart = this.maxFeverSum ? this.feverSum / this.maxFeverSum : 0;
-    return Math.round(900000 * feverPart + 100000 * (this.comboMax / this.total));
+    // Le combo étant pondéré, c'est la chaîne parfaite — et non le nombre
+    // de notes — qui vaut 100 % de cette part.
+    const comboPart = this.comboPerfect ? this.comboMax / this.comboPerfect : 0;
+    return Math.round(900000 * feverPart + 100000 * Math.min(1, comboPart));
   }
 
   get judged() {

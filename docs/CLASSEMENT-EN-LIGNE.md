@@ -43,7 +43,9 @@ create table if not exists public.scores (
   -- rejettent les valeurs impossibles.
   constraint score_plausible     check (score >= 0 and score <= 2000000),
   constraint precision_plausible check (precision >= 0 and precision <= 1),
-  constraint combo_plausible     check (combo >= 0 and combo <= 5000),
+  -- Le combo est pondéré par le fever depuis la v1.35 : une chaîne
+  -- complète sur une chart longue dépasse largement 10 000.
+  constraint combo_plausible     check (combo >= 0 and combo <= 200000),
   constraint grade_connu         check (grade in ('SS','S+','S','A','B','C','D')),
   constraint mode_connu          check (keys in ('2','4')),
   constraint nom_court           check (char_length(name) between 1 and 12),
@@ -81,8 +83,11 @@ grant select on public.leaderboard to anon;
 
 ## 2 bis. Mettre à jour une base déjà en service
 
-Si tu as créé la table **avant la version 1.34**, elle n'a pas la colonne
-`avatar`. Colle ceci dans le SQL Editor, puis **Run** :
+Si tu as créé la table **avant la version 1.35**, il lui manque la colonne
+`avatar` et sa contrainte de combo est trop étroite (le fever multiplie
+désormais le combo : une chaîne complète dépasse largement 5 000). Colle
+ceci dans le SQL Editor, puis **Run** — c'est sans risque, rien n'est
+effacé :
 
 ```sql
 alter table public.scores add column if not exists avatar text;
@@ -90,6 +95,10 @@ alter table public.scores add column if not exists avatar text;
 alter table public.scores drop constraint if exists avatar_court;
 alter table public.scores add constraint avatar_court
   check (avatar is null or char_length(avatar) <= 24);
+
+alter table public.scores drop constraint if exists combo_plausible;
+alter table public.scores add constraint combo_plausible
+  check (combo >= 0 and combo <= 200000);
 
 create or replace view public.leaderboard as
 select
@@ -108,9 +117,10 @@ grant select on public.leaderboard to anon;
 ```
 
 Tant que cette migration n'est pas jouée, **le jeu continue de fonctionner** :
-il détecte le refus de la colonne et republie sans elle, classements compris.
-Les avatars apparaissent d'eux-mêmes dès que le SQL ci-dessus est passé (les
-joueurs n'ont rien à faire, la synchronisation du lancement s'en charge).
+il détecte les refus de la base et republie sans l'avatar, puis avec le combo
+ramené sous l'ancienne limite — classements compris. Tout se remet en place
+de soi-même dès que le SQL ci-dessus est passé : les joueurs n'ont rien à
+faire, la synchronisation du lancement s'en charge.
 
 ## 3. Brancher le jeu
 
