@@ -12,6 +12,6 @@
 // dans docs/CLASSEMENT-EN-LIGNE.md.
 
 export const SUPABASE = {
-  url: '',
-  key: ''
+  url: 'https://saaakgquhxdudrusanor.supabase.co',
+  key: 'sb_publishable_dA49Pw9IwNd7FequdEsLWQ_7u1pBeW4'
 };

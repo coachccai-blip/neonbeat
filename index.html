@@ -164,7 +164,10 @@
       <p class="hint speed-hint" id="speed-hint"></p>
       <p class="maxcombo" id="sheet-maxcombo"></p>
     </div>
-    <button class="btn btn-ghost btn-board" id="btn-board" data-i18n="board_open" hidden>CLASSEMENT EN LIGNE</button>
+    <div class="board-btns" id="board-btns" hidden>
+      <button class="btn btn-ghost btn-tiny2" id="btn-board" data-i18n="board_open">CLASSEMENT GÉNÉRAL</button>
+      <button class="btn btn-ghost btn-tiny2" id="btn-mine" data-i18n="board_mine">MES SCORES</button>
+    </div>
     <button class="btn btn-primary" id="btn-play">JOUER</button>
   </div>
 </section>
@@ -315,8 +318,12 @@
 <section class="screen" id="screen-board" data-screen="board">
   <div class="wrap wide">
     <button class="btn-back" id="board-back" data-i18n="back">‹ RETOUR</button>
-    <h2 class="title" data-i18n="board_title">CLASSEMENT</h2>
+    <h2 class="title" id="board-title" data-i18n="rank_title">CLASSEMENT</h2>
     <p class="res-song" id="board-sub"></p>
+    <div class="seg board-seg" id="board-seg" role="group">
+      <button class="seg-btn is-on" data-view="global" data-i18n="board_open">CLASSEMENT GÉNÉRAL</button>
+      <button class="seg-btn" data-view="mine" data-i18n="board_mine">MES SCORES</button>
+    </div>
     <div class="board-list" id="board-list"></div>
   </div>
 </section>

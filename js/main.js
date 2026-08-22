@@ -103,11 +103,17 @@ function boot() {
   // Classement en ligne : les points d'entrée n'apparaissent que s'il est
   // configuré (voir js/online-config.js). Sinon le jeu ignore tout de lui.
   if (online.enabled()) {
-    $('btn-board').hidden = false;
+    $('board-btns').hidden = false;
     $('btn-publish').hidden = false;
-    $('btn-board').addEventListener('click', openTrackBoard);
+    $('btn-board').addEventListener('click', () => openTrackBoard('global'));
+    $('btn-mine').addEventListener('click', () => openTrackBoard('mine'));
     $('btn-publish').addEventListener('click', publishAllScores);
   }
+  // Bascule entre le classement de tous et ses propres tentatives.
+  $('board-seg').addEventListener('click', (e) => {
+    const b = e.target.closest('.seg-btn');
+    if (b) showBoardView(b.dataset.view);
+  });
   $('board-back').addEventListener('click', () => { closeSheet(); ui.show('select'); });
   $('btn-credits').addEventListener('click', () => { openCredits(); });
   $('btn-calib-home').addEventListener('click', () => { audio.unlock(); goCalibrate('home'); });
@@ -406,16 +412,57 @@ function announceTrophies(stats) {
   });
 }
 
-/** Classement du morceau sélectionné, pour la difficulté et le mode courants. */
-async function openTrackBoard() {
+/**
+ * Écran de classement du morceau sélectionné, pour la difficulté et le mode
+ * courants. Deux vues : le classement de tous les joueurs (en ligne) et ses
+ * propres tentatives (lues en local, donc instantanées et hors ligne).
+ */
+function openTrackBoard(view) {
+  const sel = S.selectedTrack;
+  if (!sel) return;
+  closeSheet();
+  ui.show('board');
+  const keys = storage.get('keys') || '4';
+  $('board-sub').textContent = `${sel.title} — ${S.myDiff} · ${keys} ${t('mode_keys')}`;
+  showBoardView(view || 'global');
+}
+
+let boardToken = 0;
+async function showBoardView(view) {
+  document.querySelectorAll('#board-seg .seg-btn').forEach((b) => {
+    b.classList.toggle('is-on', b.dataset.view === view);
+  });
   const sel = S.selectedTrack;
   if (!sel) return;
   const keys = storage.get('keys') || '4';
-  closeSheet();
-  ui.show('board');
-  $('board-sub').textContent = `${sel.title} — ${S.myDiff} · ${keys} ${t('mode_keys')}`;
+  const token = ++boardToken;      // une réponse tardive ne doit pas écraser la vue courante
+
+  if (view === 'mine') {
+    // L'historique des tentatives peut être vide alors qu'un meilleur score
+    // existe (scores venus d'une version antérieure) : on retombe dessus
+    // plutôt que d'annoncer à tort « jamais joué ».
+    let rows = storage.boardFor(sel.id, S.myDiff, keys);
+    if (!rows || !rows.length) {
+      const best = storage.bestFor(sel.id, S.myDiff, keys);
+      rows = best ? [best] : [];
+    }
+    // Rang en ligne, en complément : il donne du sens au meilleur score.
+    ui.renderMyScores(rows, null);
+    const all = await online.trackBoard(sel.id, S.myDiff, keys, 200);
+    if (token !== boardToken) return;
+    const me = online.playerId();
+    const pos = all ? all.findIndex((r) => r.player_id === me) : -1;
+    // « 1ᵉʳ » mais « 2ᵉ » : l'ordinal se construit ici, pas dans la traduction.
+    const rang = pos + 1;
+    ui.renderMyScores(rows, pos >= 0
+      ? { pos: rang + (rang === 1 ? 'ᵉʳ' : 'ᵉ'), total: all.length }
+      : null);
+    return;
+  }
   ui.boardLoading('board-list');
-  ui.renderTrackBoard(await online.trackBoard(sel.id, S.myDiff, keys), online.playerId());
+  const rows = await online.trackBoard(sel.id, S.myDiff, keys);
+  if (token !== boardToken) return;
+  ui.renderTrackBoard(rows, online.playerId());
 }
 
 /** Renvoie tous les meilleurs scores locaux d'un coup. */

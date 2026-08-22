@@ -76,19 +76,27 @@ grant select on public.leaderboard to anon;
 
 ## 3. Brancher le jeu
 
-**Settings → API** dans Supabase, puis reporte les deux valeurs dans
-`js/online-config.js` :
+`js/online-config.js` est **déjà renseigné** avec l'URL du projet et sa clé
+publique. Les deux formats de clé sont acceptés : les anciennes clés
+« anon » (des JWT, commençant par `eyJ`) et les nouvelles
+(`sb_publishable_…`). Seules les premières sont envoyées en en-tête
+`Authorization` — les secondes n'étant pas des jetons JWT, les envoyer
+ainsi ferait échouer l'analyse côté serveur.
 
-```js
-export const SUPABASE = {
-  url: 'https://xxxxxxxx.supabase.co',   // « Project URL »
-  key: 'eyJhbGciOi...'                    // « anon public »
-};
-```
+Une fois le SQL de l'étape 2 exécuté, **CLASSEMENT GÉNÉRAL** et **MES
+SCORES** apparaissent dans la fiche de chaque morceau, le classement
+général sur la page des trophées, et **PUBLIER MES SCORES** dans les
+réglages.
 
-Publie (commit + push). Le bouton **CLASSEMENT EN LIGNE** apparaît alors
-dans la fiche de chaque morceau, le **CLASSEMENT GÉNÉRAL** sur la page des
-trophées, et **PUBLIER MES SCORES** dans les réglages.
+### Vérifier que ça marche
+
+1. Ouvre le jeu, va dans **Réglages → PUBLIER MES SCORES**.
+2. Un message confirme le nombre de scores envoyés.
+3. Dans Supabase, **Table Editor → scores** : les lignes doivent y être.
+
+Si le message annonce une erreur, c'est presque toujours que le SQL de
+l'étape 2 n'a pas été exécuté (la table `scores` ou la vue `leaderboard`
+n'existe pas), ou que les politiques d'accès manquent.
 
 ---
 

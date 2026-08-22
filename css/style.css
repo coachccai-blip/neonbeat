@@ -554,7 +554,15 @@ input[type=range]::-moz-range-thumb { width: 30px; height: 30px; border-radius: 
 .board-row .bc.sp { color: var(--magenta); }
 .board-row .bc.sg { color: var(--cyan); }
 .board-row.head .bc { color: var(--ink-dim); }
-.btn-board { margin-bottom: 8px; }
+/* Les deux entrées du classement, côte à côte sous les réglages du morceau. */
+.board-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.btn-tiny2 { min-height: 46px; font-size: 12px; letter-spacing: .06em; padding: 12px 6px; }
+/* .seg porte « flex: 1 », pensé pour une rangée horizontale : posé
+   directement dans une colonne, il réclamerait toute la hauteur restante. */
+.board-seg { flex: none; margin-bottom: 10px; }
+.board-seg .seg-btn { font-size: 11px; letter-spacing: .06em; min-height: 42px; }
+.board-rank { text-align: center; font-size: 12px; letter-spacing: .08em; color: var(--cyan); font-weight: 700; margin-bottom: 8px; }
+.board-row .bp { flex: none; font-size: 11px; color: var(--ink-dim); min-width: 46px; text-align: right; }
 
 /* ─── Trophées & skins ─── */
 

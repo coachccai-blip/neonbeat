@@ -47,12 +47,12 @@ function fallbackId() {
 }
 
 function headers(extra) {
-  return {
-    apikey: SUPABASE.key,
-    Authorization: `Bearer ${SUPABASE.key}`,
-    'Content-Type': 'application/json',
-    ...extra
-  };
+  const h = { apikey: SUPABASE.key, 'Content-Type': 'application/json', ...extra };
+  // Les clés « anon » historiques sont des JWT et doivent aussi voyager en
+  // Authorization ; les nouvelles (sb_publishable_…) n'en sont pas, et les
+  // envoyer ainsi ferait échouer l'analyse du jeton côté serveur.
+  if (/^eyJ/.test(SUPABASE.key)) h.Authorization = `Bearer ${SUPABASE.key}`;
+  return h;
 }
 
 /** Toute requête réseau échoue en silence : le classement est un bonus. */

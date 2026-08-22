@@ -570,6 +570,32 @@ export function boardLoading(id) {
   boardMessage($(id), 'board_loading');
 }
 
+/**
+ * « Mes scores » : l'historique LOCAL du joueur sur ce morceau, cette
+ * difficulté et ce mode — ses propres tentatives, de la meilleure à la
+ * moins bonne. Aucune requête réseau : ces données sont déjà sur l'appareil.
+ */
+export function renderMyScores(rows, rank) {
+  const el = $('board-list');
+  if (!rows || !rows.length) return boardMessage(el, 'board_mine_empty');
+  const tete = rank
+    ? `<p class="board-rank">${esc(t('board_rank', { n: rank.pos, total: rank.total }))}</p>`
+    : '';
+  el.innerHTML = tete + rows.map((r, i) => `
+    <div class="board-row${i === 0 ? ' p1' : ''}">
+      <span class="pos">${i + 1}</span>
+      <span class="bn">${esc(modsLabelOf(r.mods))}</span>
+      <span class="bp">${((r.precision || 0) * 100).toFixed(1)} %</span>
+      <span class="bg">${esc(r.grade || '')}</span>
+      <span class="bs">${(r.score || 0).toLocaleString('fr-FR')}</span>
+    </div>`).join('');
+}
+
+function modsLabelOf(mods) {
+  if (!mods || !mods.length) return t('board_nomods');
+  return mods.map((id) => ({ MIRROR: 'MI', FADE: 'FD', SUDDEN: 'SU', NIGHTCORE: 'NC' }[id] || id)).join('·');
+}
+
 /* ─── Trophées & skins ─── */
 
 /**
