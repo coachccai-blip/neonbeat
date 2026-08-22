@@ -118,7 +118,6 @@ function boot() {
     if (b) showBoardView(b.dataset.view);
   });
   $('board-back').addEventListener('click', () => { closeSheet(); ui.show('select'); });
-  $('btn-credits').addEventListener('click', () => { openCredits(); });
   $('btn-calib-home').addEventListener('click', () => { audio.unlock(); goCalibrate('home'); });
 
   // Rejoindre
@@ -230,7 +229,6 @@ function boot() {
       }, 1200);
     }
   });
-  $('btn-recalib').addEventListener('click', () => goCalibrate('settings'));
 
   // Langue : FR / EN / 中文, appliquée immédiatement à toute l'interface.
   const langBox = $('set-lang');
@@ -278,9 +276,16 @@ function boot() {
     }
   });
 
+  initFirstName();
+
   // Code de room dans le hash : #KYRO
   const hashCode = normalizeCode(location.hash.slice(1));
-  if (hashCode && window.Peer) {
+  if (!storage.get('name')) {
+    // Tant qu'aucun pseudo n'est choisi, on le redemande à chaque lancement :
+    // sans lui, le joueur n'est identifiable ni en salon ni au classement.
+    ui.show('name');
+    $('first-name').focus();
+  } else if (hashCode && window.Peer) {
     ui.show('join');
     $('join-code').value = hashCode;
   } else {
@@ -563,8 +568,8 @@ function initUiSounds() {
                      'btn-again', 'btn-ready', 'btn-resume', 'btn-restart', 'btn-calib-use',
                      'btn-install'].includes(id)
       || el.classList.contains('btn-primary') || el.classList.contains('btn-host');
-    const open = ['btn-settings', 'btn-credits', 'btn-calib-home', 'btn-change-track', 'btn-ranking',
-                  'btn-join', 'btn-recalib'].includes(id);
+    const open = ['btn-settings', 'btn-calib-home', 'btn-change-track', 'btn-ranking',
+                  'btn-join'].includes(id);
     const toggle = el.classList.contains('seg-btn') || el.classList.contains('sort-btn')
       || el.classList.contains('color-dot') || el.classList.contains('switch');
 
@@ -575,6 +580,28 @@ function initUiSounds() {
     else if (toggle) audio.uiToggle(!el.classList.contains('is-on'));
     else audio.uiTap();
   }, true);
+}
+
+/**
+ * Écran de bienvenue : le pseudo est demandé au tout premier lancement, en
+ * complément de la calibration (déclenchée, elle, au premier JOUER).
+ */
+function initFirstName() {
+  const input = $('first-name');
+  const go = $('btn-name-go');
+  const valide = () => { go.disabled = !input.value.trim(); };
+  input.addEventListener('input', valide);
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !go.disabled) go.click(); });
+  go.addEventListener('click', () => {
+    const nom = input.value.trim().slice(0, 10);
+    if (!nom) return;
+    audio.unlock();                 // premier vrai geste : on amorce le son
+    storage.set('name', nom);
+    ui.refreshSettings();
+    online.syncName(nom).catch(() => {});
+    ui.show('home');
+  });
+  valide();
 }
 
 /* ══════════════════ Installation (PWA) ══════════════════ */
@@ -1852,23 +1879,6 @@ function toggleReady() {
 }
 
 /* ══════════════════ Crédits ══════════════════ */
-
-async function openCredits() {
-  ui.show('credits');
-  const box = $('credits-body');
-  try {
-    const md = await fetch('./tracks/CREDITS.md').then((r) => r.text());
-    box.innerHTML = md
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-      .replace(/^### (.*)$/gm, '<h3>$1</h3>')
-      .replace(/^## (.*)$/gm, '<h3>$1</h3>')
-      .replace(/^# (.*)$/gm, '<h3>$1</h3>')
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\n\n/g, '<br><br>');
-  } catch {
-    box.textContent = t('credits_offline');
-  }
-}
 
 /* ══════════════════ Démarrage ══════════════════ */
 

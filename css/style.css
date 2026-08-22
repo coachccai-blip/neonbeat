@@ -198,6 +198,9 @@ body { overflow: hidden; }
   50%      { transform: translateY(-5px) scale(1.014); }
 }
 
+/* Badge réduit, pour l'écran de bienvenue. */
+.mascot-sm { width: clamp(110px, 34vw, 150px); margin: 0 auto 4px; }
+
 /* Le logo mord légèrement sur le badge : le titre et la mascotte forment
    un seul bloc plutôt que deux éléments empilés. */
 .wrap-home .logo { margin-top: -2px; }

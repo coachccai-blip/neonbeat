@@ -173,6 +173,24 @@
 </section>
 
 <!-- ─────────────────────────── CALIBRATION ─────────────────────────── -->
+<section class="screen" id="screen-name" data-screen="name">
+  <div class="wrap">
+    <div class="mascot mascot-sm">
+      <picture>
+        <source srcset="./assets/mascot-420.webp" type="image/webp">
+        <img src="./assets/mascot.png" width="420" height="420" alt="" decoding="async">
+      </picture>
+    </div>
+    <h2 class="title" data-i18n="name_title">BIENVENUE</h2>
+    <p class="hint" data-i18n="name_hint">Choisis un pseudo : il te suivra dans les salons et dans le classement.</p>
+    <label class="field">
+      <span class="label" data-i18n="set_name">PSEUDO</span>
+      <input type="text" id="first-name" maxlength="10" class="text-input" autocomplete="off" autocapitalize="characters">
+    </label>
+    <button class="btn btn-primary" id="btn-name-go" data-i18n="name_go" disabled>CONTINUER</button>
+  </div>
+</section>
+
 <section class="screen" id="screen-calib" data-screen="calib">
   <div class="wrap">
     <h2 class="title" data-i18n="calib_title">CALIBRATION</h2>
@@ -283,13 +301,6 @@
     </div>
 
     <div class="field">
-      <div class="speed-head"><span class="label" data-i18n="set_offset">OFFSET DE CALIBRATION</span><span class="speed-val" id="set-offset-val">0 ms</span></div>
-      <input type="range" id="set-offset" min="-200" max="200" step="1">
-      <button class="btn btn-small" id="btn-recalib" data-i18n="set_recalib">RELANCER LA CALIBRATION</button>
-      <p class="hint" data-i18n="set_bt_hint"></p>
-    </div>
-
-    <div class="field">
       <div class="speed-head"><span class="label" data-i18n="set_volume">VOLUME MUSIQUE</span><span class="speed-val" id="set-vol-val">80 %</span></div>
       <input type="range" id="set-volume" min="0" max="100" step="1">
     </div>
@@ -301,7 +312,6 @@
       </div>
       <button class="btn btn-small" id="btn-update" data-i18n="ver_update">METTRE À JOUR</button>
       <button class="btn btn-small" id="btn-publish" data-i18n="board_publish" hidden>PUBLIER MES SCORES</button>
-      <button class="btn btn-small" id="btn-credits" data-i18n="home_credits">CRÉDITS</button>
     </div>
 
     <div class="field">
@@ -350,14 +360,6 @@
 
     <div class="label" data-i18n="trophies_list">DÉFIS</div>
     <div class="trophy-list" id="tr-list"></div>
-  </div>
-</section>
-
-<section class="screen" id="screen-credits" data-screen="credits">
-  <div class="wrap wide">
-    <button class="btn-back" data-back="home">‹ RETOUR</button>
-    <h2 class="title" data-i18n="credits_title">CRÉDITS</h2>
-    <div class="credits-body" id="credits-body"></div>
   </div>
 </section>
 

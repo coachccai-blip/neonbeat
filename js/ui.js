@@ -706,17 +706,6 @@ export function bindSettings(onChange) {
     onChange('speed');
   });
 
-  const offEl = $('set-offset');
-  const offVal = $('set-offset-val');
-  offEl.value = storage.get('offset');
-  offVal.textContent = `${storage.get('offset')} ms`;
-  offEl.addEventListener('input', () => {
-    const v = parseInt(offEl.value, 10) || 0;
-    storage.set('offset', v);
-    offVal.textContent = `${v} ms`;
-    onChange('offset');
-  });
-
   const volEl = $('set-volume');
   const volVal = $('set-vol-val');
   volEl.value = Math.round(storage.get('volume') * 100);
@@ -740,8 +729,6 @@ export function bindSettings(onChange) {
 
 /** Rafraîchit les champs des réglages depuis le stockage (après calibration). */
 export function refreshSettings() {
-  $('set-offset').value = storage.get('offset');
-  $('set-offset-val').textContent = `${storage.get('offset')} ms`;
   $('set-speed').value = storage.get('speed');
   $('set-speed-val').textContent = fmtSpeed(storage.get('speed'));
 }
