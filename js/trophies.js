@@ -64,7 +64,16 @@ export const TROPHIES = [
   { id: 'tracks10',  icon: '🎵', target: 10,  value: (s, g) => g.tracks },
   { id: 'tracks25',  icon: '🎚️', target: 25,  value: (s, g) => g.tracks },
   { id: 'tracksAll', icon: '💿', target: 42,  value: (s, g) => g.tracks },
-  { id: 'keys2',     icon: '🎹', target: 5,   value: (s) => s.keys2Plays }
+  { id: 'keys2',     icon: '🎹', target: 5,   value: (s) => s.keys2Plays },
+
+  // Palier « fin de jeu » : ceux-là débloquent les avatars et demandent
+  // des dizaines d'heures — c'est voulu, un avatar rare doit se voir.
+  { id: 'fever15',   icon: '🌟', target: 15,     value: (s) => s.maxFever },
+  { id: 'ss25',      icon: '🥇', target: 25,     value: (s, g) => g.SS },
+  { id: 'combo1000', icon: '🚀', target: 1000,   value: (s) => s.maxCombo },
+  { id: 'hardfc10',  icon: '🗻', target: 10,     value: (s) => s.hardFullCombos },
+  { id: 'ap10',      icon: '💎', target: 10,     value: (s) => s.allPerfects },
+  { id: 'notes100k', icon: '🎼', target: 100000, value: (s) => s.notesHit }
 ];
 
 export function trophyById(id) {

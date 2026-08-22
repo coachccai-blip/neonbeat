@@ -12,6 +12,7 @@ import { ClockSync } from './clock.js';
 import { Host, Client, normalizeCode, MAX_PLAYERS } from './net.js';
 import { MODS, multiplierFor, modsLabel } from './mods.js';
 import { SKINS, skinById, DEFAULT_SKIN } from './skins.js';
+import { AVATARS, avatarById, DEFAULT_AVATAR } from './avatars.js';
 import * as online from './online.js';
 import { TROPHIES, gradeCounts, progress, earned, applyResult, EMPTY_STATS } from './trophies.js';
 import * as i18n from './i18n.js';
@@ -48,6 +49,11 @@ let renameTimer = 0;
 
 function displayName() {
   return storage.get('name') || 'JOUEUR';
+}
+
+/** Avatar actif, en retombant sur le premier s'il n'est pas (ou plus) débloqué. */
+function displayAvatar() {
+  return activeAvatar().id;
 }
 
 /* ══════════════════ Navigation & boutons ══════════════════ */
@@ -224,7 +230,7 @@ function boot() {
     if (key === 'name') {
       clearTimeout(renameTimer);
       renameTimer = setTimeout(async () => {
-        const done = await online.syncName(displayName());
+        const done = await online.syncProfile(displayName(), displayAvatar());
         if (done) ui.toast(t('board_renamed', { name: displayName() }), 3500);
       }, 1200);
     }
@@ -248,7 +254,7 @@ function boot() {
   renderLangs();
 
   ui.onScreenChange((name) => {
-    if (name === 'settings') ui.startSpeedPreview();
+    if (name === 'settings') { ui.startSpeedPreview(); renderAvatarPicker(); }
     else ui.stopSpeedPreview();
     if (name !== 'select') {
       previewToken++;                      // invalide les préversions en attente
@@ -407,6 +413,38 @@ function isSkinUnlocked(skin) {
 }
 
 /**
+ * Avatar actif. Comme pour les skins, on revalide le déblocage à chaque
+ * lecture : un avatar choisi puis « perdu » (données de progression
+ * effacées) ne doit pas continuer à représenter le joueur au classement.
+ */
+function activeAvatar() {
+  const av = avatarById(storage.get('avatar'));
+  if (!av) return DEFAULT_AVATAR;
+  if (!av.unlock) return av;
+  const { stats, counts } = trophyState();
+  return earned(stats, counts).includes(av.unlock) ? av : DEFAULT_AVATAR;
+}
+
+/** Peint la grille d'avatars des réglages (repeinte à chaque ouverture). */
+function renderAvatarPicker() {
+  const { stats, counts } = trophyState();
+  const got = earned(stats, counts);
+  ui.renderAvatars(
+    AVATARS.map((a) => ({ ...a, locked: !!a.unlock && !got.includes(a.unlock) })),
+    activeAvatar().id,
+    (a) => {
+      if (a.locked) return ui.toast(t('avatar_need', { name: t('trophy_' + a.unlock) }), 4000);
+      storage.set('avatar', a.id);
+      audio.uiToggle(true);
+      renderAvatarPicker();
+      // Le classement affiche l'avatar : il doit suivre le changement sans
+      // attendre la prochaine partie.
+      online.syncProfile(displayName(), a.id).catch(() => {});
+    }
+  );
+}
+
+/**
  * Annonce les trophées franchis depuis la dernière partie. La liste des
  * trophées déjà notifiés est mémorisée pour ne jamais répéter une annonce.
  */
@@ -419,13 +457,14 @@ function announceTrophies(stats) {
   storage.writeStats({ ...stats, unlocked: now });
   // Une annonce à la fois, espacées : deux toasts simultanés s'écrasent.
   fresh.forEach((id, i) => {
-    const t0 = TROPHIES.find((x) => x.id === id);
     const skin = SKINS.find((sk) => sk.unlock === id);
+    const av = AVATARS.find((a) => a.unlock === id);
     setTimeout(() => {
       audio.gradeJingle('S', false);
-      ui.toast(skin
-        ? t('trophy_new_skin', { name: t('trophy_' + id), skin: t('skin_' + skin.id) })
-        : t('trophy_new', { name: t('trophy_' + id) }), 5200);
+      let msg = t('trophy_new', { name: t('trophy_' + id) });
+      if (skin) msg = t('trophy_new_skin', { name: t('trophy_' + id), skin: t('skin_' + skin.id) });
+      else if (av) msg = t('trophy_new_avatar', { name: t('trophy_' + id), avatar: t('av_' + av.id) });
+      ui.toast(msg, 5200);
     }, 900 + i * 5600);
   });
 }
@@ -508,7 +547,7 @@ function localScoreList() {
  */
 function autoPublish() {
   if (!online.enabled()) return;
-  online.autoSync(displayName(), localScoreList()).catch(() => {});
+  online.autoSync(displayName(), displayAvatar(), localScoreList()).catch(() => {});
 }
 
 /** Renvoie tous les meilleurs scores locaux d'un coup. */
@@ -518,7 +557,7 @@ async function publishAllScores() {
   const list = localScoreList();
   if (!list.length) return ui.toast(t('board_none'));
   ui.toast(t('board_sending', { n: list.length }), 3000);
-  const ok = await online.publishMany(name, list);
+  const ok = await online.publishMany(name, displayAvatar(), list);
   ui.toast(ok ? t('board_sent', { n: list.length }) : t('board_error'), 4000);
 }
 
@@ -528,9 +567,10 @@ function openTrophies() {
   // Un skin est jouable si son trophée est obtenu (ou s'il n'en demande pas).
   const unlocked = SKINS.filter((sk) => !sk.unlock || unlockedTrophies.includes(sk.unlock)).map((sk) => sk.id);
   const skinFor = Object.fromEntries(SKINS.filter((sk) => sk.unlock).map((sk) => [sk.unlock, sk.id]));
+  const avatarFor = Object.fromEntries(AVATARS.filter((a) => a.unlock).map((a) => [a.unlock, a.id]));
   ui.show('trophies');
   ui.renderTrophies(
-    { counts, stats, progress: progress(stats, counts), skins: SKINS, unlocked, skinFor, activeSkin: activeSkin().id },
+    { counts, stats, progress: progress(stats, counts), skins: SKINS, unlocked, skinFor, avatarFor, activeSkin: activeSkin().id },
     (id) => {
       storage.set('skin', id);
       audio.uiToggle(true);
@@ -598,7 +638,7 @@ function initFirstName() {
     audio.unlock();                 // premier vrai geste : on amorce le son
     storage.set('name', nom);
     ui.refreshSettings();
-    online.syncName(nom).catch(() => {});
+    online.syncProfile(nom, displayAvatar()).catch(() => {});
     ui.show('home');
   });
   valide();
@@ -1364,7 +1404,7 @@ function onGameFinished(res) {
   // Classement en ligne : on ne publie QUE si le meilleur local a changé —
   // inutile de renvoyer un score déjà connu de la base à chaque partie.
   if (online.enabled() && recordInfo && recordInfo.record && S.selectedTrack) {
-    online.publishScore(displayName(), S.selectedTrack.id, res.diffName,
+    online.publishScore(displayName(), displayAvatar(), S.selectedTrack.id, res.diffName,
                         res.keysMode || '4', recordInfo.best);
   }
 

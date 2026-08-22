@@ -16,10 +16,12 @@ const DEFAULTS = {
   calibrated: false,
   speed: 2.5,         // multiplicateur de vitesse de chute, façon DJ Max
   volume: 0.8,
-  hitsound: false,
+  hitsound: true,     // « pop » de papier bulle à chaque note
+  hitsoundPop: false, // marqueur de migration (voir read())
   vibrate: false,
   uisound: true,      // bruitages de navigation dans les menus
   skin: 'neon',       // habillage de la zone de jeu (voir js/skins.js)
+  avatar: 'nb_avatar01', // pastille affichée avant le pseudo (js/avatars.js)
   lastTrack: null,
   lastDiff: 'NORMAL',
   lang: 'fr',
@@ -35,6 +37,14 @@ function read() {
     cache = { ...DEFAULTS, ...JSON.parse(localStorage.getItem(KEY) || '{}') };
   } catch {
     cache = { ...DEFAULTS };
+  }
+  // Le son de frappe était muet par défaut tant que c'était un « bip » de
+  // console ; il devient un « pop » de papier bulle et s'active d'office.
+  // Une seule fois : le joueur qui le coupe ensuite le retrouve coupé.
+  if (!cache.hitsoundPop) {
+    cache.hitsound = true;
+    cache.hitsoundPop = true;
+    try { localStorage.setItem(KEY, JSON.stringify(cache)); } catch { /* privé */ }
   }
   return cache;
 }

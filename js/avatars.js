@@ -1,0 +1,44 @@
+// Avatars : l'image qui précède le pseudo dans les classements.
+//
+// Quatre sont offerts d'emblée (deux filles, deux garçons) ; les six autres
+// se méritent — ils sont adossés aux trophées les plus exigeants du jeu, de
+// façon qu'un avatar rare en soit vraiment un.
+//
+// `unlock` désigne le trophée qui le débloque (voir trophies.js) ; null =
+// disponible dès la première partie.
+//
+// L'identifiant est aussi le nom du fichier : la vignette 128 px vit dans
+// assets/avatars/, l'original dans assets/avatars/source/ (jamais servi au
+// navigateur — 2,4 Mo pour une pastille de 28 px n'aurait aucun sens).
+
+export const AVATARS = [
+  { id: 'nb_avatar01', unlock: null },
+  { id: 'nb_avatar02', unlock: null },
+  { id: 'nb_avatar03', unlock: null },
+  { id: 'nb_avatar05', unlock: null },
+  { id: 'nb_avatar04', unlock: 'fever15' },
+  { id: 'nb_avatar06', unlock: 'notes100k' },
+  { id: 'nb_avatar07', unlock: 'hardfc10' },
+  { id: 'nb_avatar08', unlock: 'ap10' },
+  { id: 'nb_avatar09', unlock: 'ss25' },
+  { id: 'nb_avatar10', unlock: 'combo1000' }
+];
+
+export const DEFAULT_AVATAR = AVATARS[0];
+
+/**
+ * Avatar connu portant cet identifiant, ou null.
+ *
+ * Sert aussi de FILTRE de sécurité : les identifiants qui remontent du
+ * classement viennent d'autres appareils, et rien ne garantit qu'ils soient
+ * sensés. Passer par ici évite de bâtir une URL d'image à partir d'une
+ * chaîne arbitraire.
+ */
+export function avatarById(id) {
+  return AVATARS.find((a) => a.id === id) || null;
+}
+
+/** Chemin de la vignette, ou null si l'identifiant est inconnu. */
+export function avatarFile(id) {
+  return avatarById(id) ? `./assets/avatars/${id}.webp` : null;
+}

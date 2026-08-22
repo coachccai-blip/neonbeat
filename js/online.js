@@ -94,21 +94,59 @@ function headers(extra) {
   return h;
 }
 
-/** Toute requête réseau échoue en silence : le classement est un bonus. */
-async function call(path, options = {}, timeoutMs = 8000) {
-  if (!enabled()) return null;
+/**
+ * Requête brute. Le code HTTP est conservé : il faut pouvoir distinguer
+ * « la base refuse cette colonne » (400) de « le réseau est tombé » (0).
+ * @returns {Promise<{ok:boolean, status:number, data:*}>}
+ */
+async function request(path, options = {}, timeoutMs = 8000) {
+  if (!enabled()) return { ok: false, status: 0, data: null };
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     const res = await fetch(`${config().url}/rest/v1/${path}`, { ...options, signal: ctrl.signal });
-    if (!res.ok) return null;
+    if (!res.ok) return { ok: false, status: res.status, data: null };
     const txt = await res.text();
-    return txt ? JSON.parse(txt) : true;
+    return { ok: true, status: res.status, data: txt ? JSON.parse(txt) : true };
   } catch {
-    return null;
+    return { ok: false, status: 0, data: null };
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** Toute requête réseau échoue en silence : le classement est un bonus. */
+async function call(path, options = {}, timeoutMs = 8000) {
+  const r = await request(path, options, timeoutMs);
+  return r.ok ? r.data : null;
+}
+
+/* ─── Colonne « avatar » ──────────────────────────────────────────────
+   Elle est arrivée après coup : une base créée avec l'ancien SQL ne la
+   connaît pas, et PostgREST répond alors 400 à TOUTE requête qui la
+   mentionne — lecture comprise. Publier la mise à jour du jeu avant
+   d'avoir joué la migration casserait donc le classement entier.
+
+   D'où ce filet : on tente avec l'avatar, et un 400 nous fait rejouer la
+   requête sans lui, définitivement pour la session. Un 400 venu d'ailleurs
+   (une contrainte violée) coûterait au pire les avatars jusqu'au prochain
+   rechargement — jamais le classement.                                  */
+
+let avatarOk = true;
+
+/** @param {(withAvatar:boolean)=>Promise<{ok:boolean,status:number,data:*}>} run */
+async function withAvatar(run) {
+  if (avatarOk) {
+    const r = await run(true);
+    if (r.ok || r.status !== 400) return r;
+    avatarOk = false;
+  }
+  return run(false);
+}
+
+/** L'identifiant d'avatar, ramené à une chaîne courte et inoffensive. */
+function cleanAvatar(avatar) {
+  return String(avatar || '').slice(0, 24);
 }
 
 /**
@@ -116,8 +154,8 @@ async function call(path, options = {}, timeoutMs = 8000) {
  * + mode) fait que l'envoi ÉCRASE la ligne précédente : la base ne garde
  * qu'un score par combinaison, exactement comme en local.
  */
-export function publishScore(name, trackId, diff, keys, entry) {
-  return publishMany(name, [{ trackId, diff, keys, entry }]);
+export function publishScore(name, avatar, trackId, diff, keys, entry) {
+  return publishMany(name, avatar, [{ trackId, diff, keys, entry }]);
 }
 
 /**
@@ -131,19 +169,25 @@ export function publishScore(name, trackId, diff, keys, entry) {
  * @returns {boolean|null} true si un renommage a eu lieu, false s'il n'y
  *   avait rien à faire, null si le réseau a échoué (on retentera).
  */
-export async function syncName(name) {
+export async function syncProfile(name, avatar) {
   if (!enabled()) return false;
   const clean = String(name || '').trim().slice(0, 12);
+  const av = cleanAvatar(avatar);
   if (!clean) return false;
   const p = readPlayer() || { id: playerId(), name: '' };
-  if (p.name === clean) return false;                 // déjà à jour
-  const done = await call(`scores?player_id=eq.${encodeURIComponent(p.id)}`, {
+  if (p.name === clean && p.avatar === av) return false;   // déjà à jour
+  const path = `scores?player_id=eq.${encodeURIComponent(p.id)}`;
+  const r = await withAvatar((withAv) => request(path, {
     method: 'PATCH',
     headers: headers({ Prefer: 'return=minimal' }),
-    body: JSON.stringify({ name: clean, updated_at: new Date().toISOString() })
-  });
-  if (done === null) return null;                     // hors ligne : on réessaiera
-  writePlayer({ ...p, name: clean });
+    body: JSON.stringify({
+      name: clean,
+      ...(withAv && av ? { avatar: av } : {}),
+      updated_at: new Date().toISOString()
+    })
+  }));
+  if (!r.ok) return null;                             // hors ligne : on réessaiera
+  writePlayer({ ...p, name: clean, avatar: av });
   return true;
 }
 
@@ -152,12 +196,13 @@ export async function syncName(name) {
  * démarrage un ensemble déjà publié : sur 100 scores inchangés, la synchro
  * automatique devient une comparaison de chaîne, sans la moindre requête.
  */
-function signature(name, list) {
+function signature(name, avatar, list) {
   let h = 2166136261;
   const feed = (str) => {
     for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
   };
   feed(name || '');
+  feed(avatar || '');
   for (const { trackId, diff, keys, entry } of list) {
     feed(`${trackId}|${diff}|${keys}|${Math.round(entry.score || 0)}|${entry.grade}`);
   }
@@ -170,61 +215,63 @@ function signature(name, list) {
  * sans requête quand rien n'a changé depuis le dernier envoi.
  * @returns {'inchangé'|'publié'|'échec'|'inactif'}
  */
-export async function autoSync(name, list) {
+export async function autoSync(name, avatar, list) {
   if (!enabled() || !list.length) return 'inactif';
-  const sig = signature(name, list);
+  const sig = signature(name, avatar, list);
   const p = readPlayer() || { id: playerId(), name: '' };
   if (p.sig === sig) return 'inchangé';
-  const res = await publishMany(name, list);
+  const res = await publishMany(name, avatar, list);
   if (res === null) return 'échec';
   writePlayer({ ...(readPlayer() || p), sig });
   return 'publié';
 }
 
 /** Publie plusieurs scores d'un coup (bouton « publier mes scores »). */
-export async function publishMany(name, list) {
+export async function publishMany(name, avatar, list) {
   if (!enabled() || !list.length) return null;
   const id = playerId();
+  const av = cleanAvatar(avatar);
   // Toute publication répare au passage un renommage resté en suspens
-  // (changement de pseudo effectué hors ligne, par exemple).
-  await syncName(name);
-  const rows = list.map(({ trackId, diff, keys, entry }) => ({
+  // (changement de pseudo ou d'avatar effectué hors ligne, par exemple).
+  await syncProfile(name, av);
+  const row = ({ trackId, diff, keys, entry }, withAv) => ({
     player_id: id,
     track_id: trackId,
     diff,
     keys: keys || '4',
     name: String(name || 'JOUEUR').slice(0, 12),
+    ...(withAv && av ? { avatar: av } : {}),
     score: Math.round(entry.score || 0),
     grade: entry.grade || 'D',
     precision: Math.min(1, Math.max(0, entry.precision || 0)),
     combo: Math.round(entry.comboMax || 0),
     mods: entry.mods || []
-  }));
+  });
   // merge-duplicates : PostgREST traduit en « ON CONFLICT DO UPDATE ».
-  const res = await call('scores', {
+  const r = await withAvatar((withAv) => request('scores', {
     method: 'POST',
     headers: headers({ Prefer: 'resolution=merge-duplicates,return=minimal' }),
-    body: JSON.stringify(rows)
-  });
-  if (res !== null) {
+    body: JSON.stringify(list.map((x) => row(x, withAv)))
+  }));
+  if (r.ok) {
     const p = readPlayer() || { id, name: '' };
-    writePlayer({ ...p, name: rows[0].name });
+    writePlayer({ ...p, name: String(name || 'JOUEUR').slice(0, 12), avatar: av });
   }
-  return res;
+  return r.ok ? r.data : null;
 }
 
 /** Classement d'un morceau, pour une difficulté et un mode donnés. */
 export async function trackBoard(trackId, diff, keys = '4', limit = 50) {
-  const q = new URLSearchParams({
-    select: 'player_id,name,score,grade,precision,combo,mods',
+  const q = (withAv) => new URLSearchParams({
+    select: `player_id,name,${withAv ? 'avatar,' : ''}score,grade,precision,combo,mods`,
     track_id: `eq.${trackId}`,
     diff: `eq.${diff}`,
     keys: `eq.${keys}`,
     order: 'score.desc',
     limit: String(limit)
   });
-  const rows = await call(`scores?${q}`, { headers: headers() });
-  return Array.isArray(rows) ? rows : null;
+  const r = await withAvatar((withAv) => request(`scores?${q(withAv)}`, { headers: headers() }));
+  return r.ok && Array.isArray(r.data) ? r.data : null;
 }
 
 /**
@@ -232,11 +279,11 @@ export async function trackBoard(trackId, diff, keys = '4', limit = 50) {
  * et son meilleur combo. Le calcul se fait côté base, le jeu n'affiche.
  */
 export async function globalBoard(limit = 50) {
-  const q = new URLSearchParams({
-    select: 'player_id,name,ss,splus,s,max_combo,charts',
+  const q = (withAv) => new URLSearchParams({
+    select: `player_id,name,${withAv ? 'avatar,' : ''}ss,splus,s,max_combo,charts`,
     order: 'ss.desc,splus.desc,s.desc,max_combo.desc',
     limit: String(limit)
   });
-  const rows = await call(`leaderboard?${q}`, { headers: headers() });
-  return Array.isArray(rows) ? rows : null;
+  const r = await withAvatar((withAv) => request(`leaderboard?${q(withAv)}`, { headers: headers() }));
+  return r.ok && Array.isArray(r.data) ? r.data : null;
 }

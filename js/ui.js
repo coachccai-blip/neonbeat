@@ -5,6 +5,7 @@ import * as storage from './storage.js';
 import { travelTime, notesOnScreen, clampSpeed } from './storage.js';
 import { t } from './i18n.js';
 import * as audio from './audio.js';
+import { avatarFile } from './avatars.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -530,6 +531,16 @@ function boardMessage(el, key) {
  * Classement d'un morceau. `me` met en évidence la ligne du joueur, pour
  * qu'il se retrouve sans avoir à lire tous les pseudos.
  */
+/**
+ * Pastille d'avatar précédant le pseudo. `avatarFile` ne rend un chemin que
+ * pour un identifiant connu : une valeur fantaisiste venue de la base ne
+ * peut donc pas se transformer en URL d'image.
+ */
+function avatarTag(id) {
+  const src = avatarFile(id);
+  return src ? `<img class="bav" src="${src}" alt="" loading="lazy">` : '<span class="bav is-none"></span>';
+}
+
 export function renderTrackBoard(rows, me) {
   const el = $('board-list');
   if (!rows) return boardMessage(el, 'board_error');
@@ -537,6 +548,7 @@ export function renderTrackBoard(rows, me) {
   el.innerHTML = rows.map((r, i) => `
     <div class="board-row${r.player_id === me ? ' is-me' : ''}${i === 0 ? ' p1' : ''}">
       <span class="pos">${i + 1}</span>
+      ${avatarTag(r.avatar)}
       <span class="bn">${esc(r.name || '—')}</span>
       <span class="bg">${esc(r.grade || '')}</span>
       <span class="bs">${(r.score || 0).toLocaleString('fr-FR')}</span>
@@ -550,12 +562,13 @@ export function renderGlobalBoard(rows, me) {
   if (!rows.length) return boardMessage(el, 'board_empty');
   el.innerHTML = `
     <div class="board-row head">
-      <span class="pos"></span><span class="bn"></span>
+      <span class="pos"></span><span class="bav is-none"></span><span class="bn"></span>
       <span class="bc ss">SS</span><span class="bc sp">S+</span>
       <span class="bc sg">S</span><span class="bc mc">${esc(t('trophies_maxcombo'))}</span>
     </div>` + rows.map((r, i) => `
     <div class="board-row${r.player_id === me ? ' is-me' : ''}${i === 0 ? ' p1' : ''}">
       <span class="pos">${i + 1}</span>
+      ${avatarTag(r.avatar)}
       <span class="bn">${esc(r.name || '—')}</span>
       <span class="bc ss">${r.ss || 0}</span>
       <span class="bc sp">${r.splus || 0}</span>
@@ -632,11 +645,15 @@ export function renderTrophies(d, onPickSkin) {
   $('tr-list').innerHTML = d.progress.map((tr) => {
     const pct = Math.round((100 * tr.current) / tr.target);
     const skin = d.skinFor[tr.id];
+    const avatar = (d.avatarFor || {})[tr.id];
+    // Un trophée offre au plus une récompense : skin OU avatar.
+    const reward = skin ? ` <em>· ${esc(t('skin_' + skin))}</em>`
+      : avatar ? ` <em>· ${esc(t('av_' + avatar))}</em>` : '';
     return `
       <div class="trophy${tr.done ? ' is-done' : ''}">
         <span class="ti">${tr.icon}</span>
         <span class="tb">
-          <span class="tn">${esc(t('trophy_' + tr.id))}${skin ? ` <em>· ${esc(t('skin_' + skin))}</em>` : ''}</span>
+          <span class="tn">${esc(t('trophy_' + tr.id))}${reward}</span>
           <span class="tp"><span style="width:${pct}%"></span></span>
         </span>
         <span class="tv">${tr.done ? '✓' : `${tr.current}/${tr.target}`}</span>
@@ -728,6 +745,33 @@ export function bindSettings(onChange) {
 }
 
 /** Rafraîchit les champs des réglages depuis le stockage (après calibration). */
+/**
+ * Grille des avatars, dans les réglages.
+ * @param {{id:string, unlock:?string, locked:boolean}[]} list
+ * @param {string} active
+ * @param {(a:object)=>void} onPick  appelé aussi pour un avatar verrouillé,
+ *   afin d'annoncer le trophée qui le débloque plutôt que de rester muet.
+ */
+export function renderAvatars(list, active, onPick) {
+  const box = $('set-avatars');
+  if (!box) return;
+  box.innerHTML = '';
+  for (const a of list) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'avatar-card' + (a.id === active ? ' is-on' : '') + (a.locked ? ' is-locked' : '');
+    const label = t('av_' + a.id);
+    b.setAttribute('aria-label', a.locked ? `${label} — ${t('trophy_' + a.unlock)}` : label);
+    b.setAttribute('aria-pressed', String(a.id === active));
+    b.innerHTML = `<img src="${avatarFile(a.id)}" alt="" loading="lazy">`
+      + (a.locked ? '<span class="lk">🔒</span>' : '');
+    b.addEventListener('click', () => onPick(a));
+    box.appendChild(b);
+  }
+  const cur = list.find((a) => a.id === active);
+  $('set-avatar-name').textContent = cur ? t('av_' + cur.id) : '';
+}
+
 export function refreshSettings() {
   $('set-speed').value = storage.get('speed');
   $('set-speed-val').textContent = fmtSpeed(storage.get('speed'));

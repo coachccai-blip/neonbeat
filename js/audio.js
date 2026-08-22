@@ -868,15 +868,52 @@ export function feverSound(level) {
   ping.start(t + 0.26); ping.stop(t + 0.6);
 }
 
+/**
+ * « Pop » de papier bulle, joué à chaque note quand le réglage est actif.
+ *
+ * Deux couches, comme la vraie bulle : le CLAQUEMENT de la pellicule (un
+ * souffle de 6 ms passé en passe-bande aigu) puis la CAVITÉ qui se vide (un
+ * sinus dont la hauteur bondit vers l'aigu). C'est ce bond de hauteur qui
+ * fait entendre « pop » plutôt que « bip » — un sinus à fréquence fixe
+ * sonnerait comme l'ancien bruitage de console.
+ *
+ * La hauteur varie légèrement d'une note à l'autre : sans ça, une chart
+ * dense donne un effet mitraillette parfaitement identique, très vite
+ * fatigant.
+ */
 export function hitSound() {
   const c = context();
+  const t = c.currentTime;
+  const v = 0.9 + Math.random() * 0.25;
+
+  // Claquement de la pellicule.
+  const n = Math.max(1, Math.floor(c.sampleRate * 0.006));
+  const buf = c.createBuffer(1, n, c.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) {
+    const decay = 1 - i / n;
+    d[i] = (Math.random() * 2 - 1) * decay * decay;
+  }
+  const src = c.createBufferSource();
+  src.buffer = buf;
+  const bp = c.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.Q.value = 1.4;
+  bp.frequency.value = 2600 * v;
+  const gc = c.createGain();
+  gc.gain.value = 0.45;
+  src.connect(bp).connect(gc).connect(sfxGain);
+  src.start(t); src.stop(t + 0.02);
+
+  // Cavité qui se vide.
   const o = c.createOscillator();
   const g = c.createGain();
-  o.type = 'square';
-  o.frequency.setValueAtTime(1100, c.currentTime);
-  g.gain.setValueAtTime(0.22, c.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.0005, c.currentTime + 0.035);
+  o.type = 'sine';
+  o.frequency.setValueAtTime(330 * v, t);
+  o.frequency.exponentialRampToValueAtTime(1500 * v, t + 0.022);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.5, t + 0.004);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
   o.connect(g).connect(sfxGain);
-  o.start();
-  o.stop(c.currentTime + 0.05);
+  o.start(t); o.stop(t + 0.09);
 }

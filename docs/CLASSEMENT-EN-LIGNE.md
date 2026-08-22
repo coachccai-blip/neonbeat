@@ -30,6 +30,7 @@ create table if not exists public.scores (
   diff       text    not null,
   keys       text    not null default '4',
   name       text    not null,
+  avatar     text,
   score      int     not null,
   grade      text    not null,
   precision  numeric not null,
@@ -45,7 +46,8 @@ create table if not exists public.scores (
   constraint combo_plausible     check (combo >= 0 and combo <= 5000),
   constraint grade_connu         check (grade in ('SS','S+','S','A','B','C','D')),
   constraint mode_connu          check (keys in ('2','4')),
-  constraint nom_court           check (char_length(name) between 1 and 12)
+  constraint nom_court           check (char_length(name) between 1 and 12),
+  constraint avatar_court        check (avatar is null or char_length(avatar) <= 24)
 );
 
 create index if not exists scores_par_chart
@@ -56,6 +58,9 @@ create or replace view public.leaderboard as
 select
   player_id,
   max(name)                                   as name,
+  -- L'avatar de la ligne la PLUS RÉCENTE : en changer doit se voir tout de
+  -- suite, alors qu'un max() renverrait le dernier dans l'ordre alphabétique.
+  (array_agg(avatar order by updated_at desc))[1] as avatar,
   count(*) filter (where grade = 'SS')        as ss,
   count(*) filter (where grade = 'S+')        as splus,
   count(*) filter (where grade = 'S')         as s,
@@ -73,6 +78,39 @@ create policy "maj publique"      on public.scores for update using (true) with 
 
 grant select on public.leaderboard to anon;
 ```
+
+## 2 bis. Mettre à jour une base déjà en service
+
+Si tu as créé la table **avant la version 1.34**, elle n'a pas la colonne
+`avatar`. Colle ceci dans le SQL Editor, puis **Run** :
+
+```sql
+alter table public.scores add column if not exists avatar text;
+
+alter table public.scores drop constraint if exists avatar_court;
+alter table public.scores add constraint avatar_court
+  check (avatar is null or char_length(avatar) <= 24);
+
+create or replace view public.leaderboard as
+select
+  player_id,
+  max(name)                                       as name,
+  (array_agg(avatar order by updated_at desc))[1] as avatar,
+  count(*) filter (where grade = 'SS')            as ss,
+  count(*) filter (where grade = 'S+')            as splus,
+  count(*) filter (where grade = 'S')             as s,
+  max(combo)                                      as max_combo,
+  count(*)                                        as charts
+from public.scores
+group by player_id;
+
+grant select on public.leaderboard to anon;
+```
+
+Tant que cette migration n'est pas jouée, **le jeu continue de fonctionner** :
+il détecte le refus de la colonne et republie sans elle, classements compris.
+Les avatars apparaissent d'eux-mêmes dès que le SQL ci-dessus est passé (les
+joueurs n'ont rien à faire, la synchronisation du lancement s'en charge).
 
 ## 3. Brancher le jeu
 
@@ -102,6 +140,12 @@ n'existe pas), ou que les politiques d'accès manquent.
 
 ## Comment ça marche
 
+- **Avatar** : choisi dans les réglages, il voyage avec le pseudo et
+  s'affiche devant lui dans les deux classements. Quatre sont offerts ; les
+  six autres sont adossés aux trophées les plus exigeants du jeu (combo de
+  1000, 25 grades SS, 10 full combos en HARD…). Le jeu ne retient que des
+  identifiants qu'il connaît : une valeur inattendue venue de la base
+  s'affiche sans avatar plutôt que de fabriquer une URL d'image.
 - **Identité** : un identifiant est tiré au hasard sur l'appareil au premier
   envoi, puis conservé à part des réglages (il survit aux mises à jour). Le
   pseudo des réglages sert uniquement d'affichage.
