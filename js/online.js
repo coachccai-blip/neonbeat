@@ -20,21 +20,40 @@ export function enabled() {
 }
 
 /**
+ * Fiche locale du joueur : { id, name }. `name` mémorise le pseudo sous
+ * lequel ses lignes ont été publiées la dernière fois — c'est ce qui permet
+ * de détecter un changement de pseudo et de le répercuter.
+ *
+ * Rétrocompatible : les versions précédentes ne rangeaient qu'une chaîne.
+ */
+function readPlayer() {
+  try {
+    const raw = localStorage.getItem(PLAYER_KEY);
+    if (raw) {
+      if (raw[0] === '{') return JSON.parse(raw);
+      return { id: raw, name: '' };            // ancien format : un simple id
+    }
+  } catch { /* stockage illisible */ }
+  return null;
+}
+
+function writePlayer(p) {
+  try { localStorage.setItem(PLAYER_KEY, JSON.stringify(p)); } catch { /* privé */ }
+  return p;
+}
+
+/**
  * Identifiant stable de l'appareil. Généré une seule fois, rangé à part des
  * réglages pour ne jamais être emporté par une mise à jour.
  */
 export function playerId() {
-  try {
-    const cur = localStorage.getItem(PLAYER_KEY);
-    if (cur) return cur;
-    const id = (crypto.randomUUID && crypto.randomUUID()) || fallbackId();
-    localStorage.setItem(PLAYER_KEY, id);
-    return id;
-  } catch {
-    // Navigation privée : identifiant éphémère, le classement marche quand
-    // même le temps de la session.
-    return (memoryId ||= fallbackId());
-  }
+  const p = readPlayer();
+  if (p && p.id) return p.id;
+  const id = (crypto.randomUUID && crypto.randomUUID()) || fallbackId();
+  // Navigation privée : l'écriture échoue, l'identifiant reste en mémoire et
+  // le classement fonctionne le temps de la session.
+  writePlayer({ id, name: '' });
+  return (memoryId ||= id);
 }
 let memoryId = null;
 
@@ -81,10 +100,40 @@ export function publishScore(name, trackId, diff, keys, entry) {
   return publishMany(name, [{ trackId, diff, keys, entry }]);
 }
 
+/**
+ * Répercute un changement de pseudo sur TOUTES les lignes déjà publiées.
+ *
+ * Sans ça, seul le morceau rejoué porterait le nouveau nom : le joueur
+ * apparaîtrait sous deux pseudos selon les morceaux, et le classement
+ * général (qui agrège par max(name)) afficherait celui qui vient le plus
+ * loin dans l'alphabet — pas le plus récent.
+ *
+ * @returns {boolean|null} true si un renommage a eu lieu, false s'il n'y
+ *   avait rien à faire, null si le réseau a échoué (on retentera).
+ */
+export async function syncName(name) {
+  if (!enabled()) return false;
+  const clean = String(name || '').trim().slice(0, 12);
+  if (!clean) return false;
+  const p = readPlayer() || { id: playerId(), name: '' };
+  if (p.name === clean) return false;                 // déjà à jour
+  const done = await call(`scores?player_id=eq.${encodeURIComponent(p.id)}`, {
+    method: 'PATCH',
+    headers: headers({ Prefer: 'return=minimal' }),
+    body: JSON.stringify({ name: clean, updated_at: new Date().toISOString() })
+  });
+  if (done === null) return null;                     // hors ligne : on réessaiera
+  writePlayer({ ...p, name: clean });
+  return true;
+}
+
 /** Publie plusieurs scores d'un coup (bouton « publier mes scores »). */
 export async function publishMany(name, list) {
   if (!enabled() || !list.length) return null;
   const id = playerId();
+  // Toute publication répare au passage un renommage resté en suspens
+  // (changement de pseudo effectué hors ligne, par exemple).
+  await syncName(name);
   const rows = list.map(({ trackId, diff, keys, entry }) => ({
     player_id: id,
     track_id: trackId,
@@ -98,11 +147,16 @@ export async function publishMany(name, list) {
     mods: entry.mods || []
   }));
   // merge-duplicates : PostgREST traduit en « ON CONFLICT DO UPDATE ».
-  return call('scores', {
+  const res = await call('scores', {
     method: 'POST',
     headers: headers({ Prefer: 'resolution=merge-duplicates,return=minimal' }),
     body: JSON.stringify(rows)
   });
+  if (res !== null) {
+    const p = readPlayer() || { id, name: '' };
+    writePlayer({ ...p, name: rows[0].name });
+  }
+  return res;
 }
 
 /** Classement d'un morceau, pour une difficulté et un mode donnés. */

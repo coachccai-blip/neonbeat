@@ -44,6 +44,7 @@ const S = {
 };
 
 const HOST_ID = 'host';
+let renameTimer = 0;
 
 function displayName() {
   return storage.get('name') || 'JOUEUR';
@@ -217,6 +218,15 @@ function boot() {
   // Réglages
   ui.bindSettings((key) => {
     if (key === 'volume') audio.setVolume(storage.get('volume'));
+    // Le champ du pseudo réagit à chaque frappe : on attend une pause avant
+    // de renommer en ligne, sinon on enverrait une requête par caractère.
+    if (key === 'name') {
+      clearTimeout(renameTimer);
+      renameTimer = setTimeout(async () => {
+        const done = await online.syncName(displayName());
+        if (done) ui.toast(t('board_renamed', { name: displayName() }), 3500);
+      }, 1200);
+    }
   });
   $('btn-recalib').addEventListener('click', () => goCalibrate('settings'));
 

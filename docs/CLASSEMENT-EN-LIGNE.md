@@ -104,8 +104,15 @@ n'existe pas), ou que les politiques d'accès manquent.
 
 - **Identité** : un identifiant est tiré au hasard sur l'appareil au premier
   envoi, puis conservé à part des réglages (il survit aux mises à jour). Le
-  pseudo des réglages sert uniquement d'affichage — le changer met à jour
-  les lignes au prochain envoi.
+  pseudo des réglages sert uniquement d'affichage.
+- **Changement de pseudo** : dès que le champ du pseudo cesse de changer
+  (une seconde environ), TOUTES les lignes déjà publiées par ce joueur sont
+  renommées d'un coup, et un message le confirme. Sans ça, seul le morceau
+  rejoué aurait porté le nouveau nom : le joueur serait apparu sous deux
+  pseudos selon les morceaux, et le classement général — qui agrège par
+  `max(name)` — aurait affiché celui venant le plus loin dans l'alphabet,
+  pas le plus récent. Si le renommage échoue (hors ligne), la prochaine
+  publication le rattrape toute seule.
 - **Envoi automatique** : après chaque partie, uniquement si le meilleur
   score local a changé. Inutile de renvoyer un score que la base connaît.
 - **Envoi manuel** : le bouton des réglages republie d'un coup tous les
