@@ -106,6 +106,8 @@ function boot() {
   if (online.enabled()) {
     $('board-btns').hidden = false;
     $('btn-publish').hidden = false;
+    $('btn-ranking').hidden = false;
+    $('btn-ranking').addEventListener('click', openGlobalRanking);
     $('btn-board').addEventListener('click', () => openTrackBoard('global'));
     $('btn-mine').addEventListener('click', () => openTrackBoard('mine'));
     $('btn-publish').addEventListener('click', publishAllScores);
@@ -296,6 +298,7 @@ function boot() {
     const last = tracks.find((t) => t.id === storage.get('lastTrack'));
     S.selectedTrack = last || tracks[0];
     initPrefetch();
+    autoPublish();
   }).catch(() => {
     ui.toast(t('tracks_error'));
   });
@@ -475,16 +478,39 @@ async function showBoardView(view) {
   ui.renderTrackBoard(rows, online.playerId());
 }
 
-/** Renvoie tous les meilleurs scores locaux d'un coup. */
-async function publishAllScores() {
-  if (!online.enabled()) return;
-  const name = displayName();
+/** Classement général de tous les joueurs, depuis l'accueil. */
+async function openGlobalRanking() {
+  ui.show('ranking');
+  ui.boardLoading('ranking-list');
+  ui.renderGlobalBoard(await online.globalBoard(), online.playerId());
+}
+
+/** Meilleurs scores locaux, mis en forme pour l'envoi. */
+function localScoreList() {
   const list = [];
   for (const [key, entry] of Object.entries(storage.allScores())) {
     const [trackId, diff, k2] = key.split('|');
     if (!trackId || !diff) continue;
     list.push({ trackId, diff, keys: k2 === '2K' ? '2' : '4', entry });
   }
+  return list;
+}
+
+/**
+ * Synchronisation silencieuse au lancement, comme la vérification de
+ * version : elle rattrape les parties jouées hors ligne et les renommages
+ * en suspens. Sans rien afficher, et sans requête si rien n'a bougé.
+ */
+function autoPublish() {
+  if (!online.enabled()) return;
+  online.autoSync(displayName(), localScoreList()).catch(() => {});
+}
+
+/** Renvoie tous les meilleurs scores locaux d'un coup. */
+async function publishAllScores() {
+  if (!online.enabled()) return;
+  const name = displayName();
+  const list = localScoreList();
   if (!list.length) return ui.toast(t('board_none'));
   ui.toast(t('board_sending', { n: list.length }), 3000);
   const ok = await online.publishMany(name, list);
@@ -498,11 +524,6 @@ function openTrophies() {
   const unlocked = SKINS.filter((sk) => !sk.unlock || unlockedTrophies.includes(sk.unlock)).map((sk) => sk.id);
   const skinFor = Object.fromEntries(SKINS.filter((sk) => sk.unlock).map((sk) => [sk.unlock, sk.id]));
   ui.show('trophies');
-  if (online.enabled()) {
-    ui.boardLoading('tr-global');
-    $('tr-global').hidden = false;
-    online.globalBoard().then((rows) => ui.renderGlobalBoard(rows, online.playerId()));
-  }
   ui.renderTrophies(
     { counts, stats, progress: progress(stats, counts), skins: SKINS, unlocked, skinFor, activeSkin: activeSkin().id },
     (id) => {
@@ -542,7 +563,7 @@ function initUiSounds() {
                      'btn-again', 'btn-ready', 'btn-resume', 'btn-restart', 'btn-calib-use',
                      'btn-install'].includes(id)
       || el.classList.contains('btn-primary') || el.classList.contains('btn-host');
-    const open = ['btn-settings', 'btn-credits', 'btn-calib-home', 'btn-change-track',
+    const open = ['btn-settings', 'btn-credits', 'btn-calib-home', 'btn-change-track', 'btn-ranking',
                   'btn-join', 'btn-recalib'].includes(id);
     const toggle = el.classList.contains('seg-btn') || el.classList.contains('sort-btn')
       || el.classList.contains('color-dot') || el.classList.contains('switch');

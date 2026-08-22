@@ -545,11 +545,9 @@ export function renderTrackBoard(rows, me) {
 
 /** Classement général : SS, S+, S et meilleur combo, tous joueurs confondus. */
 export function renderGlobalBoard(rows, me) {
-  const el = $('tr-global');
-  const lab = $('tr-global-label');
-  if (!rows || !rows.length) { el.hidden = true; lab.hidden = true; return; }
-  lab.hidden = false;
-  el.hidden = false;
+  const el = $('ranking-list');
+  if (!rows) return boardMessage(el, 'board_error');
+  if (!rows.length) return boardMessage(el, 'board_empty');
   el.innerHTML = `
     <div class="board-row head">
       <span class="pos"></span><span class="bn"></span>

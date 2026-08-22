@@ -84,9 +84,9 @@ publique. Les deux formats de clé sont acceptés : les anciennes clés
 ainsi ferait échouer l'analyse côté serveur.
 
 Une fois le SQL de l'étape 2 exécuté, **CLASSEMENT GÉNÉRAL** et **MES
-SCORES** apparaissent dans la fiche de chaque morceau, le classement
-général sur la page des trophées, et **PUBLIER MES SCORES** dans les
-réglages.
+SCORES** apparaissent dans la fiche de chaque morceau, **CLASSEMENT** sur
+l'accueil (le classement de tous les joueurs), et **PUBLIER MES SCORES**
+dans les réglages.
 
 ### Vérifier que ça marche
 
@@ -113,8 +113,10 @@ n'existe pas), ou que les politiques d'accès manquent.
   `max(name)` — aurait affiché celui venant le plus loin dans l'alphabet,
   pas le plus récent. Si le renommage échoue (hors ligne), la prochaine
   publication le rattrape toute seule.
-- **Envoi automatique** : après chaque partie, uniquement si le meilleur
-  score local a changé. Inutile de renvoyer un score que la base connaît.
+- **Envoi automatique** : au lancement du jeu, et après chaque partie dont
+  le meilleur score local a changé. Le lancement compare une empreinte des
+  scores à celle du dernier envoi : si rien n'a bougé, aucune requête n'est
+  faite. C'est ce qui rattrape les parties jouées hors ligne.
 - **Envoi manuel** : le bouton des réglages republie d'un coup tous les
   meilleurs scores locaux — pratique après avoir joué hors ligne, ou pour
   alimenter la base la première fois.

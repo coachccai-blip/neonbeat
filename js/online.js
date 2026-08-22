@@ -127,6 +127,40 @@ export async function syncName(name) {
   return true;
 }
 
+/**
+ * Empreinte compacte d'un lot de scores. Elle sert à ne PAS renvoyer au
+ * démarrage un ensemble déjà publié : sur 100 scores inchangés, la synchro
+ * automatique devient une comparaison de chaîne, sans la moindre requête.
+ */
+function signature(name, list) {
+  let h = 2166136261;
+  const feed = (str) => {
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  };
+  feed(name || '');
+  for (const { trackId, diff, keys, entry } of list) {
+    feed(`${trackId}|${diff}|${keys}|${Math.round(entry.score || 0)}|${entry.grade}`);
+  }
+  return (h >>> 0).toString(36);
+}
+
+/**
+ * Synchronisation silencieuse au démarrage : elle rattrape les parties
+ * jouées hors ligne et les renommages en suspens, sans rien afficher et
+ * sans requête quand rien n'a changé depuis le dernier envoi.
+ * @returns {'inchangé'|'publié'|'échec'|'inactif'}
+ */
+export async function autoSync(name, list) {
+  if (!enabled() || !list.length) return 'inactif';
+  const sig = signature(name, list);
+  const p = readPlayer() || { id: playerId(), name: '' };
+  if (p.sig === sig) return 'inchangé';
+  const res = await publishMany(name, list);
+  if (res === null) return 'échec';
+  writePlayer({ ...(readPlayer() || p), sig });
+  return 'publié';
+}
+
 /** Publie plusieurs scores d'un coup (bouton « publier mes scores »). */
 export async function publishMany(name, list) {
   if (!enabled() || !list.length) return null;

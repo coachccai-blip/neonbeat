@@ -44,7 +44,7 @@
       <button class="btn btn-tiny" id="btn-trophies" data-i18n="home_trophies">TROPHÉES</button>
       <button class="btn btn-tiny" id="btn-settings" data-i18n="home_settings">RÉGLAGES</button>
       <button class="btn btn-tiny" id="btn-calib-home" data-i18n="home_calib">CALIBRER</button>
-      <button class="btn btn-tiny" id="btn-credits" data-i18n="home_credits">CRÉDITS</button>
+      <button class="btn btn-tiny" id="btn-ranking" data-i18n="home_ranking" hidden>CLASSEMENT</button>
     </div>
     <div class="home-foot">
       <button class="btn btn-install" id="btn-install" data-i18n="install" hidden>INSTALLER LE JEU</button>
@@ -301,6 +301,7 @@
       </div>
       <button class="btn btn-small" id="btn-update" data-i18n="ver_update">METTRE À JOUR</button>
       <button class="btn btn-small" id="btn-publish" data-i18n="board_publish" hidden>PUBLIER MES SCORES</button>
+      <button class="btn btn-small" id="btn-credits" data-i18n="home_credits">CRÉDITS</button>
     </div>
 
     <div class="field">
@@ -315,6 +316,15 @@
 </section>
 
 <!-- ─────────────────────────── CRÉDITS ─────────────────────────── -->
+<section class="screen" id="screen-ranking" data-screen="ranking">
+  <div class="wrap wide">
+    <button class="btn-back" data-back="home" data-i18n="back">‹ RETOUR</button>
+    <h2 class="title" data-i18n="board_global">CLASSEMENT GÉNÉRAL</h2>
+    <p class="res-song" data-i18n="ranking_sub">Tous les joueurs, par nombre de grades</p>
+    <div class="board-list" id="ranking-list"></div>
+  </div>
+</section>
+
 <section class="screen" id="screen-board" data-screen="board">
   <div class="wrap wide">
     <button class="btn-back" id="board-back" data-i18n="back">‹ RETOUR</button>
@@ -337,9 +347,6 @@
 
     <div class="label" data-i18n="trophies_skins">SKINS JOUABLES</div>
     <div class="skin-grid" id="tr-skins"></div>
-
-    <div class="label" id="tr-global-label" data-i18n="board_global" hidden>CLASSEMENT GÉNÉRAL</div>
-    <div class="board-list" id="tr-global" hidden></div>
 
     <div class="label" data-i18n="trophies_list">DÉFIS</div>
     <div class="trophy-list" id="tr-list"></div>
