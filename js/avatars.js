@@ -42,3 +42,17 @@ export function avatarById(id) {
 export function avatarFile(id) {
   return avatarById(id) ? `./assets/avatars/${id}.webp` : null;
 }
+
+/**
+ * Grand format, pour le personnage de l'écran d'accueil : deux tailles,
+ * que le navigateur choisit selon la densité de l'écran. La vignette de
+ * 128 px y serait affichée à plus du double de sa taille ; 420 px suffisent
+ * à un écran classique, 720 à un écran dense.
+ */
+export function avatarLarge(id) {
+  if (!avatarById(id)) return null;
+  return {
+    src: `./assets/avatars/${id}-420.webp`,
+    srcset: `./assets/avatars/${id}-420.webp 420w, ./assets/avatars/${id}-720.webp 720w`
+  };
+}

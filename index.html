@@ -31,12 +31,14 @@
   <div class="wrap wrap-home">
     <!-- Mascotte : badge circulaire, halo et anneau néon animés en CSS pur -->
     <div class="hero">
+      <!-- Le personnage de l'accueil EST l'avatar du joueur. L'image porte
+           déjà l'avatar par défaut : le script ne la change que si le
+           joueur en a choisi un autre, sans clignotement au chargement. -->
       <div class="mascot">
-        <picture>
-          <source srcset="./assets/mascot.webp 720w, ./assets/mascot-420.webp 420w"
-                  sizes="(max-width: 420px) 62vw, 260px" type="image/webp">
-          <img src="./assets/mascot.png" width="420" height="420" alt="" decoding="async" fetchpriority="high">
-        </picture>
+        <img id="home-avatar" src="./assets/avatars/nb_avatar01-420.webp"
+             srcset="./assets/avatars/nb_avatar01-420.webp 420w, ./assets/avatars/nb_avatar01-720.webp 720w"
+             sizes="(max-width: 420px) 62vw, 260px"
+             width="420" height="420" alt="" decoding="async" fetchpriority="high">
       </div>
       <h1 class="logo"><span class="logo-neon">NEON</span><span class="logo-beat">BEAT</span></h1>
       <p class="tagline" data-i18n="tagline">Jusqu’à 8 joueurs · 1 salon · 4 touches</p>

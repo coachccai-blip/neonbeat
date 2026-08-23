@@ -12,7 +12,7 @@ import { ClockSync } from './clock.js';
 import { Host, Client, normalizeCode, MAX_PLAYERS } from './net.js';
 import { MODS, multiplierFor, modsLabel } from './mods.js';
 import { SKINS, skinById, DEFAULT_SKIN } from './skins.js';
-import { AVATARS, avatarById, DEFAULT_AVATAR } from './avatars.js';
+import { AVATARS, avatarById, avatarFile, avatarLarge, DEFAULT_AVATAR } from './avatars.js';
 import * as bots from './bots.js';
 import * as player from './player.js';
 import * as online from './online.js';
@@ -290,6 +290,9 @@ function boot() {
 
   ui.onScreenChange((name) => {
     peindreLecteur();
+    // Un trophée décroché en jouant peut ouvrir un avatar : on revalide au
+    // retour sur l'accueil plutôt que de guetter chaque déblocage.
+    if (name === 'home') peindreAvatarAccueil();
     if (name === 'settings') { ui.startSpeedPreview(); renderAvatarPicker(); }
     else ui.stopSpeedPreview();
     // La préversion vit sur DEUX écrans : la sélection et le salon. Partout
@@ -468,6 +471,24 @@ function activeAvatar() {
   return earned(stats, counts).includes(av.unlock) ? av : DEFAULT_AVATAR;
 }
 
+/**
+ * Le personnage de l'accueil suit l'avatar du joueur. Le logo, lui, ne
+ * bouge pas : c'est l'identité du jeu, pas celle du joueur.
+ */
+function peindreAvatarAccueil() {
+  const img = $('home-avatar');
+  if (!img) return;
+  const id = activeAvatar().id;
+  const grand = avatarLarge(id);
+  if (!grand || img.dataset.avatar === id) return;
+  img.dataset.avatar = id;
+  // Repli sur la vignette : un avatar choisi hors ligne avant que son
+  // grand format n'ait jamais été chargé vaut mieux flou que cassé.
+  img.onerror = () => { img.onerror = null; img.removeAttribute('srcset'); img.src = avatarFile(id); };
+  img.srcset = grand.srcset;
+  img.src = grand.src;
+}
+
 /** Peint la grille d'avatars des réglages (repeinte à chaque ouverture). */
 function renderAvatarPicker() {
   const { stats, counts } = trophyState();
@@ -480,6 +501,7 @@ function renderAvatarPicker() {
       storage.set('avatar', a.id);
       audio.uiToggle(true);
       renderAvatarPicker();
+      peindreAvatarAccueil();
       // Le classement affiche l'avatar : il doit suivre le changement sans
       // attendre la prochaine partie.
       online.syncProfile(displayName(), a.id).catch(() => {});
