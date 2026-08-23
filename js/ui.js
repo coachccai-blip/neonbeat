@@ -2,7 +2,7 @@
 // Toute la logique de partie vit dans main.js ; ici on ne fait que peindre.
 
 import * as storage from './storage.js';
-import { travelTime, notesOnScreen, clampSpeed } from './storage.js';
+import { travelTime, notesOnScreen, clampSpeed, TRAVEL_MIN, TRAVEL_MAX } from './storage.js';
 import { t } from './i18n.js';
 import * as audio from './audio.js';
 import { avatarFile, DEFAULT_AVATAR } from './avatars.js';
@@ -103,9 +103,12 @@ export function describeSpeed(speed, chartInfo) {
   if (!chartInfo) { el.textContent = ''; return; }
   const on = notesOnScreen(chartInfo.bpm, speed, chartInfo.nps);
   const ms = Math.round(travelTime(chartInfo.bpm, speed) * 1000);
-  const verdict = on > 7 ? t('speed_v_packed') : on > 4.5 ? t('speed_v_dense')
-    : on > 2 ? t('speed_v_comfy') : t('speed_v_airy');
-  el.textContent = t('speed_hint', { n: on.toFixed(1), ms, verdict });
+  // Le verdict porte sur le TEMPS DE CHUTE, pas sur le nombre de notes
+  // affichées : c'est lui qui décide si la lecture est tenable, et il ne
+  // dépend ni du tempo ni de la densité de la chart.
+  const verdict = ms < 420 ? t('speed_v_packed') : ms < TRAVEL_MIN ? t('speed_v_dense')
+    : ms <= TRAVEL_MAX ? t('speed_v_comfy') : t('speed_v_airy');
+  el.textContent = t('speed_hint', { ms, n: on.toFixed(1), verdict });
 }
 
 /**

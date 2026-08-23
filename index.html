@@ -135,6 +135,14 @@
       <span class="label" data-i18n="lobby_mydiff">MA DIFFICULTÉ</span>
       <div class="seg" id="lobby-diff" role="group" aria-label="Difficulté"></div>
     </div>
+    <div class="field lobby-speed">
+      <div class="speed-head">
+        <span class="label" data-i18n="lobby_myspeed">MA VITESSE</span>
+        <span class="speed-val" id="lobby-speed-val">×2.5</span>
+      </div>
+      <input type="range" id="lobby-speed" min="1" max="6" step="0.05">
+      <p class="hint" id="lobby-speed-hint"></p>
+    </div>
 
     <div class="lobby-actions">
       <button class="btn btn-primary" id="btn-ready" data-i18n="lobby_ready">JE SUIS PRÊT</button>
@@ -187,7 +195,7 @@
         <span class="label" data-i18n="select_speed">VITESSE DE CHUTE</span>
         <span class="speed-val" id="speed-val">×2.5</span>
       </div>
-      <input type="range" id="speed-slider" min="1" max="6" step="0.25" value="2.5"
+      <input type="range" id="speed-slider" min="1" max="6" step="0.05" value="2.5"
              aria-label="Vitesse de chute des notes">
       <p class="hint speed-hint" id="speed-hint"></p>
       <p class="maxcombo" id="sheet-maxcombo"></p>
@@ -333,7 +341,7 @@
 
     <div class="field">
       <div class="speed-head"><span class="label" data-i18n="select_speed">VITESSE DE CHUTE</span><span class="speed-val" id="set-speed-val">×2.5</span></div>
-      <input type="range" id="set-speed" min="1" max="6" step="0.25">
+      <input type="range" id="set-speed" min="1" max="6" step="0.05">
       <p class="hint" data-i18n="set_speed_hint"></p>
       <div class="speed-preview"><canvas id="speed-preview" width="240" height="150"></canvas></div>
     </div>

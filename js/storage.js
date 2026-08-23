@@ -17,6 +17,7 @@ const DEFAULTS = {
   offset: 0,          // ms de latence mesurée à la calibration
   calibrated: false,
   speed: 2.5,         // multiplicateur de vitesse de chute, façon DJ Max
+  travelMs: 625,      // temps de chute visé : c'est LUI que le joueur règle
   volume: 0.8,
   hitsound: true,     // « pop » de papier bulle à chaque note
   hitsoundPop: false, // marqueur de migration (voir read())
@@ -80,7 +81,11 @@ export function set(key, value) {
 
 export const SPEED_MIN = 1;
 export const SPEED_MAX = 6;
-export const SPEED_STEP = 0.25;
+/* Le pas était d'un quart de point, la convention du genre. Mais le
+   réglage vise désormais une DURÉE : à ×1,75 un quart de point déplace le
+   temps de chute de 14 %, bien trop pour honorer une cible en
+   millisecondes. Un vingtième de point tombe toujours à moins de 1 % près. */
+export const SPEED_STEP = 0.05;
 
 /** Temps de trajet d'une note, du haut de l'écran à la ligne de jugement. */
 export function travelTime(bpm, speed) {
@@ -97,10 +102,38 @@ export function clampSpeed(v) {
   return Math.max(SPEED_MIN, Math.min(SPEED_MAX, Math.round(s * 100) / 100));
 }
 
-/** Vitesse conseillée pour cette chart : vise 1,5 note affichée à la fois. */
-export function suggestSpeed(bpm, notesPerSecond) {
-  if (!notesPerSecond) return 2.5;
-  return clampSpeed((notesPerSecond * 240) / (bpm * 1.5));
+/* ─── Temps de chute ──────────────────────────────────────────────────
+   Le repère n'est plus « combien de notes tiennent à l'écran » mais le
+   TEMPS que met une note à descendre. C'est lui que l'œil et la main
+   ressentent : à densité égale, deux morceaux de tempos différents se
+   jouent pareil s'ils ont le même temps de chute, et pas du tout s'ils ont
+   le même multiplicateur.
+
+   Le multiplicateur reste l'unité affichée — c'est la convention du genre —
+   mais il n'est plus qu'une conséquence du temps visé et du tempo.        */
+
+export const TRAVEL_MIN = 550;      // ms
+export const TRAVEL_MAX = 700;
+export const TRAVEL_DEFAULT = 625;  // milieu de la fenêtre
+
+/** Multiplicateur donnant ce temps de chute sur ce tempo, borné et arrondi. */
+export function speedForTravel(bpm, ms) {
+  if (!bpm) return 2.5;
+  return clampSpeed(240 / (bpm * (ms / 1000)));
+}
+
+/**
+ * Vitesse conseillée : celle dont le temps de chute tombe dans la fenêtre
+ * 550–700 ms. L'arrondi au quart de point peut faire sortir de la fenêtre
+ * la valeur visant son milieu ; on rentre alors d'un cran.
+ */
+export function suggestSpeed(bpm) {
+  if (!bpm) return 2.5;
+  let v = speedForTravel(bpm, TRAVEL_DEFAULT);
+  const ms = () => travelTime(bpm, v) * 1000;
+  if (ms() > TRAVEL_MAX && v < SPEED_MAX) v = clampSpeed(v + SPEED_STEP);
+  else if (ms() < TRAVEL_MIN && v > SPEED_MIN) v = clampSpeed(v - SPEED_STEP);
+  return v;
 }
 
 /* ─── Records locaux ─────────────────────────────────────────────────────

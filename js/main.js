@@ -153,6 +153,13 @@ function boot() {
     openSelect();
   });
   $('btn-lobby-preview').addEventListener('click', toggleLobbyPreview);
+  // Chacun sa vitesse : elle ne regarde que son propre écran, rien n'est
+  // transmis aux autres. Un joueur peut donc l'ajuster même pendant que le
+  // salon attend, sans perturber personne.
+  $('lobby-speed').addEventListener('input', (e) => {
+    onSpeedPicked(storage.clampSpeed(parseFloat(e.target.value)));
+    ui.refreshSettings();
+  });
   $('btn-add-bot').addEventListener('click', ajouterBot);
   $('team-seg').addEventListener('click', (e) => {
     const b = e.target.closest('[data-team-mode]');
@@ -204,7 +211,7 @@ function boot() {
   });
   $('speed-slider').addEventListener('input', (e) => {
     const v = storage.clampSpeed(parseFloat(e.target.value));
-    storage.set('speed', v);
+    onSpeedPicked(v);
     updateSpeedHint();
     ui.refreshSettings();
   });
@@ -248,6 +255,7 @@ function boot() {
 
   // Réglages
   ui.bindSettings((key) => {
+    if (key === 'speed') onSpeedPicked(storage.get('speed'));
     if (key === 'volume') {
       audio.setVolume(storage.get('volume'));
       player.setVolume(storage.get('volume'));
@@ -1081,18 +1089,54 @@ function maxComboOf(track, diffName, keysMode) {
  * Le joueur peut ensuite l'ajuster au slider : son choix tient jusqu'à la
  * prochaine sélection.
  */
+/**
+ * Recale le multiplicateur sur le TEMPS DE CHUTE choisi par le joueur.
+ *
+ * Auparavant, chaque changement de morceau ou de difficulté recalculait une
+ * vitesse « idéale » et écrasait le réglage. C'était supportable en solo ;
+ * en multijoueur, où l'hôte change de morceau quand il veut, cela effaçait
+ * le choix des autres à chaque fois.
+ *
+ * Le joueur ne règle plus un multiplicateur mais une durée de descente, qui
+ * le suit d'un morceau à l'autre : le multiplicateur s'ajuste au tempo pour
+ * que les notes tombent toujours à la vitesse qu'il a demandée.
+ */
 function applyAutoSpeed() {
   const t = S.selectedTrack;
   if (!t) return;
   loadTrack(t.id).then((track) => {
     const nps = density(track, S.myDiff);
-    const v = storage.suggestSpeed(track.bpm, nps);
+    const v = storage.speedForTravel(track.bpm, storage.get('travelMs') || storage.TRAVEL_DEFAULT);
     storage.set('speed', v);
     const slider = $('speed-slider');
     if (slider) slider.value = v;
     ui.refreshSettings();
     ui.describeSpeed(v, { bpm: track.bpm, nps });
     ui.showMaxCombo(maxComboOf(track, S.myDiff, storage.get('keys')));
+    refreshLobbySpeed(track);
+  }).catch(() => {});
+}
+
+/** Rafraîchit la rangée « ma vitesse » du salon. */
+function refreshLobbySpeed(track) {
+  const el = $('lobby-speed');
+  if (!el) return;
+  const v = storage.get('speed');
+  el.value = v;
+  $('lobby-speed-val').textContent = ui.fmtSpeed(v);
+  const ms = track ? Math.round(storage.travelTime(track.bpm, v) * 1000) : 0;
+  $('lobby-speed-hint').textContent = ms ? t('lobby_speed_ms', { ms }) : '';
+}
+
+/** Le curseur de vitesse a bougé : c'est le TEMPS visé qu'on mémorise. */
+function onSpeedPicked(v) {
+  storage.set('speed', v);
+  const t = S.selectedTrack;
+  if (!t) return;
+  loadTrack(t.id).then((track) => {
+    storage.set('travelMs', Math.round(storage.travelTime(track.bpm, v) * 1000));
+    ui.describeSpeed(v, { bpm: track.bpm, nps: density(track, S.myDiff) });
+    refreshLobbySpeed(track);
   }).catch(() => {});
 }
 
@@ -2401,6 +2445,8 @@ function refreshLobby() {
   for (const b of $('team-seg').querySelectorAll('[data-team-mode]')) {
     b.classList.toggle('is-on', (b.dataset.teamMode === 'teams') === !!S.teamMode);
   }
+
+  if (sel) loadTrack(sel.id).then(refreshLobbySpeed).catch(() => {});
 
   // Bots : réglables par l'hôte, en lecture seule chez les clients.
   ui.renderBots(

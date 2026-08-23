@@ -329,12 +329,18 @@ body { overflow: hidden; }
 
 /* ─── Liste des morceaux ─── */
 .track-list { display: flex; flex-direction: column; gap: 10px; }
+/* Une grille plutôt qu'une rangée : les cinq badges de difficulté sont
+   incompressibles et écrasaient la colonne du titre, qui se cassait mot à
+   mot sur cinq lignes. Ils passent donc SOUS le texte, et le titre dispose
+   de toute la largeur de la carte — il ne se coupe qu'en bout de ligne. */
 .track-item {
-  display: flex; align-items: center; gap: 14px; padding: 14px; min-height: 74px;
+  display: grid; grid-template-columns: auto 1fr; align-items: center;
+  gap: 4px 14px; padding: 14px; min-height: 74px;
   background: rgba(255,255,255,.035); border: 1.5px solid transparent;
   border-radius: var(--radius); cursor: pointer; text-align: left; width: 100%;
   font-family: inherit; color: var(--ink); transition: border-color .12s, background .12s;
 }
+.track-item .track-cover { grid-row: 1 / span 2; }
 .track-item.is-on { border-color: var(--accent, var(--cyan)); background: rgba(255,255,255,.08); }
 .track-cover {
   width: 46px; height: 46px; flex: none; border-radius: 10px; object-fit: cover;
@@ -344,10 +350,21 @@ body { overflow: hidden; }
   width: 54px; height: 54px; flex: none; border-radius: 12px;
   box-shadow: 0 0 0 1px rgba(255,255,255,.12), 0 4px 16px rgba(0,0,0,.45);
 }
-.track-info { flex: 1; min-width: 0; }
-.track-info .t { display: block; font-size: 19px; font-weight: 800; letter-spacing: .01em; }
+.track-info { min-width: 0; }
+.track-info .t { display: block; font-size: 19px; font-weight: 800; letter-spacing: .01em; line-height: 1.15; }
 .track-info .m { display: block; font-size: 11px; color: var(--ink-dim); letter-spacing: .08em; margin-top: 2px; }
-.track-levels { display: flex; gap: 4px; flex: none; }
+/* Les badges tiennent sur une ligne ; au pire ils défilent latéralement
+   plutôt que de repousser quoi que ce soit. */
+.track-levels {
+  display: flex; gap: 4px; grid-column: 2; align-self: start;
+  overflow-x: auto; scrollbar-width: none;
+}
+.track-levels::-webkit-scrollbar { display: none; }
+.track-levels .lv { flex: none; }
+/* Le mode écoute n'a pas de badges : l'égaliseur reprend sa place à droite
+   du titre, sur la même ligne. */
+.listen-list .track-item { grid-template-columns: auto 1fr auto; }
+.listen-list .track-eq { grid-column: 3; grid-row: 1; align-self: center; }
 .lv { font-size: 11px; font-weight: 700; padding: 3px 6px; border-radius: 6px; background: rgba(255,255,255,.07); color: var(--ink-dim); }
 .lv.e { color: var(--cyan); } .lv.n { color: var(--amber); } .lv.h { color: var(--magenta); }
 
