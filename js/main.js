@@ -19,11 +19,6 @@ import { TROPHIES, gradeCounts, progress, earned, applyResult, favori, EMPTY_STA
 import * as i18n from './i18n.js';
 import { APP_VERSION } from './version.js';
 
-/* Plafond d'images par seconde du RENDU. Une milliseconde de marge évite
-   qu'un écran 60 Hz, dont les intervalles oscillent autour de 16,7 ms, ne
-   saute une image sur deux. */
-const DRAW_MIN_MS = 1000 / 60 - 1;
-
 const { t } = i18n;
 
 const $ = (id) => document.getElementById(id);
@@ -1154,16 +1149,11 @@ class Game {
     if (this.keysMode === '2') notes = to2Keys(notes);
     this.engine = new Engine(notes);
     this.renderer = new Renderer($('game-canvas'));
-    this.renderer.setEco(storage.get('eco'));
     this.renderer.setSkin(activeSkin());
     this.finished = false;
     this.paused = false;
-    this.lastDraw = 0;
     this.smoothRef = null;        // horloge de rendu lissée (voir renderTime)
     this.smoothBase = 0;
-    // Le plafond d'images n'est appliqué qu'en mode économie : ailleurs, un
-    // écran 120 Hz mérite ses 120 images, et les brider se VOIT.
-    this.capFps = !!storage.get('eco');
     this.userOffset = storage.get('offset') / 1000;
     this.lastProgressSend = 0;
 
@@ -1299,14 +1289,7 @@ class Game {
     this.raf = requestAnimationFrame(() => this.loop());
     if (this.paused) return;
     const t = this.songTime();
-    // En mode économie, le rendu est plafonné à 60 images par seconde : sur
-    // un écran 90 ou 120 Hz, cela divise par deux le travail du GPU sans
-    // qu'une seule note soit moins bien jugée. Hors de ce mode on dessine à
-    // chaque rafraîchissement — sur un écran rapide, la différence se voit.
-    // Le JUGEMENT, lui, tourne toujours à chaque tour : il ne coûte presque
-    // rien et y gagne en réactivité.
     const nowMs = performance.now();
-    const dessine = !this.capFps || nowMs - this.lastDraw >= DRAW_MIN_MS;
 
     // Le moteur juge sur la MÊME horloge que les frappes (onPress/onRelease) :
     // l'horloge audio décalée de l'offset de calibration. Sur l'horloge brute,
@@ -1340,10 +1323,7 @@ class Game {
     this.renderer.pressed = this.input.pressedLanes();
     this.renderer.setCombo(this.engine.combo);
     this.renderer.failed = this.engine.failed;
-    if (dessine) {
-      this.lastDraw = nowMs;
-      this.renderer.draw(this.renderTime(t, nowMs));
-    }
+    this.renderer.draw(this.renderTime(t, nowMs));
 
     // HUD
     $('hud-score').textContent = Math.round(this.engine.score * this.mult).toLocaleString('fr-FR');

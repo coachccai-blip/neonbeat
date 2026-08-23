@@ -6,8 +6,6 @@ import * as storage from './storage.js';
 
 const STRINGS = {
   fr: {
-    set_eco: 'ÉCONOMIE D’ÉNERGIE',
-    set_eco_hint: 'Allège le décor et abaisse la résolution du rendu. Utile si le téléphone chauffe ou si la batterie descend vite ; le jeu et le jugement des notes ne changent pas.',
     trophies_stats: 'EN CHIFFRES',
     facts_time: 'TEMPS DE JEU',
     facts_plays_1: '1 partie terminée', facts_plays_n: '{n} parties terminées',
@@ -177,8 +175,6 @@ const STRINGS = {
   },
 
   en: {
-    set_eco: 'BATTERY SAVER',
-    set_eco_hint: 'Lightens the scenery and lowers the rendering resolution. Handy if the phone runs hot or the battery drains fast; gameplay and note judgment are unchanged.',
     trophies_stats: 'BY THE NUMBERS',
     facts_time: 'TIME PLAYED',
     facts_plays_1: '1 run finished', facts_plays_n: '{n} runs finished',
@@ -348,8 +344,6 @@ const STRINGS = {
   },
 
   zh: {
-    set_eco: '省电模式',
-    set_eco_hint: '简化背景并降低渲染分辨率。手机发烫或耗电较快时可开启；玩法与判定不受影响。',
     trophies_stats: '数据一览',
     facts_time: '游玩时长',
     facts_plays_1: '已完成 1 局', facts_plays_n: '已完成 {n} 局',
