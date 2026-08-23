@@ -19,6 +19,9 @@ import { TROPHIES, gradeCounts, progress, earned, applyResult, favori, EMPTY_STA
 import * as i18n from './i18n.js';
 import { APP_VERSION } from './version.js';
 
+/* Constante de temps du lissage de l'horloge de rendu, en secondes. */
+const SMOOTH_TAU = 0.2;
+
 const { t } = i18n;
 
 const $ = (id) => document.getElementById(id);
@@ -1154,6 +1157,9 @@ class Game {
     this.paused = false;
     this.smoothRef = null;        // horloge de rendu lissée (voir renderTime)
     this.smoothBase = 0;
+    this.uiScore = null;          // dernières valeurs POSÉES dans le DOM
+    this.uiLife = null;
+    this.uiCount = null;
     this.userOffset = storage.get('offset') / 1000;
     this.lastProgressSend = 0;
 
@@ -1250,10 +1256,16 @@ class Game {
       this.smoothRef = nowMs;
       return audioT;
     }
-    const libre = this.smoothBase + ((nowMs - this.smoothRef) / 1000) * this.rate;
-    // Recalage progressif : 8 % de l'écart par image ramène l'horloge en
-    // une poignée d'images, sans le sursaut qu'un recalage sec produirait.
-    const lisse = libre + (audioT - libre) * 0.08;
+    const dt = (nowMs - this.smoothRef) / 1000;
+    const libre = this.smoothBase + dt * this.rate;
+    // Recalage progressif, exprimé en TEMPS et non par image : une
+    // correction fixe par image donnerait un filtre deux fois plus dur sur
+    // un écran 120 Hz que sur un 60 Hz — donc moins efficace contre les
+    // paliers de l'horloge audio là où il faut justement qu'il le soit.
+    // TAU vaut 0,2 s, ce qui reproduit l'ancien comportement à 60 images
+    // par seconde et le rend identique partout ailleurs.
+    const k = 1 - Math.exp(-dt / SMOOTH_TAU);
+    const lisse = libre + (audioT - libre) * k;
     this.smoothBase = lisse;
     this.smoothRef = nowMs;
     return lisse;
@@ -1325,16 +1337,29 @@ class Game {
     this.renderer.failed = this.engine.failed;
     this.renderer.draw(this.renderTime(t, nowMs));
 
-    // HUD
-    $('hud-score').textContent = Math.round(this.engine.score * this.mult).toLocaleString('fr-FR');
+    // HUD. Ces éléments sont du DOM posé PAR-DESSUS le canvas : chaque
+    // écriture peut faire repeindre cette couche, en plus du travail du
+    // canvas. Or, mesuré en partie, 94 % des écritures reposaient la valeur
+    // déjà affichée. On ne touche donc au DOM que lorsqu'il change
+    // vraiment — et la vie est arrondie au demi-point, en deçà duquel la
+    // barre ne bouge de toute façon pas d'un pixel.
+    const score = Math.round(this.engine.score * this.mult);
+    if (score !== this.uiScore) {
+      this.uiScore = score;
+      $('hud-score').textContent = score.toLocaleString('fr-FR');
+    }
     if (t - (this.lastProgressUi || -1) >= 0.25) {
       this.lastProgressUi = t;
       $('song-progress-fill').style.width =
         Math.min(100, Math.max(0, (t / this.track.duration) * 100)) + '%';
     }
-    const life = $('life-bar');
-    life.style.width = this.engine.life + '%';
-    life.classList.toggle('low', this.engine.life < 30);
+    const vie = Math.round(this.engine.life * 2) / 2;
+    if (vie !== this.uiLife) {
+      this.uiLife = vie;
+      const life = $('life-bar');
+      life.style.width = vie + '%';
+      life.classList.toggle('low', vie < 30);
+    }
 
     // Décompte : avant le début du morceau et au retour de pause, en
     // secondes réelles (le rewind de reprise compte 3-2-1 jusqu'à l'instant
@@ -1346,10 +1371,14 @@ class Game {
       remainReal = (this.resumeTarget - t) / this.rate;
     }
     if (remainReal > 0) {
-      cd.hidden = false;
       const n = Math.ceil(remainReal);
-      cd.textContent = n <= 3 ? String(n) : '';
-      cd.classList.remove('go');
+      const texte = n <= 3 ? String(n) : '';
+      if (texte !== this.uiCount) {
+        this.uiCount = texte;
+        cd.hidden = false;
+        cd.textContent = texte;
+        cd.classList.remove('go');
+      }
     } else {
       if (this.resumeTarget != null && t >= this.resumeTarget) {
         this.resumeTarget = null;
@@ -1360,10 +1389,14 @@ class Game {
         this.goUntil = performance.now() + 550;
       }
       if (this.goUntil && performance.now() < this.goUntil) {
-        cd.hidden = false;
-        cd.textContent = 'GO';
-        cd.classList.add('go');
+        if (this.uiCount !== 'GO') {
+          this.uiCount = 'GO';
+          cd.hidden = false;
+          cd.textContent = 'GO';
+          cd.classList.add('go');
+        }
       } else if (!cd.hidden) {
+        this.uiCount = null;
         cd.hidden = true;
         cd.classList.remove('go');
         this.goUntil = 0;
