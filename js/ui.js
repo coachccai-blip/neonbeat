@@ -208,6 +208,59 @@ export function renderTrackList(tracks, activeId, onPick, gradeOf) {
   });
 }
 
+/* ─── Mode écoute ─── */
+
+/**
+ * Liste des morceaux en mode écoute. Elle reprend la fiche de l'écran de
+ * sélection, moins les niveaux de difficulté — ici on écoute, on ne joue
+ * pas — et marque celui qui passe.
+ * @param {(t:object)=>void} onPick
+ */
+export function renderListenList(tracks, playingId, onPick) {
+  const list = $('listen-list');
+  list.innerHTML = '';
+  if (!tracks.length) {
+    list.innerHTML = `<p class="board-msg">${esc(t('search_none'))}</p>`;
+    return;
+  }
+  for (const tr of tracks) {
+    const b = document.createElement('button');
+    b.className = 'track-item' + (tr.id === playingId ? ' is-playing' : '');
+    b.style.setProperty('--accent', tr.color || '#22e0c8');
+    b.innerHTML = `
+      <img class="track-cover" src="${coverFor(tr)}" alt="" width="46" height="46">
+      <span class="track-info">
+        <span class="t">${esc(tr.title)}</span>
+        <span class="m">${esc(tr.artist)} · ${fmtDur(tr.duration)}</span>
+      </span>
+      <span class="track-eq" aria-hidden="true"><i></i><i></i><i></i></span>`;
+    b.addEventListener('click', () => onPick(tr));
+    list.appendChild(b);
+  }
+}
+
+/** Barre de lecture : titre, position, et l'état des trois modes. */
+export function renderPlayer(st, surEcranEcoute) {
+  const bar = $('player-bar');
+  bar.hidden = !st.charge;
+  document.body.classList.toggle('has-player', !!st.charge);
+  if (!st.charge) return;
+  $('pb-cover').src = coverFor(st.track);
+  $('pb-title').textContent = st.track.title;
+  $('pb-time').textContent = st.chargement ? t('listen_loading')
+    : `${fmtDur(st.time)} / ${fmtDur(st.duration)}`;
+  const f = st.duration ? Math.min(1, st.time / st.duration) : 0;
+  $('pb-seek-fill').style.width = `${(f * 100).toFixed(2)}%`;
+  $('pb-seek').setAttribute('aria-valuenow', Math.round(f * 100));
+  $('pb-play').textContent = st.playing ? '⏸' : '▶';
+  $('pb-play').setAttribute('aria-label', t(st.playing ? 'listen_pause' : 'listen_play'));
+  $('pb-shuffle').classList.toggle('is-on', st.shuffle);
+  // « une seule » se distingue de « toutes » par le petit 1 du symbole.
+  $('pb-repeat').textContent = st.repeat === 'one' ? '🔂' : '🔁';
+  $('pb-repeat').classList.toggle('is-on', st.repeat !== 'off');
+  bar.classList.toggle('is-compact', !surEcranEcoute);
+}
+
 function fmtDur(sec) {
   const m = Math.floor(sec / 60);
   const s = Math.round(sec % 60);

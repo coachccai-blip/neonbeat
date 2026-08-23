@@ -14,6 +14,7 @@ import { MODS, multiplierFor, modsLabel } from './mods.js';
 import { SKINS, skinById, DEFAULT_SKIN } from './skins.js';
 import { AVATARS, avatarById, DEFAULT_AVATAR } from './avatars.js';
 import * as bots from './bots.js';
+import * as player from './player.js';
 import * as online from './online.js';
 import { TROPHIES, gradeCounts, progress, earned, applyResult, favori, EMPTY_STATS } from './trophies.js';
 import * as i18n from './i18n.js';
@@ -115,6 +116,8 @@ function boot() {
   $('btn-leave-game').addEventListener('click', () => {
     if (S.game && S.game.opts.multi) S.game.retourAuSalon();
   });
+
+  initListen();
 
   $('btn-settings').addEventListener('click', () => { audio.unlock(); ui.show('settings'); });
   $('btn-trophies').addEventListener('click', () => { audio.unlock(); openTrophies(); });
@@ -245,7 +248,10 @@ function boot() {
 
   // Réglages
   ui.bindSettings((key) => {
-    if (key === 'volume') audio.setVolume(storage.get('volume'));
+    if (key === 'volume') {
+      audio.setVolume(storage.get('volume'));
+      player.setVolume(storage.get('volume'));
+    }
     // Le champ du pseudo réagit à chaque frappe : on attend une pause avant
     // de renommer en ligne, sinon on enverrait une requête par caractère.
     if (key === 'name') {
@@ -275,6 +281,7 @@ function boot() {
   renderLangs();
 
   ui.onScreenChange((name) => {
+    peindreLecteur();
     if (name === 'settings') { ui.startSpeedPreview(); renderAvatarPicker(); }
     else ui.stopSpeedPreview();
     // La préversion vit sur DEUX écrans : la sélection et le salon. Partout
@@ -332,6 +339,7 @@ function boot() {
   }
 
   loadIndex().then((tracks) => {
+    player.init(tracks);
     S.tracks = tracks;
     const last = tracks.find((t) => t.id === storage.get('lastTrack'));
     S.selectedTrack = last || tracks[0];
@@ -630,6 +638,103 @@ function bilanChiffre(stats, counts) {
   f.push({ k: t('facts_fc'), v: String(stats.fullCombos || 0),
            sub: t('facts_fc_sub', { ap: stats.allPerfects || 0 }) });
   return f;
+}
+
+/* ══════════════════ Mode écoute ══════════════════ */
+
+/**
+ * Le lecteur de musique. Il vit à côté du jeu, pas dedans : la lecture
+ * survit à la navigation dans les menus, et ne s'arrête que là où elle
+ * gênerait — une partie, une calibration.
+ */
+function initListen() {
+  player.setCoverMaker(ui.coverFor);
+  player.onChange(() => peindreLecteur());
+
+  $('btn-listen').addEventListener('click', () => {
+    audio.unlock();
+    player.amorcer();          // dans le geste : l'élément audio est débloqué
+    ouvrirEcoute();
+  });
+  $('listen-search').placeholder = t('search_ph');
+  $('listen-search').addEventListener('input', (e) => {
+    S.listenFilter = e.target.value;
+    peindreListeEcoute();
+  });
+
+  $('pb-play').addEventListener('click', () => { audio.unlock(); player.amorcer(); player.toggle(); });
+  $('pb-next').addEventListener('click', () => player.next());
+  $('pb-prev').addEventListener('click', () => player.prev());
+  $('pb-shuffle').addEventListener('click', () => {
+    player.setShuffle(!player.state().shuffle);
+    audio.uiToggle(player.state().shuffle);
+    ui.toast(t(player.state().shuffle ? 'listen_shuffle_on' : 'listen_shuffle_off'));
+  });
+  $('pb-repeat').addEventListener('click', () => {
+    player.cycleRepeat();
+    audio.uiToggle(true);
+    ui.toast(t('listen_repeat_' + player.state().repeat));
+  });
+  // Hors du mode écoute, le titre ramène à la discothèque : sans ça, on
+  // écoute sans savoir comment revenir au lecteur.
+  $('pb-title').addEventListener('click', () => {
+    if (ui.screen() !== 'listen') ouvrirEcoute();
+  });
+
+  const seek = $('pb-seek');
+  const viser = (e) => {
+    const r = seek.getBoundingClientRect();
+    const x = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+    player.seekFrac(Math.max(0, Math.min(1, x / r.width)));
+  };
+  seek.addEventListener('pointerdown', (e) => {
+    seek.setPointerCapture(e.pointerId);
+    S.seeking = true;
+    viser(e);
+  });
+  seek.addEventListener('pointermove', (e) => { if (S.seeking) viser(e); });
+  for (const ev of ['pointerup', 'pointercancel']) {
+    seek.addEventListener(ev, () => { S.seeking = false; });
+  }
+}
+
+function ouvrirEcoute() {
+  $('listen-search').placeholder = t('search_ph');
+  ui.show('listen');
+  peindreListeEcoute();
+}
+
+function peindreListeEcoute() {
+  const f = foldText(S.listenFilter || '');
+  const liste = f
+    ? S.tracks.filter((x) => foldText(x.title).includes(f) || foldText(x.artist || '').includes(f))
+    : S.tracks;
+  const st = player.state();
+  ui.renderListenList(liste, st.track ? st.track.id : null, (tr) => {
+    audio.unlock();
+    player.amorcer();
+    // Le lecteur et les préversions du jeu ne doivent jamais se superposer.
+    previewToken++;
+    audio.stopPreview();
+    stopLobbyPreview();
+    player.play(tr.id);
+    peindreListeEcoute();
+  });
+}
+
+function peindreLecteur() {
+  const st = player.state();
+  ui.renderPlayer(st, ui.screen() === 'listen');
+  if (ui.screen() === 'listen') {
+    const el = $('listen-list').querySelector('.track-item.is-playing');
+    const attendu = st.track ? st.track.id : null;
+    if (!el !== !attendu) peindreListeEcoute();
+  }
+}
+
+/** Le lecteur rend la main : une partie ou une calibration va sonner. */
+function couperLecteur() {
+  player.stop();
 }
 
 /* ══════════════════ Bruitages de navigation ══════════════════ */
@@ -1003,6 +1108,7 @@ function toggleLobbyPreview() {
   const sel = S.selectedTrack;
   if (!sel) return;
   audio.unlock();
+  player.pause();                // deux musiques à la fois, jamais
   S.lobbyPreview = true;
   paintLobbyPreview();
   const token = ++previewToken;
@@ -1033,7 +1139,15 @@ function paintLobbyPreview() {
 function previewTrack(t) {
   // Prépare la piste puis joue son refrain en boucle tant qu'on est sur
   // l'écran de sélection (le bouton JOUER devient instantané au passage).
+  //
+  // Sauf si le lecteur tourne : on n'a pas choisi d'écouter un morceau pour
+  // s'en faire couper un extrait d'un autre par-dessus. La piste est quand
+  // même préparée — c'est elle qui rend le lancement instantané.
   const token = ++previewToken;
+  if (player.state().playing) {
+    loadTrack(t.id).then((track) => audio.prepare(t.id, null, track.audio)).catch(() => {});
+    return;
+  }
   loadTrack(t.id)
     .then((track) => audio.prepare(t.id, null, track.audio).then(() => track))
     .then((track) => {
@@ -1058,6 +1172,7 @@ function goCalibrate(returnTo) {
 }
 
 function startCalibration() {
+  couperLecteur();
   audio.unlock();
   $('calib-result').textContent = '';
   $('btn-calib-start').disabled = true;
@@ -1538,6 +1653,7 @@ function cancelLoading() {
 
 async function withLoading(trackId) {
   stopLobbyPreview();
+  couperLecteur();               // le jeu prend la main sur le son
   pausePrefetch();
   const token = ++loadToken;
   ui.show('loading');

@@ -6,6 +6,12 @@ import * as storage from './storage.js';
 
 const STRINGS = {
   fr: {
+    listen_loading: 'chargement…',
+    listen_title: 'MODE ÉCOUTE', listen_sub: 'Toute la discothèque, sans jouer une note.',
+    listen_play: 'Lecture', listen_pause: 'Pause',
+    listen_shuffle_on: 'Lecture aléatoire', listen_shuffle_off: 'Lecture dans l’ordre',
+    listen_repeat_all: 'Répéter toute la discothèque', listen_repeat_one: 'Répéter ce morceau',
+    listen_repeat_off: 'Sans répétition',
     trophies_stats: 'EN CHIFFRES',
     facts_time: 'TEMPS DE JEU',
     facts_plays_1: '1 partie terminée', facts_plays_n: '{n} parties terminées',
@@ -175,6 +181,12 @@ const STRINGS = {
   },
 
   en: {
+    listen_loading: 'loading…',
+    listen_title: 'LISTEN MODE', listen_sub: 'The whole library, without playing a note.',
+    listen_play: 'Play', listen_pause: 'Pause',
+    listen_shuffle_on: 'Shuffle on', listen_shuffle_off: 'Playing in order',
+    listen_repeat_all: 'Repeat the whole library', listen_repeat_one: 'Repeat this track',
+    listen_repeat_off: 'No repeat',
     trophies_stats: 'BY THE NUMBERS',
     facts_time: 'TIME PLAYED',
     facts_plays_1: '1 run finished', facts_plays_n: '{n} runs finished',
@@ -344,6 +356,12 @@ const STRINGS = {
   },
 
   zh: {
+    listen_loading: '加载中…',
+    listen_title: '聆听模式', listen_sub: '整个曲库，不用打一个音符。',
+    listen_play: '播放', listen_pause: '暂停',
+    listen_shuffle_on: '随机播放', listen_shuffle_off: '按顺序播放',
+    listen_repeat_all: '循环整个曲库', listen_repeat_one: '单曲循环',
+    listen_repeat_off: '不循环',
     trophies_stats: '数据一览',
     facts_time: '游玩时长',
     facts_plays_1: '已完成 1 局', facts_plays_n: '已完成 {n} 局',

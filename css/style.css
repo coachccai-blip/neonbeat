@@ -943,3 +943,80 @@ body.is-host button.host-only { display: block; }
 }
 .btn-listen:active { transform: scale(.92); }
 .btn-listen.is-on { background: var(--cyan); color: #0b0b18; box-shadow: 0 0 14px rgba(47,216,255,.5); }
+
+
+/* ─── Mode écoute ─────────────────────────────────────────────────────
+   Le bouton casque vit en dehors du .wrap de l'accueil : il doit rester
+   collé au coin quel que soit le défilement du menu.                    */
+.btn-headset {
+  position: absolute; top: 14px; right: 14px; z-index: 6;
+  width: 46px; height: 46px; border: 0; border-radius: 50%; cursor: pointer;
+  display: grid; place-items: center; color: var(--cyan);
+  background: rgba(10,10,22,.72); box-shadow: inset 0 0 0 1.5px rgba(47,216,255,.35), 0 0 18px rgba(47,216,255,.18);
+  backdrop-filter: blur(6px);
+}
+.btn-headset:active { transform: scale(.92); }
+
+/* Le morceau en cours se repère à son égaliseur animé, pas à une couleur
+   de plus : la liste en compte déjà une par piste. */
+.track-item.is-playing { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.track-eq { display: none; flex: none; align-items: flex-end; gap: 2px; height: 16px; }
+.track-item.is-playing .track-eq { display: flex; }
+.track-eq i { width: 3px; background: var(--accent); border-radius: 2px; animation: eq .9s ease-in-out infinite; }
+.track-eq i:nth-child(2) { animation-delay: .3s; }
+.track-eq i:nth-child(3) { animation-delay: .6s; }
+@keyframes eq { 0%,100% { height: 5px; } 50% { height: 16px; } }
+@media (prefers-reduced-motion: reduce) { .track-eq i { animation: none; height: 10px; } }
+
+/* ─── Barre de lecture ─── */
+.player-bar {
+  position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: 30;
+  display: flex; align-items: center; gap: 8px; padding: 8px 8px;
+  border-radius: 14px; background: rgba(12,12,26,.92);
+  box-shadow: 0 8px 28px rgba(0,0,0,.5), inset 0 0 0 1px rgba(122,92,255,.28);
+  backdrop-filter: blur(10px);
+}
+/* La barre occupe le bas de l'écran : tout ce qui y était ancré doit lui
+   faire de la place, sans quoi elle recouvrirait le bouton JOUER de la
+   fiche d'un morceau — et le jeu deviendrait inaccessible en écoutant. */
+body.has-player .wrap { padding-bottom: 92px; }
+body.has-player .sheet { padding-bottom: calc(var(--safe-b) + 82px); }
+body.has-player #toast { bottom: calc(var(--safe-b) + 92px); }
+body.has-player .dl-status { margin-bottom: 8px; }
+.pb-cover { flex: none; width: 38px; height: 38px; border-radius: 8px; object-fit: cover; }
+.pb-mid { flex: 1; min-width: 0; }
+.pb-line { display: flex; align-items: baseline; gap: 8px; }
+.pb-title { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 800;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pb-time { flex: none; font-size: 10px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.pb-seek { margin-top: 6px; height: 14px; display: flex; align-items: center; cursor: pointer; }
+.pb-seek::before {
+  content: ''; position: absolute; left: 0; right: 0; height: 4px;
+  border-radius: 2px; background: rgba(255,255,255,.12);
+}
+.pb-seek { position: relative; }
+.pb-seek-fill {
+  position: absolute; left: 0; height: 4px; border-radius: 2px;
+  background: linear-gradient(90deg, var(--cyan), var(--magenta));
+}
+.pb-ctrl { flex: none; display: flex; align-items: center; gap: 0; }
+.pb-btn {
+  width: 30px; height: 32px; border: 0; border-radius: 8px; cursor: pointer;
+  background: none; color: var(--ink-dim); font-size: 13px; line-height: 1;
+}
+/* Les symboles d'aléatoire et de répétition sont des émojis : ils portent
+   leur propre couleur et resteraient identiques, actifs ou non. On les
+   décolore quand ils sont éteints — c'est le seul repère fiable.
+   Une CLASSE, pas un sélecteur d'identifiant : celui-ci l'emporterait sur
+   « .is-on » quelle que soit sa place, et le mode actif resterait gris. */
+.pb-emoji { filter: grayscale(1); opacity: .45; }
+.pb-emoji.is-on { filter: none; opacity: 1; }
+.pb-btn:active { transform: scale(.9); }
+.pb-play { color: var(--ink); font-size: 18px; background: rgba(255,255,255,.08); }
+/* Hors du mode écoute, la barre se réduit à l'essentiel : le titre, la
+   position et lecture/pause. Le reste attend qu'on revienne. */
+.player-bar.is-compact #pb-shuffle,
+.player-bar.is-compact #pb-repeat,
+.player-bar.is-compact #pb-prev,
+.player-bar.is-compact #pb-next { display: none; }
+.player-bar.is-compact .pb-title { cursor: pointer; }

@@ -21,6 +21,13 @@
 
 <!-- ─────────────────────────── ACCUEIL ─────────────────────────── -->
 <section class="screen" id="screen-home" data-screen="home">
+  <button class="btn-headset" id="btn-listen" aria-label="Mode écoute">
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+      <path d="M4 14v-2a8 8 0 0 1 16 0v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <rect x="2.5" y="13" width="4.5" height="7" rx="2.2" fill="currentColor"/>
+      <rect x="17" y="13" width="4.5" height="7" rx="2.2" fill="currentColor"/>
+    </svg>
+  </button>
   <div class="wrap wrap-home">
     <!-- Mascotte : badge circulaire, halo et anneau néon animés en CSS pur -->
     <div class="hero">
@@ -379,6 +386,20 @@
   </div>
 </section>
 
+<!-- ─────────────────────────── MODE ÉCOUTE ─────────────────────────── -->
+<section class="screen" id="screen-listen" data-screen="listen">
+  <div class="wrap wide">
+    <button class="btn-back" data-back="home" data-i18n="back">‹ RETOUR</button>
+    <h2 class="title" data-i18n="listen_title">MODE ÉCOUTE</h2>
+    <p class="res-song" data-i18n="listen_sub">Toute la discothèque, sans jouer une note.</p>
+    <div class="browse-bar">
+      <input type="search" id="listen-search" class="text-input search-input"
+             autocomplete="off" spellcheck="false" aria-label="Rechercher un morceau">
+    </div>
+    <div class="track-list listen-list" id="listen-list"></div>
+  </div>
+</section>
+
 <section class="screen" id="screen-trophies" data-screen="trophies">
   <div class="wrap wide">
     <button class="btn-back" data-back="home" data-i18n="back">‹ RETOUR</button>
@@ -399,6 +420,28 @@
 
 <div id="wipe" aria-hidden="true"></div>
 <div id="rotate" hidden><div><strong data-i18n="rotate_title">TOURNE TON TÉLÉPHONE</strong><span data-i18n="rotate_hint">NEONBEAT se joue en mode portrait.</span></div></div>
+<!-- Barre de lecture : hors des écrans, elle survit à la navigation.
+     C'est ce qui distingue un lecteur d'une simple préversion. -->
+<div class="player-bar" id="player-bar" hidden>
+  <img class="pb-cover" id="pb-cover" alt="" width="42" height="42">
+  <div class="pb-mid">
+    <div class="pb-line">
+      <span class="pb-title" id="pb-title">—</span>
+      <span class="pb-time" id="pb-time">0:00</span>
+    </div>
+    <div class="pb-seek" id="pb-seek" role="slider" aria-label="Position" aria-valuemin="0" aria-valuemax="100" tabindex="0">
+      <div class="pb-seek-fill" id="pb-seek-fill"></div>
+    </div>
+  </div>
+  <div class="pb-ctrl">
+    <button class="pb-btn pb-emoji" id="pb-shuffle" aria-label="Lecture aléatoire">🔀</button>
+    <button class="pb-btn" id="pb-prev" aria-label="Précédent">⏮</button>
+    <button class="pb-btn pb-play" id="pb-play" aria-label="Lecture">▶</button>
+    <button class="pb-btn" id="pb-next" aria-label="Suivant">⏭</button>
+    <button class="pb-btn pb-emoji" id="pb-repeat" aria-label="Répétition">🔁</button>
+  </div>
+</div>
+
 <div id="toast" hidden></div>
 
 <script src="./vendor/peerjs.min.js"></script>

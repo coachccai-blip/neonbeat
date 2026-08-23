@@ -1,5 +1,5 @@
 {
- "version": "1.45",
+ "version": "1.46",
  "files": [
   "./",
   "./index.html",
@@ -23,6 +23,7 @@
   "./js/net.js",
   "./js/online-config.js",
   "./js/online.js",
+  "./js/player.js",
   "./js/render.js",
   "./js/skins.js",
   "./js/storage.js",

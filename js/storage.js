@@ -24,6 +24,8 @@ const DEFAULTS = {
   uisound: true,      // bruitages de navigation dans les menus
   skin: 'neon',       // habillage de la zone de jeu (voir js/skins.js)
   avatar: 'nb_avatar01', // pastille affichée avant le pseudo (js/avatars.js)
+  plShuffle: false,   // mode écoute : lecture aléatoire
+  plRepeat: 'all',    // mode écoute : 'all' | 'one' | 'off'
   lastTrack: null,
   lastDiff: 'NORMAL',
   lang: 'fr',
