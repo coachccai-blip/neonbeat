@@ -6,6 +6,14 @@ import * as storage from './storage.js';
 
 const STRINGS = {
   fr: {
+    trophies_stats: 'EN CHIFFRES',
+    facts_time: 'TEMPS DE JEU',
+    facts_plays_1: '1 partie terminée', facts_plays_n: '{n} parties terminées',
+    facts_notes: 'NOTES TOUCHÉES',
+    facts_tracks: 'MORCEAUX JOUÉS', facts_tracks_sub: '{pct} % du catalogue',
+    facts_fav: 'MORCEAU FAVORI', facts_fav_1: '1 partie', facts_fav_n: '{n} parties',
+    facts_fc: 'FULL COMBOS', facts_fc_sub: 'dont {ap} sans-faute',
+    lobby_listen: 'Écouter le morceau', lobby_listen_stop: 'Arrêter l’aperçu',
     game_back_lobby: 'SALON',
     game_left: 'Partie abandonnée — tu attends les autres dans le salon.',
     rank_left: ' · abandon',
@@ -167,6 +175,14 @@ const STRINGS = {
   },
 
   en: {
+    trophies_stats: 'BY THE NUMBERS',
+    facts_time: 'TIME PLAYED',
+    facts_plays_1: '1 run finished', facts_plays_n: '{n} runs finished',
+    facts_notes: 'NOTES HIT',
+    facts_tracks: 'TRACKS PLAYED', facts_tracks_sub: '{pct} % of the catalogue',
+    facts_fav: 'FAVOURITE TRACK', facts_fav_1: '1 run', facts_fav_n: '{n} runs',
+    facts_fc: 'FULL COMBOS', facts_fc_sub: 'including {ap} all-perfect',
+    lobby_listen: 'Listen to the track', lobby_listen_stop: 'Stop the preview',
     game_back_lobby: 'ROOM',
     game_left: 'Run abandoned — you are waiting for the others in the room.',
     rank_left: ' · left',
@@ -328,6 +344,14 @@ const STRINGS = {
   },
 
   zh: {
+    trophies_stats: '数据一览',
+    facts_time: '游玩时长',
+    facts_plays_1: '已完成 1 局', facts_plays_n: '已完成 {n} 局',
+    facts_notes: '击中音符',
+    facts_tracks: '已玩曲目', facts_tracks_sub: '占曲库 {pct} %',
+    facts_fav: '最爱曲目', facts_fav_1: '1 局', facts_fav_n: '{n} 局',
+    facts_fc: '全连次数', facts_fc_sub: '其中 {ap} 次全 PERFECT',
+    lobby_listen: '试听曲目', lobby_listen_stop: '停止试听',
     game_back_lobby: '房间',
     game_left: '已放弃本局——你在房间里等待其他人。',
     rank_left: '· 已退出',

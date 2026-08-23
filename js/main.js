@@ -15,7 +15,7 @@ import { SKINS, skinById, DEFAULT_SKIN } from './skins.js';
 import { AVATARS, avatarById, DEFAULT_AVATAR } from './avatars.js';
 import * as bots from './bots.js';
 import * as online from './online.js';
-import { TROPHIES, gradeCounts, progress, earned, applyResult, EMPTY_STATS } from './trophies.js';
+import { TROPHIES, gradeCounts, progress, earned, applyResult, favori, EMPTY_STATS } from './trophies.js';
 import * as i18n from './i18n.js';
 import { APP_VERSION } from './version.js';
 const { t } = i18n;
@@ -29,7 +29,10 @@ const S = {
   mode: 'solo',            // solo | host | client
   selectedTrack: null,     // entrée de l'index choisie
   myDiff: storage.get('lastDiff'),
-  audioMode: 'shared',
+  // Chacun sur son téléphone par défaut : c'est le cas le plus fréquent
+  // (on ne joue pas toujours dans la même pièce) et le seul qui ne dépende
+  // pas d'une synchro d'horloge fine pour rester agréable.
+  audioMode: 'individual',
   selectPurpose: 'solo',   // solo | lobby (l'hôte choisit pour le salon)
   trackFilter: '',
   trackSort: 'tier',       // tier | az | dur
@@ -142,6 +145,7 @@ function boot() {
     S.selectPurpose = 'lobby';
     openSelect();
   });
+  $('btn-lobby-preview').addEventListener('click', toggleLobbyPreview);
   $('btn-add-bot').addEventListener('click', ajouterBot);
   $('team-seg').addEventListener('click', (e) => {
     const b = e.target.closest('[data-team-mode]');
@@ -173,6 +177,9 @@ function boot() {
       b.classList.add('is-on');
       S.audioMode = b.dataset.mode;
       if (S.mode === 'host') hostBroadcastLobby();
+      // Le mode salon suppose que l'hôte soit seul à diffuser : une
+      // préversion qui continuerait chez les autres ferait cacophonie.
+      if (S.audioMode === 'shared') stopLobbyPreview();
     });
   });
   $('btn-ready').addEventListener('click', toggleReady);
@@ -266,9 +273,15 @@ function boot() {
   ui.onScreenChange((name) => {
     if (name === 'settings') { ui.startSpeedPreview(); renderAvatarPicker(); }
     else ui.stopSpeedPreview();
-    if (name !== 'select') {
+    // La préversion vit sur DEUX écrans : la sélection et le salon. Partout
+    // ailleurs — chargement, jeu, résultats — elle doit se taire.
+    if (name !== 'select' && name !== 'lobby') {
+      S.lobbyPreview = false;
       previewToken++;                      // invalide les préversions en attente
       audio.stopPreview();
+      paintLobbyPreview();
+    } else if (name === 'lobby') {
+      paintLobbyPreview();
     }
   });
 
@@ -580,13 +593,39 @@ function openTrophies() {
   const avatarFor = Object.fromEntries(AVATARS.filter((a) => a.unlock).map((a) => [a.unlock, a.id]));
   ui.show('trophies');
   ui.renderTrophies(
-    { counts, stats, progress: progress(stats, counts), skins: SKINS, unlocked, skinFor, avatarFor, activeSkin: activeSkin().id },
+    { counts, stats, progress: progress(stats, counts), skins: SKINS, unlocked, skinFor, avatarFor,
+      activeSkin: activeSkin().id, facts: bilanChiffre(stats, counts) },
     (id) => {
       storage.set('skin', id);
       audio.uiToggle(true);
       openTrophies();                 // repeint pour montrer la nouvelle sélection
     }
   );
+}
+
+/**
+ * Bilan chiffré de l'écran des trophées : ce que les quatre compteurs de
+ * tête ne disent pas — le temps investi, le volume de notes, la couverture
+ * du catalogue et le morceau de prédilection.
+ */
+function bilanChiffre(stats, counts) {
+  const f = [];
+  // Pluriel choisi ici plutôt qu'un « (s) » entre parenthèses : le chiffre
+  // est lu, la formule doit se lire aussi.
+  const pluriel = (base, n) => t(`${base}_${n > 1 ? 'n' : '1'}`, { n });
+  f.push({ k: t('facts_time'), v: ui.fmtLongDur(stats.playSeconds),
+           sub: pluriel('facts_plays', stats.plays || 0) });
+  f.push({ k: t('facts_notes'), v: (stats.notesHit || 0).toLocaleString('fr-FR') });
+  f.push({ k: t('facts_tracks'), v: `${counts.tracks} / ${S.tracks.length}`,
+           sub: t('facts_tracks_sub', { pct: S.tracks.length ? Math.round((100 * counts.tracks) / S.tracks.length) : 0 }) });
+  const fav = favori(stats);
+  if (fav) {
+    const tr = S.tracks.find((x) => x.id === fav.id);
+    f.push({ k: t('facts_fav'), v: tr ? tr.title : fav.id, sub: pluriel('facts_fav', fav.n) });
+  }
+  f.push({ k: t('facts_fc'), v: String(stats.fullCombos || 0),
+           sub: t('facts_fc_sub', { ap: stats.allPerfects || 0 }) });
+  return f;
 }
 
 /* ══════════════════ Bruitages de navigation ══════════════════ */
@@ -949,6 +988,44 @@ function applyAutoSpeed() {
 }
 
 let previewToken = 0;
+/* ─── Aperçu du morceau depuis le salon ───────────────────────────────
+   L'hôte entend le morceau en le choisissant (écran de sélection) ; les
+   autres n'avaient aucun moyen de savoir ce qui les attend. Ce bouton leur
+   joue le refrain, à la demande — jamais tout seul : plusieurs téléphones
+   qui se mettraient à jouer d'eux-mêmes dans la même pièce, non.          */
+
+function toggleLobbyPreview() {
+  if (S.lobbyPreview) return stopLobbyPreview();
+  const sel = S.selectedTrack;
+  if (!sel) return;
+  audio.unlock();
+  S.lobbyPreview = true;
+  paintLobbyPreview();
+  const token = ++previewToken;
+  loadTrack(sel.id)
+    .then((track) => audio.prepare(sel.id, null, track.audio).then(() => track))
+    .then((track) => {
+      if (token !== previewToken || ui.screen() !== 'lobby' || !S.lobbyPreview) return;
+      audio.startPreview(sel.id, track.previewStart || 0);
+    })
+    .catch(() => stopLobbyPreview());
+}
+
+function stopLobbyPreview() {
+  if (!S.lobbyPreview) return;
+  S.lobbyPreview = false;
+  previewToken++;
+  audio.stopPreview();
+  paintLobbyPreview();
+}
+
+function paintLobbyPreview() {
+  const b = $('btn-lobby-preview');
+  b.textContent = S.lobbyPreview ? '■' : '▶';
+  b.classList.toggle('is-on', !!S.lobbyPreview);
+  b.setAttribute('aria-label', t(S.lobbyPreview ? 'lobby_listen_stop' : 'lobby_listen'));
+}
+
 function previewTrack(t) {
   // Prépare la piste puis joue son refrain en boucle tant qu'on est sur
   // l'écran de sélection (le bouton JOUER devient instantané au passage).
@@ -1338,6 +1415,8 @@ class Game {
     res.diffName = this.diffName;
     res.mods = this.mods;
     res.keysMode = this.keysMode;
+    res.trackId = this.track.id;
+    res.duration = this.track.duration;
     this.dispose();
     onGameFinished(res);
   }
@@ -1387,6 +1466,7 @@ function cancelLoading() {
 }
 
 async function withLoading(trackId) {
+  stopLobbyPreview();
   pausePrefetch();
   const token = ++loadToken;
   ui.show('loading');
@@ -1772,6 +1852,7 @@ function hostOnMessage(peerId, msg) {
 
 function hostPickTrack(trackId) {
   const t = S.tracks.find((x) => x.id === trackId) || S.tracks[0];
+  stopLobbyPreview();                      // l'aperçu porterait sur l'ancien
   S.selectedTrack = t;
   applyAutoSpeed();
   loadTrack(t.id).then((track) => ui.setLobbyTrack(track));
@@ -2011,6 +2092,7 @@ function clientOnMessage(msg) {
     case 'TRACK': {
       const t = S.tracks.find((x) => x.id === msg.trackId);
       if (t) {
+        if (t.id !== (S.selectedTrack && S.selectedTrack.id)) stopLobbyPreview();
         S.selectedTrack = t;
         applyAutoSpeed();
         loadTrack(t.id).then((track) => {
@@ -2125,6 +2207,9 @@ function refreshLobby() {
       const best = storage.bestFor(sel.id, diffName, storage.get('keys'));
       return best ? best.grade : null;
     });
+  }
+  for (const b of document.querySelectorAll('#audio-mode-row .seg-btn')) {
+    b.classList.toggle('is-on', b.dataset.mode === S.audioMode);
   }
   for (const b of $('team-seg').querySelectorAll('[data-team-mode]')) {
     b.classList.toggle('is-on', (b.dataset.teamMode === 'teams') === !!S.teamMode);

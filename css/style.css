@@ -918,3 +918,28 @@ body.is-host button.host-only { display: block; }
 .team-score .tvs { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-align: center; max-width: 92px; }
 .rank-row.team-r { box-shadow: inset 2px 0 0 #ff4d6d; }
 .rank-row.team-b { box-shadow: inset 2px 0 0 #3d9bff; }
+
+
+/* ─── Trophées : bilan chiffré ─── */
+.facts { display: flex; flex-direction: column; gap: 5px; margin-bottom: 4px; }
+.fact {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 8px 12px; background: rgba(255,255,255,.035); border-radius: 9px;
+  box-shadow: inset 0 0 0 1px rgba(122,92,255,.12);
+}
+.fact .fk { font-size: 11px; letter-spacing: .1em; color: var(--ink-dim); font-weight: 700; }
+/* Le chiffre d'abord, la précision ensuite et en retrait : on lit la
+   colonne de droite d'un coup d'œil sans buter sur les compléments. */
+.fact .fv { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; }
+.fact .fv em { display: block; font-style: normal; font-size: 10px; font-weight: 600;
+               letter-spacing: .04em; color: var(--ink-dim); margin-top: 2px; }
+
+/* Aperçu du morceau depuis le salon. */
+.lobby-track-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+.btn-listen {
+  flex: none; width: 42px; height: 42px; border: 0; border-radius: 50%; cursor: pointer;
+  background: rgba(255,255,255,.07); color: var(--ink); font-size: 15px; line-height: 1;
+  box-shadow: inset 0 0 0 1px rgba(122,92,255,.28);
+}
+.btn-listen:active { transform: scale(.92); }
+.btn-listen.is-on { background: var(--cyan); color: #0b0b18; box-shadow: 0 0 14px rgba(47,216,255,.5); }

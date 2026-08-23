@@ -712,6 +712,16 @@ export function hideTeamPick() {
 
 /* ─── Trophées & skins ─── */
 
+/** Durée longue en heures et minutes : « 4 h 27 » plutôt que « 267 min ». */
+export function fmtLongDur(sec) {
+  const s = Math.max(0, Math.round(sec || 0));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (h) return `${h} h ${String(m).padStart(2, '0')}`;
+  if (m) return `${m} min`;
+  return `${s} s`;
+}
+
 /**
  * Peint l'écran des trophées.
  * @param {object} d { counts, stats, progress, skins, activeSkin }
@@ -727,6 +737,13 @@ export function renderTrophies(d, onPickSkin) {
   ].map(([k, v, cls]) => `
     <div class="stat-tile ${cls}"><div class="v">${v || 0}</div><div class="k">${esc(String(k))}</div></div>`
   ).join('');
+
+  // Bilan chiffré : ce que les compteurs de tête ne disent pas.
+  $('tr-facts').innerHTML = (d.facts || []).map(({ k, v, sub }) => `
+    <div class="fact">
+      <span class="fk">${esc(k)}</span>
+      <span class="fv">${esc(v)}${sub ? `<em>${esc(sub)}</em>` : ''}</span>
+    </div>`).join('');
 
   const box = $('tr-skins');
   box.innerHTML = '';

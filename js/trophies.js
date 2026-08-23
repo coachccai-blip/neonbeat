@@ -22,13 +22,26 @@
 
 export const EMPTY_STATS = {
   plays: 0, maxCombo: 0, maxFever: 1, fullCombos: 0, allPerfects: 0,
-  hardFullCombos: 0, keys2Plays: 0, notesHit: 0, unlocked: []
+  hardFullCombos: 0, keys2Plays: 0, notesHit: 0, unlocked: [],
+  // Statistiques d'ensemble (v1.41). Elles ne débloquent rien : elles sont
+  // là pour que le joueur mesure le chemin parcouru.
+  playSeconds: 0,          // temps passé à jouer, morceaux terminés
+  trackPlays: {}           // { trackId: nombre de parties }
 };
 
 /**
  * Agrège les meilleurs scores en compteurs de grades.
  * @param {object} scores  storage.allScores() — clé « id|DIFF[|2K] » → entrée
  */
+/** Morceau le plus joué : { id, n } — null tant qu'aucune partie n'est finie. */
+export function favori(stats) {
+  let id = null, n = 0;
+  for (const [k, v] of Object.entries((stats && stats.trackPlays) || {})) {
+    if (v > n) { id = k; n = v; }
+  }
+  return id ? { id, n } : null;
+}
+
 export function gradeCounts(scores) {
   const out = { SS: 0, 'S+': 0, S: 0, A: 0, tracks: new Set(), hardCleared: 0, splusNormal: 0 };
   for (const [key, e] of Object.entries(scores || {})) {
@@ -105,7 +118,8 @@ export function earned(stats, counts) {
  * @returns {Stats} nouveaux compteurs (l'objet d'entrée n'est pas modifié)
  */
 export function applyResult(stats, res) {
-  const s = { ...EMPTY_STATS, ...stats, unlocked: [...(stats.unlocked || [])] };
+  const s = { ...EMPTY_STATS, ...stats, unlocked: [...(stats.unlocked || [])],
+              trackPlays: { ...(stats.trackPlays || {}) } };
   const counts = res.counts || {};
   const noMiss = !res.failed && !counts.MISS && (counts.PERFECT || counts.GREAT || counts.GOOD);
   s.plays++;
@@ -119,5 +133,9 @@ export function applyResult(stats, res) {
     if (!counts.GREAT && !counts.GOOD) s.allPerfects++;
   }
   if ((res.keysMode || '4') === '2') s.keys2Plays++;
+  // Le morceau a été mené à son terme : `applyResult` n'est jamais appelé
+  // sur une partie abandonnée.
+  s.playSeconds += Math.max(0, Math.round(res.duration || 0));
+  if (res.trackId) s.trackPlays[res.trackId] = (s.trackPlays[res.trackId] || 0) + 1;
   return s;
 }

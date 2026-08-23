@@ -86,14 +86,17 @@
         <div class="track-title" id="lobby-track-title">—</div>
         <div class="track-meta" id="lobby-track-meta"></div>
       </div>
-      <button class="btn btn-small host-only" id="btn-change-track" data-i18n="lobby_change">CHANGER</button>
+      <div class="lobby-track-actions">
+        <button class="btn-listen" id="btn-lobby-preview" aria-label="Écouter le morceau">▶</button>
+        <button class="btn btn-small host-only" id="btn-change-track" data-i18n="lobby_change">CHANGER</button>
+      </div>
     </div>
 
     <div class="row host-only" id="audio-mode-row">
       <span class="label" data-i18n="lobby_sound">SON</span>
       <div class="seg" role="group" aria-label="Mode audio">
-        <button class="seg-btn is-on" data-mode="shared"><span data-i18n="lobby_shared">SALON</span><small data-i18n="lobby_shared_sub">hôte seul</small></button>
-        <button class="seg-btn" data-mode="individual"><span data-i18n="lobby_individual">CASQUES</span><small data-i18n="lobby_individual_sub">chacun le sien</small></button>
+        <button class="seg-btn" data-mode="shared"><span data-i18n="lobby_shared">SALON</span><small data-i18n="lobby_shared_sub">hôte seul</small></button>
+        <button class="seg-btn is-on" data-mode="individual"><span data-i18n="lobby_individual">CASQUES</span><small data-i18n="lobby_individual_sub">chacun le sien</small></button>
       </div>
     </div>
 
@@ -382,6 +385,9 @@
     <h2 class="title" data-i18n="trophies_title">TROPHÉES</h2>
 
     <div class="stat-row" id="tr-stats"></div>
+
+    <div class="label" data-i18n="trophies_stats">EN CHIFFRES</div>
+    <div class="facts" id="tr-facts"></div>
 
     <div class="label" data-i18n="trophies_skins">SKINS JOUABLES</div>
     <div class="skin-grid" id="tr-skins"></div>
