@@ -26,6 +26,9 @@ function feverColor(level) {
 }
 const FONT = "'Inter', 'Segoe UI', Roboto, Arial, sans-serif";
 
+/* Rayon de référence de la lueur d'horizon, en fraction du petit côté. */
+const GLOW_REF = 0.85;
+
 export class Renderer {
   constructor(canvas) {
     this.canvas = canvas;
@@ -112,7 +115,12 @@ export class Renderer {
   /* ════════════════ Fabrique de sprites (au resize uniquement) ═══════════ */
 
   resize() {
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    // Économie : on plafonne plus bas. Sur un écran 3× d'un téléphone
+    // récent, passer de 2 à 1,5 supprime 44 % des pixels à peindre — c'est
+    // de très loin le réglage qui pèse le plus sur la chauffe, et sur des
+    // formes néon à 60 images par seconde il ne se voit presque pas.
+    const plafond = this.eco ? 1.5 : 2;
+    const dpr = Math.min(plafond, window.devicePixelRatio || 1);
     const w = this.canvas.clientWidth || window.innerWidth;
     const h = this.canvas.clientHeight || window.innerHeight;
     this.canvas.width = Math.round(w * dpr);
@@ -138,6 +146,24 @@ export class Renderer {
     this.bgGrad.addColorStop(0, '#07070f');
     this.bgGrad.addColorStop(0.75, '#0b0b1a');
     this.bgGrad.addColorStop(1, '#12122a');
+
+    // Lueur d'horizon : une seule rampe, centrée sur l'origine, que le
+    // dessin déplace et met à l'échelle. `GLOW_REF` est le rayon de
+    // référence — celui pour lequel l'échelle vaut 1.
+    this.glowRad = Math.min(w, h) * GLOW_REF;
+    this.glowGrad = this.ctx.createRadialGradient(0, 0, 0, 0, 0, this.glowRad);
+    this.glowGrad.addColorStop(0, hexA(this.skin.line, 1));
+    this.glowGrad.addColorStop(1, hexA(this.skin.line, 0));
+
+    // Onde : l'opacité croît linéairement de gauche à droite, donc un
+    // dégradé horizontal la reproduit exactement — et remplace 128 petits
+    // remplissages par deux tracés.
+    this.waveGradHalo = this.ctx.createLinearGradient(0, 0, w, 0);
+    this.waveGradHalo.addColorStop(0, hexA(this.waveColor, 0.14 * 0.28));
+    this.waveGradHalo.addColorStop(1, hexA(this.waveColor, 0.42 * 0.28));
+    this.waveGradCore = this.ctx.createLinearGradient(0, 0, w, 0);
+    this.waveGradCore.addColorStop(0, hexA(this.waveColor, 0.14));
+    this.waveGradCore.addColorStop(1, hexA(this.waveColor, 0.42));
 
     // vignette pulsée (pré-rendue : radial gradient coûteux)
     this.vignette = makeCanvas(w, h, (c) => {
@@ -192,6 +218,13 @@ export class Renderer {
   }
 
   /** Change l'habillage : les sprites sont recuits avec les nouvelles teintes. */
+  /** Mode économie : moins de couches à peindre, résolution plus basse. */
+  setEco(on) {
+    if (!!on === !!this.eco) return;
+    this.eco = !!on;
+    this.resize();
+  }
+
   setSkin(skin) {
     this.skin = skin || DEFAULT_SKIN;
     this.resize();
@@ -289,6 +322,7 @@ export class Renderer {
     const cx = (lane + 0.5) * this.laneW;
     const count = 5 + Math.min(this.feverLevel, 8) * 2;
     for (let i = 0; i < count; i++) {
+      if (this.eco && (i & 1)) continue;      // moitié moins d'étincelles
       this.particles.push({
         x: cx, y: this.judgeY,
         vx: (Math.random() - 0.5) * (260 + this.feverLevel * 60),
@@ -394,21 +428,19 @@ export class Renderer {
 
     ctx.save();
     ctx.globalAlpha = 0.38 + beatPulse * 0.16;
-    for (const [x, sens] of [[4, 1], [w - 4 - bandW, -1]]) {
+    // Le voile est recuit DANS la tuile (il ne varie pas selon la hauteur) :
+    // un seul drawImage porte le fond et le texte, là où il fallait
+    // auparavant fabriquer un dégradé et un remplissage par bord et par
+    // image. La tuile de droite est le miroir de celle de gauche.
+    for (const [x, droite] of [[4, false], [w - 4 - bandW, true]]) {
       ctx.save();
       ctx.beginPath();
       ctx.rect(x, 0, bandW, h);
       ctx.clip();
-      // Voile dégradé sous le texte, le plus dense contre le rail : c'est
-      // ce qui fait lire « bande » plutôt que « lettres qui flottent ».
-      const g = ctx.createLinearGradient(x, 0, x + bandW, 0);
-      const c = feverColor(lv);
-      g.addColorStop(sens > 0 ? 0 : 1, hexA(c, 0.16));
-      g.addColorStop(sens > 0 ? 1 : 0, hexA(c, 0));
-      ctx.fillStyle = g;
-      ctx.fillRect(x, 0, bandW, h);
+      if (droite) { ctx.translate(x + bandW, 0); ctx.scale(-1, 1); }
+      else ctx.translate(x, 0);
       for (let y = -defile; y < h; y += periode) {
-        ctx.drawImage(tile, x, Math.round(y));
+        ctx.drawImage(tile, 0, Math.round(y));
       }
       ctx.restore();
     }
@@ -442,6 +474,17 @@ export class Renderer {
     // Le contexte est réinitialisé par l'affectation de width/height.
     const g = c.getContext('2d');
     const couleur = feverColor(lv);
+
+    // Voile dégradé, le plus dense contre le rail : c'est ce qui fait lire
+    // « bande » plutôt que « lettres qui flottent ». Il est constant sur la
+    // hauteur, donc il se recuit ici une bonne fois — et le dessin n'a plus
+    // qu'à reposer la tuile.
+    const voile = g.createLinearGradient(0, 0, bandW, 0);
+    voile.addColorStop(0, hexA(couleur, 0.16));
+    voile.addColorStop(1, hexA(couleur, 0));
+    g.fillStyle = voile;
+    g.fillRect(0, 0, bandW, c.height);
+
     g.textAlign = 'left';
     g.textBaseline = 'middle';
     // Un quart de tour anti-horaire : le texte se lit de bas en haut.
@@ -479,7 +522,7 @@ export class Renderer {
     const bnd = audio.bands();
     audio.pushLevel(now);          // alimente l'historique d'amplitude
     this.bands = bnd;
-    this.bars = audio.spectrumBars(28);
+    this.bars = audio.spectrumBars(this.eco ? 14 : 28);
 
     // secousse (fever ×4/×5)
     let shaken = false;
@@ -499,21 +542,27 @@ export class Renderer {
     ctx.fillRect(-8, -8, w + 16, h + 16);
 
     // ─── Lueur d'horizon gonflée par les graves ───
-    if (songT > -1 && bnd.bass > 0.02) {
+    // Le dégradé radial est recuit une fois pour toutes (voir resize) : en
+    // fabriquer un à chaque image coûtait une allocation et un calcul de
+    // rampe soixante fois par seconde, pour un résultat identique. Seuls le
+    // rayon et l'opacité varient, et ça se règle par une transformation.
+    if (songT > -1 && bnd.bass > 0.02 && !this.eco) {
       const gy = h * 0.56;
-      const rad = Math.min(w, h) * (0.30 + bnd.bass * 0.55);
-      const gl = ctx.createRadialGradient(w / 2, gy, 0, w / 2, gy, rad);
-      gl.addColorStop(0, hexA(this.skin.line, Math.min(0.22, bnd.bass * 0.30)));
-      gl.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = gl;
-      ctx.fillRect(0, gy - rad, w, rad * 2);
+      const k = (0.30 + bnd.bass * 0.55) / GLOW_REF;
+      ctx.save();
+      ctx.globalAlpha = Math.min(0.22, bnd.bass * 0.30);
+      ctx.translate(w / 2, gy);
+      ctx.scale(k, k);
+      ctx.fillStyle = this.glowGrad;
+      ctx.fillRect(-this.glowRad, -this.glowRad, this.glowRad * 2, this.glowRad * 2);
+      ctx.restore();
     }
 
     // ─── Scène de fond réactive ───
     if (songT > -1) this._drawScene(songT, beatFrac, nowV, bnd);
 
     // ─── Soundwave ───
-    if (this.wave && songT > -1) this._drawWave(songT, nowV, bnd);
+    if (this.wave && songT > -1 && !this.eco) this._drawWave(songT, nowV, bnd);
 
     // ─── Rails latéraux pulsés sur le temps ───
     {
@@ -779,10 +828,14 @@ export class Renderer {
       }
     }
 
-    // vignette pulsée sur le temps
-    ctx.globalAlpha = 0.30 + beatPulse * 0.14 + nowV * 0.06;
-    ctx.drawImage(this.vignette, 0, 0, w, h);
-    ctx.globalAlpha = 1;
+    // Vignette pulsée sur le temps. Elle recouvre l'écran entier à chaque
+    // image : c'est la couche décorative la plus coûteuse du lot, et la
+    // première que le mode économie laisse tomber.
+    if (!this.eco) {
+      ctx.globalAlpha = 0.30 + beatPulse * 0.14 + nowV * 0.06;
+      ctx.drawImage(this.vignette, 0, 0, w, h);
+      ctx.globalAlpha = 1;
+    }
 
     if (this.failed) {
       ctx.fillStyle = 'rgba(255,77,77,0.09)';
@@ -987,18 +1040,21 @@ export class Renderer {
     // parfaitement lisible par-dessus.
     const amp = h * 0.075;
     const bw = w / bars;
+    // Un tracé par couche plutôt qu'un remplissage par barre : 128 appels
+    // deviennent 2. Le dégradé horizontal recuit dans resize() rend le même
+    // éclaircissement de gauche à droite — le plus récent, à droite, reste
+    // le plus lumineux, et on lit le sens du défilement sans y penser.
+    const halo = new Path2D(), coeur = new Path2D();
     for (let k = 0; k < bars; k++) {
       const bh = Math.max(2, src[k] * amp);
       const x = k * bw + bw * 0.2;
-      // Le plus récent (à droite) est le plus lumineux : on lit le sens du
-      // défilement sans avoir à y penser.
-      const age = k / (bars - 1);
-      const alpha = 0.14 + age * 0.28;
-      ctx.fillStyle = hexA(this.waveColor, alpha * 0.28);
-      ctx.fillRect(x - bw * 0.14, cy - bh * 1.25, bw * 0.88, bh * 2.5);
-      ctx.fillStyle = hexA(this.waveColor, alpha);
-      ctx.fillRect(x, cy - bh, bw * 0.6, bh * 2);
+      halo.rect(x - bw * 0.14, cy - bh * 1.25, bw * 0.88, bh * 2.5);
+      coeur.rect(x, cy - bh, bw * 0.6, bh * 2);
     }
+    ctx.fillStyle = this.waveGradHalo;
+    ctx.fill(halo);
+    ctx.fillStyle = this.waveGradCore;
+    ctx.fill(coeur);
     ctx.fillStyle = hexA(this.waveColor, 0.26);
     ctx.fillRect(0, cy - 0.5, w, 1);
     // Tête de lecture au bord droit, dilatée par les graves.

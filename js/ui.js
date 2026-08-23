@@ -854,7 +854,8 @@ export function bindSettings(onChange) {
     onChange('volume');
   });
 
-  for (const [id, key] of [['set-hitsound', 'hitsound'], ['set-vibrate', 'vibrate'], ['set-uisound', 'uisound']]) {
+  for (const [id, key] of [['set-hitsound', 'hitsound'], ['set-vibrate', 'vibrate'],
+                          ['set-uisound', 'uisound'], ['set-eco', 'eco']]) {
     const el = $(id);
     el.checked = storage.get(key);
     el.addEventListener('change', () => {

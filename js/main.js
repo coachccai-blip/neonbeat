@@ -18,6 +18,12 @@ import * as online from './online.js';
 import { TROPHIES, gradeCounts, progress, earned, applyResult, favori, EMPTY_STATS } from './trophies.js';
 import * as i18n from './i18n.js';
 import { APP_VERSION } from './version.js';
+
+/* Plafond d'images par seconde du RENDU. Une milliseconde de marge évite
+   qu'un écran 60 Hz, dont les intervalles oscillent autour de 16,7 ms, ne
+   saute une image sur deux. */
+const DRAW_MIN_MS = 1000 / 60 - 1;
+
 const { t } = i18n;
 
 const $ = (id) => document.getElementById(id);
@@ -1148,9 +1154,11 @@ class Game {
     if (this.keysMode === '2') notes = to2Keys(notes);
     this.engine = new Engine(notes);
     this.renderer = new Renderer($('game-canvas'));
+    this.renderer.setEco(storage.get('eco'));
     this.renderer.setSkin(activeSkin());
     this.finished = false;
     this.paused = false;
+    this.lastDraw = 0;
     this.userOffset = storage.get('offset') / 1000;
     this.lastProgressSend = 0;
 
@@ -1253,6 +1261,13 @@ class Game {
     this.raf = requestAnimationFrame(() => this.loop());
     if (this.paused) return;
     const t = this.songTime();
+    // Beaucoup de téléphones rafraîchissent à 90 ou 120 Hz : sans plafond,
+    // le jeu dessine deux fois plus d'images que nécessaire — deux fois plus
+    // de travail pour le GPU, deux fois plus de chaleur, et pas une seule
+    // note mieux jugée. Le JUGEMENT, lui, continue de tourner à chaque
+    // rafraîchissement : il ne coûte presque rien et gagne en réactivité.
+    const nowMs = performance.now();
+    const dessine = nowMs - this.lastDraw >= DRAW_MIN_MS;
 
     // Le moteur juge sur la MÊME horloge que les frappes (onPress/onRelease) :
     // l'horloge audio décalée de l'offset de calibration. Sur l'horloge brute,
@@ -1286,7 +1301,10 @@ class Game {
     this.renderer.pressed = this.input.pressedLanes();
     this.renderer.setCombo(this.engine.combo);
     this.renderer.failed = this.engine.failed;
-    this.renderer.draw(t);
+    if (dessine) {
+      this.lastDraw = nowMs;
+      this.renderer.draw(t);
+    }
 
     // HUD
     $('hud-score').textContent = Math.round(this.engine.score * this.mult).toLocaleString('fr-FR');
