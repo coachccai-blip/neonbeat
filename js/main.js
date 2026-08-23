@@ -1159,6 +1159,11 @@ class Game {
     this.finished = false;
     this.paused = false;
     this.lastDraw = 0;
+    this.smoothRef = null;        // horloge de rendu lissée (voir renderTime)
+    this.smoothBase = 0;
+    // Le plafond d'images n'est appliqué qu'en mode économie : ailleurs, un
+    // écran 120 Hz mérite ses 120 images, et les brider se VOIT.
+    this.capFps = !!storage.get('eco');
     this.userOffset = storage.get('offset') / 1000;
     this.lastProgressSend = 0;
 
@@ -1231,6 +1236,39 @@ class Game {
     return audio.songTime();
   }
 
+  /**
+   * Horloge de RENDU, lissée.
+   *
+   * `AudioContext.currentTime` est exacte mais elle n'avance pas
+   * continûment : elle est mise à jour à chaque bloc de rendu audio. Sur un
+   * ordinateur cela fait des paliers de 3 à 12 ms ; sur un téléphone, où le
+   * tampon de sortie est plus gros, ils sont bien plus larges. Les notes se
+   * déplacent alors par à-coups — c'est la cause classique du défilement
+   * saccadé, et elle n'a rien à voir avec la puissance de l'appareil.
+   *
+   * On fait donc avancer une horloge de rendu sur `performance.now()`, qui
+   * est régulière, et on la ramène en douceur vers l'horloge audio, qui est
+   * juste. Un écart important — pause, reprise, reprise après seek — force
+   * une resynchronisation immédiate plutôt qu'une lente dérive.
+   *
+   * Le JUGEMENT, lui, ne touche jamais à cette horloge : il reste sur
+   * l'horloge audio brute, la seule qui dise où en est vraiment la musique.
+   */
+  renderTime(audioT, nowMs) {
+    if (this.smoothRef == null || Math.abs(audioT - this.smoothBase) > 0.25) {
+      this.smoothBase = audioT;
+      this.smoothRef = nowMs;
+      return audioT;
+    }
+    const libre = this.smoothBase + ((nowMs - this.smoothRef) / 1000) * this.rate;
+    // Recalage progressif : 8 % de l'écart par image ramène l'horloge en
+    // une poignée d'images, sans le sursaut qu'un recalage sec produirait.
+    const lisse = libre + (audioT - libre) * 0.08;
+    this.smoothBase = lisse;
+    this.smoothRef = nowMs;
+    return lisse;
+  }
+
   onPress(lane, timeStampMs) {
     if (this.finished || this.paused) return;
     const age = (performance.now() - timeStampMs) / 1000;
@@ -1261,13 +1299,14 @@ class Game {
     this.raf = requestAnimationFrame(() => this.loop());
     if (this.paused) return;
     const t = this.songTime();
-    // Beaucoup de téléphones rafraîchissent à 90 ou 120 Hz : sans plafond,
-    // le jeu dessine deux fois plus d'images que nécessaire — deux fois plus
-    // de travail pour le GPU, deux fois plus de chaleur, et pas une seule
-    // note mieux jugée. Le JUGEMENT, lui, continue de tourner à chaque
-    // rafraîchissement : il ne coûte presque rien et gagne en réactivité.
+    // En mode économie, le rendu est plafonné à 60 images par seconde : sur
+    // un écran 90 ou 120 Hz, cela divise par deux le travail du GPU sans
+    // qu'une seule note soit moins bien jugée. Hors de ce mode on dessine à
+    // chaque rafraîchissement — sur un écran rapide, la différence se voit.
+    // Le JUGEMENT, lui, tourne toujours à chaque tour : il ne coûte presque
+    // rien et y gagne en réactivité.
     const nowMs = performance.now();
-    const dessine = nowMs - this.lastDraw >= DRAW_MIN_MS;
+    const dessine = !this.capFps || nowMs - this.lastDraw >= DRAW_MIN_MS;
 
     // Le moteur juge sur la MÊME horloge que les frappes (onPress/onRelease) :
     // l'horloge audio décalée de l'offset de calibration. Sur l'horloge brute,
@@ -1303,7 +1342,7 @@ class Game {
     this.renderer.failed = this.engine.failed;
     if (dessine) {
       this.lastDraw = nowMs;
-      this.renderer.draw(t);
+      this.renderer.draw(this.renderTime(t, nowMs));
     }
 
     // HUD
@@ -1387,6 +1426,7 @@ class Game {
     this.perfAtStart = perfAtStart;
     this.resumeTarget = this.pausedAt;
     this.paused = false;
+    this.smoothRef = null;          // l'horloge de rendu se recale d'un coup
     this.input.enabled = true;
   }
 

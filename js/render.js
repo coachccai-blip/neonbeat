@@ -522,7 +522,7 @@ export class Renderer {
     const bnd = audio.bands();
     audio.pushLevel(now);          // alimente l'historique d'amplitude
     this.bands = bnd;
-    this.bars = audio.spectrumBars(this.eco ? 14 : 28);
+    this.bars = audio.spectrumBars(28);
 
     // secousse (fever ×4/×5)
     let shaken = false;
@@ -622,6 +622,7 @@ export class Renderer {
     ctx.fillRect(0, judgeY - lt / 2, w, lt);
     const hh = this.noteH;
     const recScale = 1 + beatPulse * 0.04;
+    const epaisseur = this.eco ? 1.4 : 1;
     for (let l = 0; l < this.lanes; l++) {
       const nw = laneW * 0.90 * recScale;
       const x = l * laneW + (laneW - nw) / 2;
@@ -630,10 +631,14 @@ export class Renderer {
         ctx.fillStyle = hexA(this.laneColors[l], 0.30);
         ctx.fill();
         ctx.strokeStyle = this.laneColors[l];
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 3 * epaisseur;
       } else {
-        ctx.strokeStyle = hexA(this.laneColors[l], 0.55);
-        ctx.lineWidth = 2;
+        // Un contour fin perd de sa netteté quand la résolution baisse : en
+        // mode économie on l'épaissit et on l'opacifie d'autant. Les touches
+        // restent aussi lisibles qu'à pleine résolution — c'est le repère le
+        // plus important de l'écran, il ne doit jamais pâlir.
+        ctx.strokeStyle = hexA(this.laneColors[l], this.eco ? 0.78 : 0.55);
+        ctx.lineWidth = 2 * epaisseur;
       }
       ctx.stroke();
     }
