@@ -21,6 +21,7 @@ let ordre = [];                // indices dans l'ordre de lecture
 let pos = -1;                  // position dans `ordre`
 let abonnes = [];
 let objetUrl = null;           // blob du morceau en cours
+let precharge = { id: null, url: null }; // blob du morceau suivant, prêt d'avance
 let jeton = 0;                 // annule un chargement dépassé
 let chargement = false;
 
@@ -40,8 +41,8 @@ function audio() {
   el.volume = clampVol(storage.get('volume'));
   el.addEventListener('ended', auSuivant);
   el.addEventListener('timeupdate', signaler);
-  el.addEventListener('play', signaler);
-  el.addEventListener('pause', signaler);
+  el.addEventListener('play', () => { etatSysteme('playing'); signaler(); });
+  el.addEventListener('pause', () => { etatSysteme('paused'); signaler(); });
   el.addEventListener('loadedmetadata', signaler);
   return el;
 }
@@ -70,6 +71,9 @@ function rebatir(garder) {
   // Le morceau en cours reste en cours : changer de mode ne doit pas
   // interrompre ce qu'on écoute.
   pos = idCourant ? ordre.findIndex((i) => liste[i].id === idCourant) : -1;
+  // L'ordre a changé : le morceau préchargé n'est peut-être plus le bon.
+  oublierPrecharge();
+  precharger();
 }
 
 export function onChange(cb) {
@@ -91,7 +95,9 @@ export function state() {
     time: el ? el.currentTime || 0 : 0,
     duration: el && el.duration && isFinite(el.duration) ? el.duration : (t ? t.duration : 0),
     shuffle: !!storage.get('plShuffle'),
-    repeat: storage.get('plRepeat') || 'all'
+    repeat: storage.get('plRepeat') || 'all',
+    // Le morceau suivant, déjà en mémoire et prêt à enchaîner sans réseau.
+    pret: precharge.id
   };
 }
 
@@ -109,13 +115,76 @@ export function state() {
  * octets — sans commune mesure avec le décodage complet que fait le moteur
  * du jeu — et garantit au passage une lecture sans coupure hors ligne.
  */
-async function chargerBlob(id, monJeton) {
+async function versBlob(id) {
   const res = await fetch(`./tracks/${id}.mp3`);
   const blob = await res.blob();
-  if (monJeton !== jeton) return null;        // l'utilisateur a changé d'avis
-  if (objetUrl) URL.revokeObjectURL(objetUrl);
-  objetUrl = URL.createObjectURL(blob);
+  return URL.createObjectURL(blob);
+}
+
+/**
+ * Rend une URL locale jouable pour ce morceau, en réutilisant le blob
+ * préchargé s'il correspond — c'est là tout l'intérêt : au moment où un
+ * morceau se termine, le suivant est déjà en mémoire et l'enchaînement ne
+ * demande plus le moindre accès réseau. Sur un téléphone verrouillé, le
+ * navigateur gèle le JavaScript dès qu'un silence s'installe ; ne rien
+ * avoir à télécharger entre deux pistes est ce qui permet à la lecture de
+ * continuer indéfiniment en arrière-plan.
+ */
+async function chargerBlob(id, monJeton) {
+  let url;
+  if (precharge.id === id && precharge.url) {
+    url = precharge.url;                       // déjà prêt : aucun téléchargement
+    precharge = { id: null, url: null };       // il devient le morceau en cours
+  } else {
+    url = await versBlob(id);
+  }
+  if (monJeton !== jeton) {                     // l'utilisateur a changé d'avis
+    URL.revokeObjectURL(url);
+    return null;
+  }
+  if (objetUrl && objetUrl !== url) URL.revokeObjectURL(objetUrl);
+  objetUrl = url;
   return objetUrl;
+}
+
+function oublierPrecharge() {
+  if (precharge.url) URL.revokeObjectURL(precharge.url);
+  precharge = { id: null, url: null };
+}
+
+/** L'identifiant du morceau qui sera joué après le morceau en cours. */
+function idSuivant() {
+  const rep = storage.get('plRepeat') || 'all';
+  if (rep === 'one') return null;              // on relit le même sans recharger
+  if (!ordre.length || pos < 0) return null;
+  const suiv = pos + 1;
+  if (suiv >= ordre.length) return rep === 'off' ? null : liste[ordre[0]].id;
+  return liste[ordre[suiv]].id;
+}
+
+/**
+ * Prépare le morceau suivant pendant que le morceau en cours joue — le
+ * moment où le JavaScript tourne encore librement, écran allumé ou non.
+ */
+async function precharger() {
+  const nid = idSuivant();
+  if (!nid) return;
+  if (precharge.id === nid && precharge.url) return;   // déjà prêt
+  oublierPrecharge();
+  const monJeton = jeton;
+  let url;
+  try {
+    url = await versBlob(nid);
+  } catch {
+    return;
+  }
+  // La lecture a pu changer de morceau entre-temps : ce préchargement est
+  // alors périmé.
+  if (monJeton !== jeton || idSuivant() !== nid) {
+    URL.revokeObjectURL(url);
+    return;
+  }
+  precharge = { id: nid, url };
 }
 
 /** Joue ce morceau ; sans argument, reprend là où on en était. */
@@ -151,6 +220,7 @@ export async function play(id) {
   a.play().catch(() => {});
   mediaSession();
   signaler();
+  precharger();                   // le morceau suivant se prépare en fond
 }
 
 /**
@@ -187,11 +257,13 @@ export function stop() {
   jeton++;                        // annule un chargement en cours
   chargement = false;
   pos = -1;
+  oublierPrecharge();
   if (!el) return signaler();
   el.pause();
   el.removeAttribute('src');
   el.load();
   if (objetUrl) { URL.revokeObjectURL(objetUrl); objetUrl = null; }
+  etatSysteme('none');
   signaler();
 }
 
@@ -201,7 +273,16 @@ function auSuivant() {
   // lançait un morceau que personne n'avait demandé.
   if (pos < 0) return;
   const rep = storage.get('plRepeat') || 'all';
-  if (rep === 'one') return play(liste[ordre[pos]].id);
+  if (rep === 'one') {
+    // Rembobiner plutôt que recharger : aucun accès réseau, enchaînement
+    // instantané, et la boucle tient sur un téléphone verrouillé.
+    const a = audio();
+    a.currentTime = 0;
+    a.play().catch(() => {});
+    mediaSession();
+    signaler();
+    return;
+  }
   if (pos + 1 >= ordre.length && rep === 'off') { pause(); return; }
   next();
 }
@@ -241,6 +322,9 @@ export function setShuffle(on) {
 export function cycleRepeat() {
   const i = REPEATS.indexOf(storage.get('plRepeat') || 'all');
   storage.set('plRepeat', REPEATS[(i + 1) % REPEATS.length]);
+  // Le morceau à préparer dépend du mode : le recalculer tout de suite.
+  oublierPrecharge();
+  precharger();
   signaler();
 }
 
@@ -255,6 +339,17 @@ export function setVolume(v) {
  */
 let pochette = null;
 export function setCoverMaker(fn) { pochette = fn; }
+
+/**
+ * Annonce l'état de lecture au système. Un `playbackState` tenu à jour aide
+ * le navigateur à garder la session active — donc l'onglet vivant — quand
+ * l'écran est verrouillé.
+ */
+function etatSysteme(s) {
+  if ('mediaSession' in navigator) {
+    try { navigator.mediaSession.playbackState = s; } catch { /* ignore */ }
+  }
+}
 
 function mediaSession() {
   if (!('mediaSession' in navigator)) return;

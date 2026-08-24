@@ -1,6 +1,6 @@
 // Service worker : cache-first pour tous les assets du jeu.
 // Incrémenter VERSION à chaque déploiement pour invalider l'ancien cache.
-const VERSION = 'neonbeat-1.48';
+const VERSION = 'neonbeat-1.49';
 // Les MP3 vivent dans leur propre cache, PERMANENT : il survit aux mises à
 // jour du jeu (les musiques sont immuables, inutile de les re-télécharger).
 const TRACKS = 'neonbeat-tracks';
