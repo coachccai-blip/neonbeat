@@ -37,8 +37,9 @@ l'appareil** (`js/synth.js`) à partir de sa partition (`js/songs/*.js`), et les
 charts jouables (`tracks/*.json`) sont **dérivées de la même partition** — la
 synchronisation notes/musique est donc exacte par construction.
 
-Trois difficultés par morceau (EASY / NORMAL / HARD), 4 couloirs, notes
-simples et notes longues, multi-touch (accords jusqu'à 4 doigts).
+Six difficultés par morceau (EASY / EASY+ / NORMAL / NORMAL+ / HARD / HARD+),
+4 couloirs, notes simples et notes longues, multi-touch (accords jusqu'à
+4 doigts).
 
 **Pistes importées** : le jeu lit aussi des fichiers MP3/M4A placés dans
 `tracks/` (voir `tools/import-audio.mjs`, qui analyse le signal — BPM, onsets

@@ -1,6 +1,6 @@
 // Avatars : l'image qui précède le pseudo dans les classements.
 //
-// Quatre sont offerts d'emblée (deux filles, deux garçons) ; les six autres
+// Quatre sont offerts d'emblée (deux filles, deux garçons) ; les huit autres
 // se méritent — ils sont adossés aux trophées les plus exigeants du jeu, de
 // façon qu'un avatar rare en soit vraiment un.
 //
@@ -21,7 +21,9 @@ export const AVATARS = [
   { id: 'nb_avatar07', unlock: 'splusnorm30' },
   { id: 'nb_avatar08', unlock: 'ss10' },
   { id: 'nb_avatar09', unlock: 'ss25' },
-  { id: 'nb_avatar10', unlock: 'combo10k' }
+  { id: 'nb_avatar10', unlock: 'combo10k' },
+  { id: 'nb_avatar11', unlock: 'hades' },
+  { id: 'nb_avatar12', unlock: 'zeus' }
 ];
 
 export const DEFAULT_AVATAR = AVATARS[0];

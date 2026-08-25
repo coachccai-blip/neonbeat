@@ -42,16 +42,26 @@ export function favori(stats) {
   return id ? { id, n } : null;
 }
 
+/** Difficultés « HARD ou supérieur » — HARD+ est venu s'ajouter en v1.51. */
+const DUR = new Set(['HARD', 'HARD+']);
+export function estDur(diff) { return DUR.has(diff); }
+
 export function gradeCounts(scores) {
-  const out = { SS: 0, 'S+': 0, S: 0, A: 0, tracks: new Set(), hardCleared: 0, splusNormal: 0 };
+  const out = { SS: 0, 'S+': 0, S: 0, A: 0, tracks: new Set(), hardCleared: 0, splusNormal: 0,
+                ssHard: 0, ssBigCombo: 0 };
   for (const [key, e] of Object.entries(scores || {})) {
     if (!e || !e.grade) continue;
     if (out[e.grade] !== undefined) out[e.grade]++;
     const [track, diff] = key.split('|');
     out.tracks.add(track);
-    if (diff === 'HARD' && e.grade !== 'D') out.hardCleared++;
+    if (estDur(diff) && e.grade !== 'D') out.hardCleared++;
     // Difficulté NORMAL au sens strict : « NORMAL+ » est une autre chart.
     if (diff === 'NORMAL' && (e.grade === 'S+' || e.grade === 'SS')) out.splusNormal++;
+    if (e.grade === 'SS') {
+      if (estDur(diff)) out.ssHard++;
+      // Un SS tenu sur un très long combo : la maîtrise ET l'endurance.
+      if ((e.comboMax || 0) > 8000) out.ssBigCombo++;
+    }
   }
   return { ...out, tracks: out.tracks.size };
 }
@@ -91,7 +101,9 @@ export const TROPHIES = [
   { id: 'splusnorm30', icon: '🎯', target: 30,    value: (s, g) => g.splusNormal },
   { id: 'hardfc10',   icon: '🗻', target: 10,     value: (s) => s.hardFullCombos },
   { id: 'ap10',       icon: '🔮', target: 10,     value: (s) => s.allPerfects },
-  { id: 'notes100k',  icon: '🎼', target: 100000, value: (s) => s.notesHit }
+  { id: 'notes100k',  icon: '🎼', target: 100000, value: (s) => s.notesHit },
+  { id: 'hades',      icon: '🏛️', target: 20,     value: (s, g) => g.ssHard },
+  { id: 'zeus',       icon: '⚡', target: 5,      value: (s, g) => g.ssBigCombo }
 ];
 
 export function trophyById(id) {
@@ -128,7 +140,9 @@ export function applyResult(stats, res) {
   s.notesHit += (counts.PERFECT || 0) + (counts.GREAT || 0) + (counts.GOOD || 0);
   if (noMiss) {
     s.fullCombos++;
-    if (res.diffName === 'HARD') s.hardFullCombos++;
+    // HARD+ compte aussi : elle est plus dure que HARD, il serait absurde
+    // qu'un full combo dessus ne vaille pas celui de la difficulté inférieure.
+    if (estDur(res.diffName)) s.hardFullCombos++;
     // Tout en PERFECT : le graal, distinct du simple full combo.
     if (!counts.GREAT && !counts.GOOD) s.allPerfects++;
   }

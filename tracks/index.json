@@ -28,6 +28,10 @@
         {
           "name": "HARD",
           "level": 5
+        },
+        {
+          "name": "HARD+",
+          "level": 7
         }
       ]
     },
@@ -59,6 +63,10 @@
         {
           "name": "HARD",
           "level": 5
+        },
+        {
+          "name": "HARD+",
+          "level": 7
         }
       ]
     },
@@ -90,6 +98,10 @@
         {
           "name": "HARD",
           "level": 5
+        },
+        {
+          "name": "HARD+",
+          "level": 7
         }
       ]
     },
@@ -121,6 +133,10 @@
         {
           "name": "HARD",
           "level": 5
+        },
+        {
+          "name": "HARD+",
+          "level": 7
         }
       ]
     },
@@ -152,6 +168,10 @@
         {
           "name": "HARD",
           "level": 5
+        },
+        {
+          "name": "HARD+",
+          "level": 7
         }
       ]
     },
@@ -183,6 +203,10 @@
         {
           "name": "HARD",
           "level": 5
+        },
+        {
+          "name": "HARD+",
+          "level": 7
         }
       ]
     },
@@ -214,6 +238,10 @@
         {
           "name": "HARD",
           "level": 7
+        },
+        {
+          "name": "HARD+",
+          "level": 9
         }
       ]
     },
@@ -245,6 +273,10 @@
         {
           "name": "HARD",
           "level": 7
+        },
+        {
+          "name": "HARD+",
+          "level": 9
         }
       ]
     },
@@ -276,6 +308,10 @@
         {
           "name": "HARD",
           "level": 7
+        },
+        {
+          "name": "HARD+",
+          "level": 9
         }
       ]
     },
@@ -307,6 +343,10 @@
         {
           "name": "HARD",
           "level": 7
+        },
+        {
+          "name": "HARD+",
+          "level": 9
         }
       ]
     },
@@ -338,6 +378,10 @@
         {
           "name": "HARD",
           "level": 7
+        },
+        {
+          "name": "HARD+",
+          "level": 9
         }
       ]
     },
@@ -369,6 +413,10 @@
         {
           "name": "HARD",
           "level": 7
+        },
+        {
+          "name": "HARD+",
+          "level": 9
         }
       ]
     },
@@ -400,6 +448,10 @@
         {
           "name": "HARD",
           "level": 7
+        },
+        {
+          "name": "HARD+",
+          "level": 9
         }
       ]
     },
@@ -431,6 +483,10 @@
         {
           "name": "HARD",
           "level": 7
+        },
+        {
+          "name": "HARD+",
+          "level": 9
         }
       ]
     },
@@ -462,6 +518,10 @@
         {
           "name": "HARD",
           "level": 7
+        },
+        {
+          "name": "HARD+",
+          "level": 9
         }
       ]
     },
@@ -493,6 +553,10 @@
         {
           "name": "HARD",
           "level": 7
+        },
+        {
+          "name": "HARD+",
+          "level": 9
         }
       ]
     },
@@ -524,6 +588,10 @@
         {
           "name": "HARD",
           "level": 9
+        },
+        {
+          "name": "HARD+",
+          "level": 11
         }
       ]
     },
@@ -555,6 +623,10 @@
         {
           "name": "HARD",
           "level": 9
+        },
+        {
+          "name": "HARD+",
+          "level": 11
         }
       ]
     },
@@ -586,6 +658,10 @@
         {
           "name": "HARD",
           "level": 9
+        },
+        {
+          "name": "HARD+",
+          "level": 11
         }
       ]
     },
@@ -617,6 +693,10 @@
         {
           "name": "HARD",
           "level": 9
+        },
+        {
+          "name": "HARD+",
+          "level": 11
         }
       ]
     },
@@ -648,6 +728,10 @@
         {
           "name": "HARD",
           "level": 9
+        },
+        {
+          "name": "HARD+",
+          "level": 11
         }
       ]
     },
@@ -679,6 +763,10 @@
         {
           "name": "HARD",
           "level": 9
+        },
+        {
+          "name": "HARD+",
+          "level": 11
         }
       ]
     },
@@ -710,6 +798,10 @@
         {
           "name": "HARD",
           "level": 9
+        },
+        {
+          "name": "HARD+",
+          "level": 11
         }
       ]
     },
@@ -741,6 +833,10 @@
         {
           "name": "HARD",
           "level": 9
+        },
+        {
+          "name": "HARD+",
+          "level": 11
         }
       ]
     },
@@ -772,6 +868,10 @@
         {
           "name": "HARD",
           "level": 9
+        },
+        {
+          "name": "HARD+",
+          "level": 11
         }
       ]
     },
@@ -803,6 +903,10 @@
         {
           "name": "HARD",
           "level": 9
+        },
+        {
+          "name": "HARD+",
+          "level": 11
         }
       ]
     },
@@ -834,6 +938,10 @@
         {
           "name": "HARD",
           "level": 9
+        },
+        {
+          "name": "HARD+",
+          "level": 11
         }
       ]
     },
@@ -865,6 +973,10 @@
         {
           "name": "HARD",
           "level": 9
+        },
+        {
+          "name": "HARD+",
+          "level": 11
         }
       ]
     },
@@ -896,6 +1008,10 @@
         {
           "name": "HARD",
           "level": 9
+        },
+        {
+          "name": "HARD+",
+          "level": 11
         }
       ]
     },
@@ -927,6 +1043,10 @@
         {
           "name": "HARD",
           "level": 9
+        },
+        {
+          "name": "HARD+",
+          "level": 11
         }
       ]
     },
@@ -958,6 +1078,10 @@
         {
           "name": "HARD",
           "level": 9
+        },
+        {
+          "name": "HARD+",
+          "level": 11
         }
       ]
     },
@@ -989,6 +1113,10 @@
         {
           "name": "HARD",
           "level": 9
+        },
+        {
+          "name": "HARD+",
+          "level": 11
         }
       ]
     },
@@ -1020,6 +1148,10 @@
         {
           "name": "HARD",
           "level": 9
+        },
+        {
+          "name": "HARD+",
+          "level": 11
         }
       ]
     },
@@ -1051,6 +1183,10 @@
         {
           "name": "HARD",
           "level": 9
+        },
+        {
+          "name": "HARD+",
+          "level": 11
         }
       ]
     },
@@ -1082,6 +1218,10 @@
         {
           "name": "HARD",
           "level": 9
+        },
+        {
+          "name": "HARD+",
+          "level": 11
         }
       ]
     },
@@ -1113,6 +1253,10 @@
         {
           "name": "HARD",
           "level": 11
+        },
+        {
+          "name": "HARD+",
+          "level": 13
         }
       ]
     },
@@ -1144,6 +1288,10 @@
         {
           "name": "HARD",
           "level": 11
+        },
+        {
+          "name": "HARD+",
+          "level": 13
         }
       ]
     },
@@ -1175,6 +1323,10 @@
         {
           "name": "HARD",
           "level": 11
+        },
+        {
+          "name": "HARD+",
+          "level": 13
         }
       ]
     },
@@ -1206,6 +1358,10 @@
         {
           "name": "HARD",
           "level": 11
+        },
+        {
+          "name": "HARD+",
+          "level": 13
         }
       ]
     },
@@ -1237,6 +1393,10 @@
         {
           "name": "HARD",
           "level": 11
+        },
+        {
+          "name": "HARD+",
+          "level": 13
         }
       ]
     },
@@ -1268,6 +1428,10 @@
         {
           "name": "HARD",
           "level": 11
+        },
+        {
+          "name": "HARD+",
+          "level": 13
         }
       ]
     },
@@ -1299,6 +1463,10 @@
         {
           "name": "HARD",
           "level": 11
+        },
+        {
+          "name": "HARD+",
+          "level": 13
         }
       ]
     },
@@ -1330,6 +1498,10 @@
         {
           "name": "HARD",
           "level": 11
+        },
+        {
+          "name": "HARD+",
+          "level": 13
         }
       ]
     },
@@ -1361,6 +1533,10 @@
         {
           "name": "HARD",
           "level": 11
+        },
+        {
+          "name": "HARD+",
+          "level": 13
         }
       ]
     },
@@ -1392,6 +1568,10 @@
         {
           "name": "HARD",
           "level": 11
+        },
+        {
+          "name": "HARD+",
+          "level": 13
         }
       ]
     },
@@ -1423,6 +1603,10 @@
         {
           "name": "HARD",
           "level": 11
+        },
+        {
+          "name": "HARD+",
+          "level": 13
         }
       ]
     },
@@ -1454,6 +1638,10 @@
         {
           "name": "HARD",
           "level": 11
+        },
+        {
+          "name": "HARD+",
+          "level": 13
         }
       ]
     },
@@ -1485,6 +1673,10 @@
         {
           "name": "HARD",
           "level": 11
+        },
+        {
+          "name": "HARD+",
+          "level": 13
         }
       ]
     },
@@ -1516,6 +1708,10 @@
         {
           "name": "HARD",
           "level": 11
+        },
+        {
+          "name": "HARD+",
+          "level": 13
         }
       ]
     },
@@ -1547,6 +1743,10 @@
         {
           "name": "HARD",
           "level": 11
+        },
+        {
+          "name": "HARD+",
+          "level": 13
         }
       ]
     },
@@ -1578,6 +1778,10 @@
         {
           "name": "HARD",
           "level": 11
+        },
+        {
+          "name": "HARD+",
+          "level": 13
         }
       ]
     },
@@ -1609,6 +1813,10 @@
         {
           "name": "HARD",
           "level": 11
+        },
+        {
+          "name": "HARD+",
+          "level": 13
         }
       ]
     }

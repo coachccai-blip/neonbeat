@@ -127,7 +127,7 @@ export function showMaxCombo(n) {
 
 /* ─── Sélecteurs segmentés (difficulté) ─── */
 
-const DIFF_CLASS = { EASY: 'e', 'EASY+': 'e', NORMAL: 'n', 'NORMAL+': 'n', HARD: 'h' };
+const DIFF_CLASS = { EASY: 'e', 'EASY+': 'e', NORMAL: 'n', 'NORMAL+': 'n', HARD: 'h', 'HARD+': 'h' };
 
 /**
  * @param {(diffName:string)=>string|null} [gradeOf] grade local à afficher

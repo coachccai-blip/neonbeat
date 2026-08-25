@@ -311,6 +311,9 @@ body { overflow: hidden; }
 .seg-btn[data-diff="NORMAL"].is-on  { background: var(--amber); }
 .seg-btn[data-diff="NORMAL+"].is-on { background: #ff8c42; }
 .seg-btn[data-diff="HARD"].is-on    { background: var(--magenta); color: #fff; }
+/* HARD+ : la difficulté extrême a droit à sa propre couleur, plus brûlante
+   que le magenta de HARD pour qu'on ne les confonde pas d'un coup d'œil. */
+.seg-btn[data-diff="HARD+"].is-on   { background: #ff2d55; color: #fff; }
 .keys-seg .seg-btn { min-width: 80px; flex: 0 1 auto; }
 
 /* ─── Recherche et tri du catalogue ─── */
@@ -611,7 +614,9 @@ input[type=range]::-moz-range-thumb { width: 30px; height: 30px; border-radius: 
 
 /* Cartes de skin : l'échantillon de couleurs vaut mieux qu'un long nom. */
 /* ─── Choix de l'avatar (réglages) ─── */
-.avatar-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+/* Quatre colonnes : les douze avatars remplissent exactement trois rangées.
+   À cinq, la dernière rangée n'en aurait que deux, orphelins. */
+.avatar-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .avatar-card {
   position: relative; aspect-ratio: 1; padding: 0; border: 0; border-radius: 50%;
   overflow: hidden; background: rgba(255,255,255,.04); cursor: pointer;

@@ -17,20 +17,12 @@ const require = createRequire(import.meta.url);
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const { chromium } = require(join(root, 'node_modules/playwright/index.js'));
 
-/* ─── Arguments ─── */
-const [, , srcPath, id, title, ...rest] = process.argv;
-if (!srcPath || !id || !title) {
-  console.error('usage: node tools/import-audio.mjs <fichier> <id> "<Titre>" [--artist ...] [--bpm N] [--tier N] [--color #hex]');
-  process.exit(1);
-}
-const opt = {};
-for (let i = 0; i < rest.length; i += 2) opt[rest[i].replace('--', '')] = rest[i + 1];
 
 /* ─── 1. Analyse dans Chromium (décodage + STFT + onsets) ─── */
 
 const CHROME = process.env.CHROME_BIN || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 
-async function analyze(path) {
+export async function analyze(path) {
   const browser = await chromium.launch({ executablePath: CHROME, args: ['--autoplay-policy=no-user-gesture-required'] });
   const page = await browser.newPage();
   const b64 = readFileSync(path).toString('base64');
@@ -240,7 +232,7 @@ async function analyze(path) {
 
 /* ─── 2. Choix du BPM ─── */
 
-function chooseBpm(cands, forced) {
+export function chooseBpm(cands, forced) {
   if (forced) return parseFloat(forced);
   // Le meilleur candidat de l'autocorrélation est généralement le tempo perçu
   // ou son double. On le garde tel quel s'il est dans une plage jouable ;
@@ -260,15 +252,16 @@ function makeRng(seed) {
   return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
 }
 
-const DIFFS = [
+export const DIFFS = [
   { name: 'EASY',    grid: 2, minGap: 0.26,  maxChord: 1, nps: (t) => 0.70 + 0.26 * t },
   { name: 'EASY+',   grid: 2, minGap: 0.20,  maxChord: 1, nps: (t) => (0.70 + 0.26 * t) * 1.50 },
   { name: 'NORMAL',  grid: 1, minGap: 0.14,  maxChord: 2, nps: (t) => (0.70 + 0.26 * t) * 2.05 },
   { name: 'NORMAL+', grid: 1, minGap: 0.11,  maxChord: 2, nps: (t) => (0.70 + 0.26 * t) * 2.65 },
-  { name: 'HARD',    grid: 1, minGap: 0.085, maxChord: 3, nps: (t) => (0.70 + 0.26 * t) * 3.30 }
+  { name: 'HARD',    grid: 1, minGap: 0.085, maxChord: 3, nps: (t) => (0.70 + 0.26 * t) * 3.30 },
+  { name: 'HARD+',   grid: 1, minGap: 0.07,  maxChord: 3, nps: (t) => (0.70 + 0.26 * t) * 4.15 }
 ];
 
-function buildCandidates(analysis, bpm, phase) {
+export function buildCandidates(analysis, bpm, phase) {
   const stepDur = 60 / bpm / 4;
   const rng = makeRng(1234567);
   const cands = [];
@@ -321,7 +314,7 @@ function buildCandidates(analysis, bpm, phase) {
   return cands;
 }
 
-function place(cands, diff, threshold, stepDur, duration) {
+export function place(cands, diff, threshold, stepDur, duration) {
   const laneFree = new Array(LANES).fill(-1e9);
   const out = [];
   let lastT = -1e9, lastLane = -1;
@@ -390,7 +383,7 @@ function place(cands, diff, threshold, stepDur, duration) {
   return out;
 }
 
-function generate(analysis, bpm, phase, tier) {
+export function generate(analysis, bpm, phase, tier) {
   const cands = buildCandidates(analysis, bpm, phase);
   const stepDur = 60 / bpm / 4;
   const duration = analysis.duration;
@@ -411,7 +404,23 @@ function generate(analysis, bpm, phase, tier) {
   });
 }
 
-/* ─── 4. Exécution ─── */
+/* ─── 4. Exécution en ligne de commande ─── */
+// Ce fichier est aussi une BIBLIOTHÈQUE : tools/add-difficulty.mjs réutilise
+// l'analyse et la génération pour ajouter une difficulté aux morceaux déjà
+// importés. On ne déclenche donc l'import complet que si l'outil est appelé
+// directement, et jamais quand il est simplement importé.
+const appelDirect = process.argv[1] && process.argv[1].endsWith('import-audio.mjs');
+if (!appelDirect) {
+  // Importé comme bibliothèque : rien à exécuter.
+} else {
+
+const [, , srcPath, id, title, ...rest] = process.argv;
+if (!srcPath || !id || !title) {
+  console.error('usage: node tools/import-audio.mjs <fichier> <id> "<Titre>" [--artist ...] [--bpm N] [--tier N] [--color #hex]');
+  process.exit(1);
+}
+const opt = {};
+for (let i = 0; i < rest.length; i += 2) opt[rest[i].replace('--', '')] = rest[i + 1];
 
 console.log(`analyse de ${srcPath}…`);
 const analysis = await analyze(srcPath);
@@ -461,3 +470,5 @@ for (const d of difficulties) {
 }
 console.log(`tier ${tier} · préversion à ${track.previewStart}s`);
 console.log(`→ tracks/${id}.mp3 + tracks/${id}.json écrits ; relancer "node tools/build-charts.mjs" pour l'index.`);
+
+}
