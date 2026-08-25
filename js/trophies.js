@@ -60,7 +60,7 @@ export function gradeCounts(scores) {
     if (e.grade === 'SS') {
       if (estDur(diff)) out.ssHard++;
       // Un SS tenu sur un très long combo : la maîtrise ET l'endurance.
-      if ((e.comboMax || 0) > 8000) out.ssBigCombo++;
+      if ((e.comboMax || 0) > 4000) out.ssBigCombo++;
     }
   }
   return { ...out, tracks: out.tracks.size };
@@ -102,8 +102,8 @@ export const TROPHIES = [
   { id: 'hardfc10',   icon: '🗻', target: 10,     value: (s) => s.hardFullCombos },
   { id: 'ap10',       icon: '🔮', target: 10,     value: (s) => s.allPerfects },
   { id: 'notes100k',  icon: '🎼', target: 100000, value: (s) => s.notesHit },
-  { id: 'hades',      icon: '🏛️', target: 20,     value: (s, g) => g.ssHard },
-  { id: 'zeus',       icon: '⚡', target: 5,      value: (s, g) => g.ssBigCombo }
+  { id: 'styx',       icon: '🏛️', target: 10,     value: (s, g) => g.ssHard },
+  { id: 'olympe',     icon: '⚡', target: 5,      value: (s, g) => g.ssBigCombo }
 ];
 
 export function trophyById(id) {

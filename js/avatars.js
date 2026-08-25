@@ -22,8 +22,8 @@ export const AVATARS = [
   { id: 'nb_avatar08', unlock: 'ss10' },
   { id: 'nb_avatar09', unlock: 'ss25' },
   { id: 'nb_avatar10', unlock: 'combo10k' },
-  { id: 'nb_avatar11', unlock: 'hades' },
-  { id: 'nb_avatar12', unlock: 'zeus' }
+  { id: 'nb_avatar11', unlock: 'styx' },
+  { id: 'nb_avatar12', unlock: 'olympe' }
 ];
 
 export const DEFAULT_AVATAR = AVATARS[0];
