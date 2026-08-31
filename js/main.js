@@ -1459,6 +1459,7 @@ class Game {
     if (res) {
       this.renderer.flash(lane, res.judgment);
       this.renderer.label(res.judgment);
+      this.renderer.tick(res.delta * 1000);   // baromètre early/late en direct
       this.renderer.setCombo(this.engine.combo);
       if (storage.get('hitsound')) audio.hitSound();
       if (storage.get('vibrate') && navigator.vibrate && res.judgment !== 'MISS') navigator.vibrate(10);
@@ -1538,6 +1539,14 @@ class Game {
       const life = $('life-bar');
       life.style.width = vie + '%';
       life.classList.toggle('low', vie < 30);
+      // Alerte plein écran : un halo rouge qui pulse quand la vie descend
+      // sous 25 % — la barre seule ne se voit pas, les yeux sont sur les
+      // notes. Même seuil gating que la barre : zéro écriture DOM inutile.
+      const danger = vie < 25 && !this.engine.failed;
+      if (danger !== this.uiDanger) {
+        this.uiDanger = danger;
+        $('danger-veil').hidden = !danger;
+      }
     }
 
     // Décompte : avant le début du morceau et au retour de pause, en
@@ -1672,6 +1681,7 @@ class Game {
   }
 
   dispose() {
+    $('danger-veil').hidden = true;
     cancelAnimationFrame(this.raf);
     window.removeEventListener('keydown', this._onEsc);
     this.input.dispose();

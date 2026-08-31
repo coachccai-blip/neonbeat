@@ -65,6 +65,10 @@ export class Renderer {
     this.shake = null;           // { t0, mag } — secousse aux gros fevers
     this.mods = { fade: false, sudden: false };
     this.lanes = 4;
+    this.timingBuf = new Float32Array(8);
+    this.timingIdx = 0;
+    this.timingN = 0;
+    this.timingLast = 0;
     this.scene = 0;
     this.showKeys = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
     this.wave = null;
@@ -87,8 +91,23 @@ export class Renderer {
     this.resize();               // les rails et sprites reprennent la teinte
   }
 
+  /**
+   * Baromètre early/late : mémorise l'écart (en ms) de chaque frappe jugée.
+   * Le moteur calcule déjà ce delta ; jusqu'ici il n'arrivait au joueur
+   * qu'à l'écran de résultats — trop tard pour corriger en jouant.
+   */
+  tick(deltaMs) {
+    this.timingBuf[this.timingIdx] = deltaMs;
+    this.timingIdx = (this.timingIdx + 1) % this.timingBuf.length;
+    if (this.timingN < this.timingBuf.length) this.timingN++;
+    this.timingLast = performance.now();
+  }
+
   setChart(notes, bpm, speed, lanes = 4) {
     this.lanes = lanes;
+    this.timingN = 0;
+    this.timingIdx = 0;
+    this.timingLast = 0;
     this.bpm = bpm;
     this.scene = Math.round(bpm) % 3;
     // phase des pulsations : calée sur la première note (grille du morceau)
@@ -136,11 +155,16 @@ export class Renderer {
     this.laneColors = laneColors(this.skin, this.lanes);
     this.laneKeys = LANE_KEYS[this.lanes];
 
-    // fond
+    // fond — teinté d'environ 12 % par les couleurs du skin : ENFERS ou
+    // ABYSSE se sentent dès la première seconde, sans sacrifier la
+    // lisibilité des notes (le fond reste sombre).
+    // La base est quasi neutre : c'est la teinte du skin qui donne la
+    // dominante, sinon le bleu nuit historique gagnait toujours.
+    const ambiance = moyenneHex(this.skin.lanes4);
     this.bgGrad = this.ctx.createLinearGradient(0, 0, 0, h);
-    this.bgGrad.addColorStop(0, '#07070f');
-    this.bgGrad.addColorStop(0.75, '#0b0b1a');
-    this.bgGrad.addColorStop(1, '#12122a');
+    this.bgGrad.addColorStop(0, versHex('#08080c', ambiance, 0.10));
+    this.bgGrad.addColorStop(0.75, versHex('#0c0c12', ambiance, 0.16));
+    this.bgGrad.addColorStop(1, versHex('#101018', ambiance, 0.22));
 
     // Lueur d'horizon : une seule rampe, centrée sur l'origine, que le
     // dessin déplace et met à l'échelle. `GLOW_REF` est le rayon de
@@ -636,6 +660,36 @@ export class Renderer {
       ctx.textBaseline = 'alphabetic';
     }
 
+    // ─── Baromètre early/late ───
+    // Un trait discret sous la ligne : un point qui penche à gauche quand tu
+    // frappes en avance, à droite en retard. Il s'efface après 1,8 s sans
+    // frappe pour ne jamais encombrer.
+    if (this.timingN && now - this.timingLast < 1800) {
+      let somme = 0;
+      for (let i = 0; i < this.timingN; i++) somme += this.timingBuf[i];
+      const avg = somme / this.timingN;
+      const fade = Math.min(1, (1800 - (now - this.timingLast)) / 400);
+      const mw = Math.min(150, w * 0.34);
+      const my = judgeY + (this.showKeys ? 54 : 32);
+      const off = Math.max(-1, Math.min(1, avg / 60)) * (mw / 2);
+      ctx.globalAlpha = 0.5 * fade;
+      ctx.fillStyle = 'rgba(223,228,255,0.5)';
+      ctx.fillRect(w / 2 - mw / 2, my, mw, 2);
+      ctx.fillRect(w / 2 - 1, my - 4, 2, 10);
+      ctx.font = `700 9px ${FONT}`;
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(124,212,255,0.75)';
+      ctx.fillText('TÔT', w / 2 - mw / 2 - 16, my + 5);
+      ctx.fillStyle = 'rgba(255,176,32,0.75)';
+      ctx.fillText('TARD', w / 2 + mw / 2 + 18, my + 5);
+      ctx.globalAlpha = fade;
+      ctx.fillStyle = Math.abs(avg) < 10 ? '#5cff9d' : avg < 0 ? '#7cd4ff' : '#ffb020';
+      ctx.beginPath();
+      ctx.arc(w / 2 + off, my + 1, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
     // ─── Notes (fenêtre glissante, sprites) ───
     const notes = this.notes;
     const appearT = songT + travel;
@@ -1048,6 +1102,19 @@ export class Renderer {
 }
 
 /* ════════════════ Aides ════════════════ */
+
+/** Mélange linéaire de deux couleurs hex : t=0 → a, t=1 → b. */
+function versHex(a, b, t) {
+  const va = parseInt(a.slice(1), 16), vb = parseInt(b.slice(1), 16);
+  const c = (sh) => Math.round(((va >> sh) & 255) * (1 - t) + ((vb >> sh) & 255) * t);
+  return '#' + ((c(16) << 16) | (c(8) << 8) | c(0)).toString(16).padStart(6, '0');
+}
+function moyenneHex(liste) {
+  let r = 0, g = 0, bl = 0;
+  for (const c of liste) { const v = parseInt(c.slice(1), 16); r += (v >> 16) & 255; g += (v >> 8) & 255; bl += v & 255; }
+  const n = liste.length;
+  return '#' + ((Math.round(r / n) << 16) | (Math.round(g / n) << 8) | Math.round(bl / n)).toString(16).padStart(6, '0');
+}
 
 function makeCanvas(w, h, drawFn) {
   const dpr = Math.min(2, window.devicePixelRatio || 1);
