@@ -43,7 +43,7 @@ pas de « script de migration » séparé.
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════
---  NEONBEAT — classement en ligne (v1.54)
+--  NEONBEAT — classement en ligne (v1.55)
 --  Script COMPLET et REJOUABLE : il crée ce qui manque et met à jour
 --  ce qui existe. Le lancer deux fois de suite ne change rien.
 --  Supabase → SQL Editor → New query → coller → Run.
@@ -72,6 +72,14 @@ alter table public.scores add column if not exists avatar text;
 -- Le marqueur vient du jeu et il est COLLANT côté client : republier un
 -- meilleur score sans les effets ne l'efface pas.
 alter table public.scores add column if not exists ssplus boolean not null default false;
+
+-- v1.55 : rattrapage rétroactif. Des joueurs avaient réalisé des SS avec
+-- les quatre effets AVANT que le SS+ n'existe — la liste des effets est
+-- publiée avec chaque score depuis toujours, on les reconnaît donc ici et
+-- on les marque. Idempotent : les lignes déjà marquées ne bougent pas.
+update public.scores set ssplus = true
+ where not ssplus and grade = 'SS'
+   and mods @> array['SUDDEN','MIRROR','FADE','NIGHTCORE'];
 
 -- ── 3. Garde-fous. Ils n'empêchent pas la triche déterminée, mais ils
 --       rejettent l'impossible. On les repose à chaque exécution : c'est

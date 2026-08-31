@@ -165,6 +165,7 @@ function readScores() {
     writeScores();
   }
   migrerCombo(scoresCache);
+  migrerSSplus(scoresCache);
   return scoresCache;
 }
 
@@ -188,6 +189,32 @@ function migrerCombo(store) {
     for (const e of liste || []) if (e && e.comboMax) e.comboMax = perfectCombo(e.comboMax);
   }
   store.comboV2 = true;
+  writeScores();
+}
+
+/* ─── SS+ rétroactif (v1.55) ─────────────────────────────────────────
+   Le grade SS+ (un SS avec les quatre effets SU·MI·FD·NC) est arrivé en
+   v1.54 — mais des joueurs avaient déjà réalisé l'exploit avant qu'il ne
+   porte un nom. La liste des effets est enregistrée avec chaque record
+   depuis toujours : on peut donc reconnaître ces SS+ a posteriori et les
+   marquer, records comme historique des tentatives.                      */
+
+const EFFETS_SSPLUS = ['SUDDEN', 'MIRROR', 'FADE', 'NIGHTCORE'];
+
+function meriteSSplus(e) {
+  return !!e && e.grade === 'SS' && !e.ssplus &&
+    Array.isArray(e.mods) && EFFETS_SSPLUS.every((m) => e.mods.includes(m));
+}
+
+function migrerSSplus(store) {
+  if (store.ssplusV1) return;
+  for (const e of Object.values(store.scores || {})) {
+    if (meriteSSplus(e)) e.ssplus = true;
+  }
+  for (const liste of Object.values(store.board || {})) {
+    for (const e of liste || []) if (meriteSSplus(e)) e.ssplus = true;
+  }
+  store.ssplusV1 = true;
   writeScores();
 }
 
