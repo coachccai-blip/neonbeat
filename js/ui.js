@@ -7,6 +7,7 @@ import { t } from './i18n.js';
 import * as audio from './audio.js';
 import { avatarFile, DEFAULT_AVATAR } from './avatars.js';
 import { GRADES } from './engine.js';
+import { sectionOf } from './trophies.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -867,7 +868,7 @@ export function renderTrophies(d, onPickSkin) {
     box.appendChild(b);
   }
 
-  $('tr-list').innerHTML = d.progress.map((tr) => {
+  const ligne = (tr) => {
     const pct = Math.round((100 * tr.current) / tr.target);
     const skin = d.skinFor[tr.id];
     const avatar = (d.avatarFor || {})[tr.id];
@@ -887,7 +888,29 @@ export function renderTrophies(d, onPickSkin) {
         </span>
         <span class="tv">${tr.done ? '✓' : `${tr.current}/${tr.target}`}</span>
       </div>`;
-  }).join('');
+  };
+
+  // « Bientôt à toi » : les trois défis entamés les plus proches du but —
+  // la première chose qu'un joueur vient chercher sur cet écran. Deux
+  // garde-fous : aucune partie jouée = rien d'« entamé » (le fever ×1 de
+  // départ ferait croire à une progression), et il faut au moins un quart
+  // du chemin pour mériter le bandeau.
+  const proches = (d.stats && d.stats.plays > 0 ? d.progress : [])
+    .filter((tr) => !tr.done && tr.current > 0 && tr.current / tr.target >= 0.25)
+    .sort((a, b) => b.current / b.target - a.current / a.target)
+    .slice(0, 3);
+  const bandeau = proches.length
+    ? `<div class="tr-sect tr-next-head">${esc(t('trophies_next'))}</div>
+       <div class="tr-next">${proches.map(ligne).join('')}</div>`
+    : '';
+
+  // Puis les 37 défis, en trois chapitres au lieu d'une liste plate.
+  const sections = { debuts: [], maitrise: [], pantheon: [] };
+  for (const tr of d.progress) sections[sectionOf(tr.id)].push(tr);
+  $('tr-list').innerHTML = bandeau + ['debuts', 'maitrise', 'pantheon'].map((sect) => `
+      <div class="tr-sect">${esc(t('trophies_sect_' + sect))}
+        <em>${sections[sect].filter((x) => x.done).length}/${sections[sect].length}</em>
+      </div>` + sections[sect].map(ligne).join('')).join('');
 }
 
 /* ─── Rivaux (barres latérales en jeu) ─── */

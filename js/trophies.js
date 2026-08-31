@@ -131,6 +131,18 @@ export const TROPHIES = [
   { id: 'gardien',    icon: '🐺', target: 300,    value: (s, g) => g.SS }
 ];
 
+/**
+ * Trois chapitres pour l'écran des trophées : la liste plate ne tenait plus
+ * l'échelle à 37 défis.
+ */
+const PANTHEON = new Set(['styx', 'olympe', 'ivresse', 'floraison', 'fauxmortel',
+                          'vengeance', 'vague', 'eveil', 'evasion', 'gardien']);
+const MAITRISE = new Set(['fever15', 'ss10', 'ss25', 'combo10k', 'splusnorm30',
+                          'hardfc10', 'ap10', 'notes100k']);
+export function sectionOf(id) {
+  return PANTHEON.has(id) ? 'pantheon' : MAITRISE.has(id) ? 'maitrise' : 'debuts';
+}
+
 export function trophyById(id) {
   return TROPHIES.find((t) => t.id === id) || null;
 }

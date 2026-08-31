@@ -118,6 +118,13 @@
     </div>
 
     <div class="players" id="players"></div>
+    <div class="react-row" id="react-row" role="group" aria-label="Réactions">
+      <button class="react-btn" data-react="👍">👍</button>
+      <button class="react-btn" data-react="🔥">🔥</button>
+      <button class="react-btn" data-react="😱">😱</button>
+      <button class="react-btn" data-react="🎵">🎵</button>
+    </div>
+    <div class="react-stage" id="react-stage" aria-hidden="true"></div>
     <div class="seg team-pick" id="team-pick" role="group" aria-label="Équipe" hidden></div>
 
     <div class="bots-block">
@@ -188,8 +195,12 @@
       <span class="label" data-i18n="select_diff">DIFFICULTÉ</span>
       <div class="seg" id="select-diff" role="group" aria-label="Difficulté"></div>
     </div>
-    <div class="row mods-row">
-      <span class="label"><span data-i18n="select_mods">EFFETS</span> <span class="mods-mult" id="mods-mult"></span></span>
+    <div class="row mods-row" id="mods-row">
+      <button class="mods-head" id="mods-toggle" type="button" aria-expanded="false">
+        <span class="label"><span data-i18n="select_mods">EFFETS</span> <span class="mods-mult" id="mods-mult"></span></span>
+        <span class="mods-sum" id="mods-sum"></span>
+        <span class="mods-caret" aria-hidden="true">▾</span>
+      </button>
       <div class="seg" id="select-mods" role="group" aria-label="Effets optionnels"></div>
     </div>
     <div class="speed-row">

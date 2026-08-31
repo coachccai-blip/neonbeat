@@ -316,6 +316,57 @@ body { overflow: hidden; }
 .seg-btn[data-diff="HARD+"].is-on   { background: #ff2d55; color: #fff; }
 .keys-seg .seg-btn { min-width: 80px; flex: 0 1 auto; }
 
+/* ─── Bloc EFFETS repliable : rarement touché, il ne s'ouvre qu'à la
+   demande — la fiche du morceau respire d'autant. ─── */
+.mods-head {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  background: none; border: 0; padding: 0; cursor: pointer;
+  color: inherit; text-align: left; font: inherit;
+}
+.mods-head .mods-sum {
+  margin-left: auto; font-size: 11px; font-weight: 700; letter-spacing: .06em;
+  color: var(--ink-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mods-head .mods-sum.is-actifs { color: var(--amber); }
+.mods-caret { color: var(--ink-dim); transition: transform .18s ease; font-size: 12px; }
+.mods-row.is-open .mods-caret { transform: rotate(180deg); }
+.mods-row > .seg { display: none; margin-top: 10px; }
+.mods-row.is-open > .seg { display: flex; }
+
+/* ─── Réactions du salon : un tap, un emoji qui s'envole chez tous ─── */
+.react-row { display: flex; gap: 8px; justify-content: center; margin: 10px 0 2px; }
+.react-btn {
+  font-size: 20px; line-height: 1; padding: 8px 14px; border-radius: 999px;
+  background: rgba(255,255,255,.05); border: 1px solid rgba(122,92,255,.25);
+  cursor: pointer; transition: transform .1s ease;
+}
+.react-btn:active { transform: scale(1.25); }
+.react-stage { position: fixed; inset: 0; pointer-events: none; z-index: 40; overflow: hidden; }
+.react-fly {
+  position: absolute; bottom: 30%; font-size: 34px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  animation: react-up 1.6s ease-out forwards;
+}
+.react-fly small { font-size: 10px; font-weight: 700; letter-spacing: .08em; color: var(--ink-dim); }
+@keyframes react-up {
+  0%   { transform: translateY(0) scale(.6); opacity: 0; }
+  12%  { transform: translateY(-14px) scale(1.15); opacity: 1; }
+  100% { transform: translateY(-190px) scale(1); opacity: 0; }
+}
+
+/* ─── Écran des trophées : chapitres et « bientôt à toi » ─── */
+.tr-sect {
+  display: flex; align-items: baseline; gap: 8px;
+  font-size: 11px; font-weight: 800; letter-spacing: .14em; color: var(--ink-dim);
+  margin: 18px 2px 8px;
+}
+.tr-sect em { font-style: normal; font-weight: 700; opacity: .7; }
+.tr-next-head { color: var(--cyan); margin-top: 6px; }
+.tr-next .trophy {
+  background: rgba(47,216,255,.07);
+  box-shadow: inset 0 0 0 1px rgba(47,216,255,.22);
+}
+
 /* ─── Recherche et tri du catalogue ─── */
 .browse-bar { display: flex; gap: 8px; margin-bottom: 10px; align-items: stretch; }
 .search-input { flex: 1; min-width: 0; font-size: 16px; padding: 11px 14px; }

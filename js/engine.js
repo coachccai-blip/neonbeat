@@ -113,7 +113,8 @@ export class Engine {
   /**
    * @param {number[][]} rawNotes  [[lane, time, duration], …] triées par time
    */
-  constructor(rawNotes) {
+  constructor(rawNotes, opts = {}) {
+    this.noFail = !!opts.noFail;   // effet NO FAIL : la vie plancher à 0 sans mourir
     this.notes = rawNotes.map(([lane, time, dur], i) => ({
       i, lane, time, dur,
       end: time + dur,
@@ -291,7 +292,7 @@ export class Engine {
     }
 
     this.life = Math.max(0, Math.min(100, this.life + LIFE_DELTA[judgment]));
-    if (this.life <= 0 && !this.failed) this.failed = true;
+    if (this.life <= 0 && !this.failed && !this.noFail) this.failed = true;
 
     this.events.push({ type: 'judge', lane, judgment, t: note.time, combo: this.combo });
   }

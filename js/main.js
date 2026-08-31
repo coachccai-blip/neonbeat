@@ -161,6 +161,9 @@ function boot() {
     ui.refreshSettings();
   });
   $('btn-add-bot').addEventListener('click', ajouterBot);
+  for (const b of document.querySelectorAll('#react-row .react-btn')) {
+    b.addEventListener('click', () => envoyerReaction(b.dataset.react));
+  }
   $('team-seg').addEventListener('click', (e) => {
     const b = e.target.closest('[data-team-mode]');
     if (b) setTeamMode(b.dataset.teamMode === 'teams');
@@ -170,6 +173,11 @@ function boot() {
     ui.show(S.selectPurpose === 'lobby' ? 'lobby' : 'home');
   });
   $('sheet-close').addEventListener('click', closeSheet);
+  $('mods-toggle').addEventListener('click', () => {
+    const row = $('mods-row');
+    const ouvert = row.classList.toggle('is-open');
+    $('mods-toggle').setAttribute('aria-expanded', String(ouvert));
+  });
   $('sheet-backdrop').addEventListener('click', closeSheet);
   $('track-search').addEventListener('input', (e) => {
     S.trackFilter = e.target.value;
@@ -1056,14 +1064,33 @@ function closeSheet() {
   audio.stopPreview();
 }
 
+const MOD_ABBR = { MIRROR: 'MI', FADE: 'FD', SUDDEN: 'SU', NIGHTCORE: 'NC', NOFAIL: 'NF' };
+
+/** Résumé du bloc replié : « aucun » ou la liste des effets actifs. */
+function majResumeMods() {
+  const actifs = storage.get('mods') || [];
+  const el = $('mods-sum');
+  if (!el) return;
+  el.textContent = actifs.length ? actifs.map((id) => MOD_ABBR[id] || id).join('·') : t('mods_none');
+  el.classList.toggle('is-actifs', actifs.length > 0);
+}
+
 function renderSelectMods() {
   ui.renderModsSeg($('select-mods'), MODS, storage.get('mods') || [], (id, on) => {
     const mods = new Set(storage.get('mods') || []);
     if (on) mods.add(id); else mods.delete(id);
     storage.set('mods', [...mods]);
     ui.setModsSummary($('mods-mult'), multiplierFor([...mods]));
+    majResumeMods();
   });
   ui.setModsSummary($('mods-mult'), multiplierFor(storage.get('mods') || []));
+  majResumeMods();
+  // Replié par défaut — sauf si des effets sont déjà actifs : on ne cache
+  // pas au joueur qu'un multiplicateur s'appliquera.
+  const row = $('mods-row');
+  const ouvert = (storage.get('mods') || []).length > 0;
+  row.classList.toggle('is-open', ouvert);
+  $('mods-toggle').setAttribute('aria-expanded', String(ouvert));
 }
 
 function renderSelectDiff() {
@@ -1329,7 +1356,7 @@ class Game {
     }
     if (this.keysMode === '2') notes = to2Keys(notes);
     if (this.keysMode === '6') notes = to6Keys(notes);
-    this.engine = new Engine(notes);
+    this.engine = new Engine(notes, { noFail: this.mods.includes('NOFAIL') });
     this.renderer = new Renderer($('game-canvas'));
     this.renderer.setSkin(activeSkin());
     this.finished = false;
@@ -2079,6 +2106,37 @@ function freeColor(peerId, wanted) {
   return free || ok || '#8f93b8';
 }
 
+/* ─── Réactions du salon ─── */
+
+/** Fait s'envoler l'emoji chez tout le monde (salon uniquement). */
+function montrerReaction(nom, emoji) {
+  if (ui.screen() !== 'lobby') return;
+  const stage = $('react-stage');
+  if (!stage) return;
+  const el = document.createElement('div');
+  el.className = 'react-fly';
+  el.style.left = `${18 + Math.random() * 64}%`;
+  el.innerHTML = `<span>${emoji}</span><small></small>`;
+  el.querySelector('small').textContent = nom || '';
+  stage.appendChild(el);
+  setTimeout(() => el.remove(), 1700);
+  audio.uiTap();
+}
+
+let derniereReaction = 0;
+function envoyerReaction(emoji) {
+  const now = performance.now();
+  if (now - derniereReaction < 800) return;   // anti-mitraillette, local aussi
+  derniereReaction = now;
+  const nom = displayName();
+  montrerReaction(nom, emoji);
+  if (S.mode === 'host') {
+    S.net.broadcast({ t: 'REACT', name: nom, emoji });
+  } else if (S.mode === 'client' && S.net) {
+    S.net.send({ t: 'REACT', emoji });
+  }
+}
+
 function hostOnMessage(peerId, msg) {
   const p = S.players.get(peerId);
   if (!p) return;
@@ -2118,6 +2176,16 @@ function hostOnMessage(peerId, msg) {
       p.left = !!msg.left;
       hostMaybeSendResults();
       break;
+    case 'REACT': {
+      // Anti-mitraillette côté hôte : un joueur, une réaction par 800 ms.
+      const now = performance.now();
+      if (now - (p.lastReact || 0) < 800) break;
+      p.lastReact = now;
+      const emoji = ['👍', '🔥', '😱', '🎵'].includes(msg.emoji) ? msg.emoji : '👍';
+      montrerReaction(p.name, emoji);
+      S.net.broadcast({ t: 'REACT', name: p.name, emoji });
+      break;
+    }
   }
 }
 
@@ -2360,6 +2428,9 @@ function clientOnMessage(msg) {
       S.audioMode = msg.audioMode;
       break;
     }
+    case 'REACT':
+      if (msg.name !== displayName()) montrerReaction(msg.name, msg.emoji);
+      break;
     case 'TRACK': {
       const t = S.tracks.find((x) => x.id === msg.trackId);
       if (t) {

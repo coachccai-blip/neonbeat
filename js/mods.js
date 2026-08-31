@@ -5,7 +5,11 @@ export const MODS = [
   { id: 'MIRROR',    name: 'MIROIR',    desc: 'couloirs inversés',            mult: 1.05 },
   { id: 'FADE',      name: 'FADE',      desc: 'les notes s’effacent avant la ligne', mult: 1.15 },
   { id: 'SUDDEN',    name: 'SUDDEN',    desc: 'les notes apparaissent tard',  mult: 1.15 },
-  { id: 'NIGHTCORE', name: 'NIGHTCORE', desc: 'musique accélérée ×1,25', mult: 1.25 }
+  { id: 'NIGHTCORE', name: 'NIGHTCORE', desc: 'musique accélérée ×1,25', mult: 1.25 },
+  // Mode entraînement : la vie ne tue plus. Le score est divisé par deux —
+  // finir un morceau sans risque ne vaut pas le finir pour de vrai — mais
+  // HARD+ devient un terrain d'apprentissage au lieu d'un mur.
+  { id: 'NOFAIL',    name: 'NO FAIL',   desc: 'la vie ne tue pas', mult: 0.5 }
 ];
 
 export function multiplierFor(ids) {
