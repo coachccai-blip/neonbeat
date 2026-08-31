@@ -1,6 +1,6 @@
 // Service worker : cache-first pour tous les assets du jeu.
 // Incrémenter VERSION à chaque déploiement pour invalider l'ancien cache.
-const VERSION = 'neonbeat-1.53';
+const VERSION = 'neonbeat-1.54';
 // Les MP3 vivent dans leur propre cache, PERMANENT : il survit aux mises à
 // jour du jeu (les musiques sont immuables, inutile de les re-télécharger).
 const TRACKS = 'neonbeat-tracks';
@@ -18,10 +18,10 @@ const CORE = [
   './assets/mascot-420.webp',
   './assets/mascot.png',
   // Avatars : 11 Ko pièce, et ils s'affichent dans les classements — les
-  // pré-cacher évite douze requêtes à la première ouverture d'un classement.
-  ...Array.from({ length: 12 }, (_, i) => `./assets/avatars/nb_avatar${String(i + 1).padStart(2, '0')}.webp`),
-  // Seul le grand format PAR DÉFAUT est pré-chargé : les douze pèseraient
-  // 2,5 Mo pour des images qu'un joueur donné ne verra jamais. Les autres
+  // pré-cacher évite vingt requêtes à la première ouverture d'un classement.
+  ...Array.from({ length: 20 }, (_, i) => `./assets/avatars/nb_avatar${String(i + 1).padStart(2, '0')}.webp`),
+  // Seul le grand format PAR DÉFAUT est pré-chargé : les vingt pèseraient
+  // 4 Mo pour des images qu'un joueur donné ne verra jamais. Les autres
   // entrent au cache quand il les choisit — et une vignette sert de repli
   // si jamais il en choisit un hors ligne sans l'avoir jamais affiché.
   './assets/avatars/nb_avatar01-420.webp',

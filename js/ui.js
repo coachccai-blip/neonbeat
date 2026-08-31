@@ -138,8 +138,12 @@ export function renderDiffSeg(container, levels, active, onPick, gradeOf) {
     const b = document.createElement('button');
     b.className = 'seg-btn' + (d.name === active ? ' is-on' : '');
     b.dataset.diff = d.name;
-    const grade = gradeOf ? gradeOf(d.name) : null;
-    b.innerHTML = `${d.name}<small>${t('level_abbr')} ${d.level}${grade ? ` · <b class="gr">${grade}</b>` : ''}</small>`;
+    // gradeOf rend le meilleur score local (entrée complète) : un SS gagné
+    // avec les quatre effets s'affiche « SS+ » et dore la difficulté.
+    const best = gradeOf ? gradeOf(d.name) : null;
+    const grade = best ? (best.ssplus ? 'SS+' : best.grade) : null;
+    if (best && best.ssplus) b.classList.add('is-or');
+    b.innerHTML = `${d.name}<small>${t('level_abbr')} ${d.level}${grade ? ` · <b class="gr${best.ssplus ? ' gr-or' : ''}">${grade}</b>` : ''}</small>`;
     b.addEventListener('click', () => {
       container.querySelectorAll('.seg-btn').forEach((x) => x.classList.remove('is-on'));
       b.classList.add('is-on');
@@ -192,8 +196,9 @@ export function renderTrackList(tracks, activeId, onPick, gradeOf) {
     b.className = 'track-item' + (t.id === activeId ? ' is-on' : '');
     b.style.setProperty('--accent', t.color || '#22e0c8');
     const lv = t.levels.map((l) => {
-      const grade = gradeOf ? gradeOf(t.id, l.name) : null;
-      return `<span class="lv ${DIFF_CLASS[l.name] || ''}">${l.level}${grade ? `<b>${grade}</b>` : ''}</span>`;
+      const best = gradeOf ? gradeOf(t.id, l.name) : null;
+      const grade = best ? (best.ssplus ? 'SS+' : best.grade) : null;
+      return `<span class="lv ${DIFF_CLASS[l.name] || ''}${best && best.ssplus ? ' is-or' : ''}">${l.level}${grade ? `<b>${grade}</b>` : ''}</span>`;
     }).join('');
     b.innerHTML = `
       <img class="track-cover" src="${coverFor(t)}" alt="" width="46" height="46">
@@ -513,7 +518,8 @@ export function renderResults(track, res, ranking, myId, celebrate = true, teams
   const stage = $('res-grade-stage');
   const tier = tierOf(res.grade, res.failed);
   if (stage) stage.dataset.tier = tier;
-  gradeEl.textContent = res.failed ? 'FAILED' : res.grade;
+  gradeEl.textContent = res.failed ? 'FAILED' : (res.ssplus ? 'SS+' : res.grade);
+  gradeEl.classList.toggle('is-or', !!res.ssplus);
   gradeEl.style.fontSize = res.failed ? 'clamp(48px,16vw,80px)' : '';
   if (celebrate) {
     // re-déclenche l'animation de claquage du grade
@@ -640,12 +646,12 @@ export function renderTrackBoard(rows, me) {
       <span class="pos">${i + 1}</span>
       ${avatarTag(r.avatar)}
       <span class="bn">${esc(r.name || '—')}</span>
-      <span class="bg">${esc(r.grade || '')}</span>
+      <span class="bg${r.ssplus ? ' gr-or' : ''}">${esc(r.ssplus ? 'SS+' : (r.grade || ''))}</span>
       <span class="bs">${(r.score || 0).toLocaleString('fr-FR')}</span>
     </div>`).join('');
 }
 
-/** Classement général : SS, S+, S et meilleur combo, tous joueurs confondus. */
+/** Classement général : SS, SS+, S+, S et meilleur combo, tous joueurs confondus. */
 export function renderGlobalBoard(rows, me) {
   const el = $('ranking-list');
   if (!rows) return boardMessage(el, 'board_error');
@@ -653,7 +659,7 @@ export function renderGlobalBoard(rows, me) {
   el.innerHTML = `
     <div class="board-row head">
       <span class="pos"></span><span class="bav is-none"></span><span class="bn"></span>
-      <span class="bc ss">SS</span><span class="bc sp">S+</span>
+      <span class="bc ss">SS</span><span class="bc ssp">SS+</span><span class="bc sp">S+</span>
       <span class="bc sg">S</span><span class="bc mc">${esc(t('trophies_maxcombo'))}</span>
     </div>` + rows.map((r, i) => `
     <div class="board-row${r.player_id === me ? ' is-me' : ''}${i === 0 ? ' p1' : ''}">
@@ -661,6 +667,7 @@ export function renderGlobalBoard(rows, me) {
       ${avatarTag(r.avatar)}
       <span class="bn">${esc(r.name || '—')}</span>
       <span class="bc ss">${r.ss || 0}</span>
+      <span class="bc ssp">${r.ss_plus || 0}</span>
       <span class="bc sp">${r.splus || 0}</span>
       <span class="bc sg">${r.s || 0}</span>
       <span class="bc mc">${r.max_combo || 0}</span>
@@ -687,7 +694,7 @@ export function renderMyScores(rows, rank) {
       <span class="pos">${i + 1}</span>
       <span class="bn">${esc(modsLabelOf(r.mods))}</span>
       <span class="bp">${((r.precision || 0) * 100).toFixed(1)} %</span>
-      <span class="bg">${esc(r.grade || '')}</span>
+      <span class="bg${r.ssplus ? ' gr-or' : ''}">${esc(r.ssplus ? 'SS+' : (r.grade || ''))}</span>
       <span class="bs">${(r.score || 0).toLocaleString('fr-FR')}</span>
     </div>`).join('');
 }

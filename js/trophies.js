@@ -48,11 +48,17 @@ export function estDur(diff) { return DUR.has(diff); }
 
 export function gradeCounts(scores) {
   const out = { SS: 0, 'S+': 0, S: 0, A: 0, tracks: new Set(), hardCleared: 0, splusNormal: 0,
-                ssHard: 0, ssBigCombo: 0 };
+                ssHard: 0, ssBigCombo: 0,
+                // v1.54 : SS+ (un SS avec les quatre effets SU·MI·FD·NC actifs),
+                // sa variante en difficulté dure, les SS du mode 6 keys, et les
+                // SS « NORMAL ou plus » comptés PAR mode de touches (Ivresse
+                // exige les trois).
+                ssPlus: 0, ssPlusDur: 0, ssSix: 0, ssNormalParMode: { 4: 0, 2: 0, 6: 0 } };
   for (const [key, e] of Object.entries(scores || {})) {
     if (!e || !e.grade) continue;
     if (out[e.grade] !== undefined) out[e.grade]++;
-    const [track, diff] = key.split('|');
+    const [track, diff, kmode] = key.split('|');
+    const mode = kmode === '2K' ? 2 : kmode === '6K' ? 6 : 4;
     out.tracks.add(track);
     if (estDur(diff) && e.grade !== 'D') out.hardCleared++;
     // Difficulté NORMAL au sens strict : « NORMAL+ » est une autre chart.
@@ -61,6 +67,13 @@ export function gradeCounts(scores) {
       if (estDur(diff)) out.ssHard++;
       // Un SS tenu sur un très long combo : la maîtrise ET l'endurance.
       if ((e.comboMax || 0) > 4000) out.ssBigCombo++;
+      if (mode === 6) out.ssSix++;
+      // « NORMAL ou plus » : tout sauf les deux difficultés EASY.
+      if (diff !== 'EASY' && diff !== 'EASY+') out.ssNormalParMode[mode]++;
+      if (e.ssplus) {
+        out.ssPlus++;
+        if (estDur(diff)) out.ssPlusDur++;
+      }
     }
   }
   return { ...out, tracks: out.tracks.size };
@@ -103,7 +116,19 @@ export const TROPHIES = [
   { id: 'ap10',       icon: '🔮', target: 10,     value: (s) => s.allPerfects },
   { id: 'notes100k',  icon: '🎼', target: 100000, value: (s) => s.notesHit },
   { id: 'styx',       icon: '🏛️', target: 10,     value: (s, g) => g.ssHard },
-  { id: 'olympe',     icon: '⚡', target: 5,      value: (s, g) => g.ssBigCombo }
+  { id: 'olympe',     icon: '⚡', target: 5,      value: (s, g) => g.ssBigCombo },
+  // v1.54 : huit défis de plus, huit avatars du panthéon à la clé.
+  // Ivresse veut 20 SS « NORMAL ou plus » dans CHACUN des trois modes de
+  // touches : la progression affichée est celle du mode le moins avancé.
+  { id: 'ivresse',    icon: '🍇', target: 20,
+    value: (s, g) => Math.min(g.ssNormalParMode[4], g.ssNormalParMode[2], g.ssNormalParMode[6]) },
+  { id: 'floraison',  icon: '🌺', target: 30,     value: (s, g) => g.ssPlus },
+  { id: 'fauxmortel', icon: '⚰️', target: 15,     value: (s, g) => g.ssPlusDur },
+  { id: 'vengeance',  icon: '🗡️', target: 30,     value: (s, g) => g.ssSix },
+  { id: 'vague',      icon: '🌊', target: 50000,  value: (s) => s.maxCombo },
+  { id: 'eveil',      icon: '🕯️', target: 100,    value: (s, g) => g.SS },
+  { id: 'evasion',    icon: '⛓️‍💥', target: 200,    value: (s, g) => g.SS },
+  { id: 'gardien',    icon: '🐺', target: 300,    value: (s, g) => g.SS }
 ];
 
 export function trophyById(id) {

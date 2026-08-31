@@ -1045,10 +1045,7 @@ function refreshTrackListGrades() {
     S.selectedTrack = t;
     storage.set('lastTrack', t.id);
     openSheet(t);
-  }, (trackId, diffName) => {
-    const best = storage.bestFor(trackId, diffName, storage.get('keys'));
-    return best ? best.grade : null;
-  });
+  }, (trackId, diffName) => storage.bestFor(trackId, diffName, storage.get('keys')));
 }
 
 function closeSheet() {
@@ -1076,10 +1073,7 @@ function renderSelectDiff() {
     S.myDiff = name;
     storage.set('lastDiff', name);
     applyAutoSpeed();
-  }, (diffName) => {
-    const best = storage.bestFor(t.id, diffName, storage.get('keys'));
-    return best ? best.grade : null;
-  });
+  }, (diffName) => storage.bestFor(t.id, diffName, storage.get('keys')));
 }
 
 function updateSpeedHint() {
@@ -1758,13 +1752,17 @@ function onGameFinished(res) {
   // Record local : pour tous les modes, on garde le meilleur par morceau +
   // difficulté (le grade reste basé sur la précision, effets ou non).
   let recordInfo = null;
+  // SS+ : un grade SS décroché avec les QUATRE effets actifs (SU·MI·FD·NC).
+  res.ssplus = !res.failed && res.grade === 'SS' &&
+    ['SUDDEN', 'MIRROR', 'FADE', 'NIGHTCORE'].every((m) => (res.mods || []).includes(m));
   if (S.selectedTrack) {
     recordInfo = storage.saveScore(S.selectedTrack.id, res.diffName, {
       score: res.score,
       grade: res.failed ? 'D' : res.grade,
       precision: Math.round(res.precision * 10000) / 10000,
       comboMax: res.comboMax,
-      mods: res.mods || []
+      mods: res.mods || [],
+      ...(res.ssplus ? { ssplus: true } : {})
     }, res.keysMode || '4');
   }
   // Trophées : on met à jour les compteurs, puis on annonce les nouveaux
@@ -1773,7 +1771,7 @@ function onGameFinished(res) {
 
   // Classement en ligne : on ne publie QUE si le meilleur local a changé —
   // inutile de renvoyer un score déjà connu de la base à chaque partie.
-  if (online.enabled() && recordInfo && recordInfo.record && S.selectedTrack) {
+  if (online.enabled() && recordInfo && recordInfo.changed && S.selectedTrack) {
     online.publishScore(displayName(), displayAvatar(), S.selectedTrack.id, res.diffName,
                         res.keysMode || '4', recordInfo.best);
   }
@@ -2461,10 +2459,7 @@ function refreshLobby() {
         hostBroadcastLobby();
         refreshLobby();
       }
-    }), (diffName) => {
-      const best = storage.bestFor(sel.id, diffName, storage.get('keys'));
-      return best ? best.grade : null;
-    });
+    }), (diffName) => storage.bestFor(sel.id, diffName, storage.get('keys')));
   }
   for (const b of document.querySelectorAll('#audio-mode-row .seg-btn')) {
     b.classList.toggle('is-on', b.dataset.mode === S.audioMode);

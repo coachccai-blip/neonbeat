@@ -43,7 +43,7 @@ pas de « script de migration » séparé.
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════
---  NEONBEAT — classement en ligne (v1.53)
+--  NEONBEAT — classement en ligne (v1.54)
 --  Script COMPLET et REJOUABLE : il crée ce qui manque et met à jour
 --  ce qui existe. Le lancer deux fois de suite ne change rien.
 --  Supabase → SQL Editor → New query → coller → Run.
@@ -68,6 +68,10 @@ create table if not exists public.scores (
 
 -- ── 2. Colonnes ajoutées après coup (bases créées avant la v1.34).
 alter table public.scores add column if not exists avatar text;
+-- v1.54 : SS+ — un SS décroché avec les quatre effets (SU·MI·FD·NC) actifs.
+-- Le marqueur vient du jeu et il est COLLANT côté client : republier un
+-- meilleur score sans les effets ne l'efface pas.
+alter table public.scores add column if not exists ssplus boolean not null default false;
 
 -- ── 3. Garde-fous. Ils n'empêchent pas la triche déterminée, mais ils
 --       rejettent l'impossible. On les repose à chaque exécution : c'est
@@ -113,6 +117,8 @@ select
   (array_agg(avatar order by updated_at desc)
      filter (where avatar is not null))[1]         as avatar,
   count(*) filter (where grade = 'SS')             as ss,
+  -- Les SS+ comptent dans les SS ET dans leur propre colonne.
+  count(*) filter (where ssplus)                   as ss_plus,
   count(*) filter (where grade = 'S+')             as splus,
   count(*) filter (where grade = 'S')              as s,
   max(combo)                                       as max_combo,

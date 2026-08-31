@@ -146,16 +146,25 @@ async function call(path, options = {}, timeoutMs = 8000) {
 // pour le reste de la session. D'où un drapeau PAR RESSOURCE.
 const avatarOk = { scores: true, leaderboard: true };
 let bigComboOk = true;
+const ssplusOk = { scores: true, leaderboard: true };   // colonne v1.54
 const COMBO_LEGACY_MAX = 5000;
 
 /**
  * @param {'scores'|'leaderboard'} res  ressource visée
- * @param {(o:{avatar:boolean, clampCombo:boolean}) => Promise<{ok:boolean,status:number,data:*}>} run
+ * @param {(o:{avatar:boolean, clampCombo:boolean, ssplus:boolean}) => Promise<{ok:boolean,status:number,data:*}>} run
  */
 async function withFallbacks(res, run) {
-  const o = { avatar: avatarOk[res], clampCombo: !bigComboOk };
+  const o = { avatar: avatarOk[res], clampCombo: !bigComboOk, ssplus: ssplusOk[res] };
   let r = await run(o);
   if (r.ok || r.status !== 400) return r;
+  // Une base pas encore migrée v1.54 ne connaît pas la colonne ssplus :
+  // on republie sans elle plutôt que de perdre le score entier.
+  if (o.ssplus) {
+    ssplusOk[res] = false;
+    o.ssplus = false;
+    r = await run(o);
+    if (r.ok || r.status !== 400) return r;
+  }
   if (o.avatar) {
     avatarOk[res] = false;
     o.avatar = false;
@@ -277,7 +286,8 @@ export async function publishMany(name, avatar, list) {
     grade: entry.grade || 'D',
     precision: Math.min(1, Math.max(0, entry.precision || 0)),
     combo: Math.min(o.clampCombo ? COMBO_LEGACY_MAX : Infinity, Math.round(entry.comboMax || 0)),
-    mods: entry.mods || []
+    mods: entry.mods || [],
+    ...(o.ssplus ? { ssplus: !!entry.ssplus } : {})
   });
   // merge-duplicates : PostgREST traduit en « ON CONFLICT DO UPDATE ».
   const r = await withFallbacks('scores', (o) => request('scores', {
@@ -294,15 +304,15 @@ export async function publishMany(name, avatar, list) {
 
 /** Classement d'un morceau, pour une difficulté et un mode donnés. */
 export async function trackBoard(trackId, diff, keys = '4', limit = 50) {
-  const q = (withAv) => new URLSearchParams({
-    select: `player_id,name,${withAv ? 'avatar,' : ''}score,grade,precision,combo,mods`,
+  const q = (withAv, withSp) => new URLSearchParams({
+    select: `player_id,name,${withAv ? 'avatar,' : ''}score,grade,precision,combo,mods${withSp ? ',ssplus' : ''}`,
     track_id: `eq.${trackId}`,
     diff: `eq.${diff}`,
     keys: `eq.${keys}`,
     order: 'score.desc',
     limit: String(limit)
   });
-  const r = await withFallbacks('scores', (o) => request(`scores?${q(o.avatar)}`, { headers: headers() }));
+  const r = await withFallbacks('scores', (o) => request(`scores?${q(o.avatar, o.ssplus)}`, { headers: headers() }));
   return r.ok && Array.isArray(r.data) ? r.data : null;
 }
 
@@ -311,11 +321,11 @@ export async function trackBoard(trackId, diff, keys = '4', limit = 50) {
  * et son meilleur combo. Le calcul se fait côté base, le jeu n'affiche.
  */
 export async function globalBoard(limit = 50) {
-  const q = (withAv) => new URLSearchParams({
-    select: `player_id,name,${withAv ? 'avatar,' : ''}ss,splus,s,max_combo,charts`,
+  const q = (withAv, withSp) => new URLSearchParams({
+    select: `player_id,name,${withAv ? 'avatar,' : ''}ss,${withSp ? 'ss_plus,' : ''}splus,s,max_combo,charts`,
     order: 'ss.desc,splus.desc,s.desc,max_combo.desc',
     limit: String(limit)
   });
-  const r = await withFallbacks('leaderboard', (o) => request(`leaderboard?${q(o.avatar)}`, { headers: headers() }));
+  const r = await withFallbacks('leaderboard', (o) => request(`leaderboard?${q(o.avatar, o.ssplus)}`, { headers: headers() }));
   return r.ok && Array.isArray(r.data) ? r.data : null;
 }

@@ -213,18 +213,28 @@ export function saveScore(trackId, diffName, entry, keysMode = '4') {
   const key = scoreKey(trackId, diffName, keysMode);
   const prev = store.scores[key];
   const record = !prev || entry.score > prev.score;
+  // Le SS+ (un SS avec les quatre effets) est COLLANT : une fois décroché
+  // sur une chart, un meilleur score joué sans les effets ne l'efface pas —
+  // sinon battre son propre record ferait PERDRE un accomplissement.
+  const ssplus = !!(entry.ssplus || (prev && prev.ssplus));
+  let changed = true;               // le meilleur local a-t-il bougé ? (→ republier)
   if (record) {
-    store.scores[key] = entry;
+    store.scores[key] = ssplus ? { ...entry, ssplus: true } : entry;
   } else if (GRADE_ORDER.indexOf(entry.grade) > GRADE_ORDER.indexOf(prev.grade)) {
     // Un meilleur grade avec un moins bon score (autres effets) : on garde le
     // meilleur des deux mondes pour l'affichage.
-    store.scores[key] = { ...prev, grade: entry.grade };
+    store.scores[key] = { ...prev, grade: entry.grade, ...(ssplus ? { ssplus: true } : {}) };
+  } else if (ssplus && !prev.ssplus) {
+    // Pas un record, pas un meilleur grade — mais un SS+ inédit : il se garde.
+    store.scores[key] = { ...prev, ssplus: true };
+  } else {
+    changed = false;
   }
   store.board[key] = [...(store.board[key] || []), entry]
     .sort((a, b) => b.score - a.score)
     .slice(0, 8);
   writeScores();
-  return { record, best: store.scores[key] };
+  return { record, changed, best: store.scores[key] };
 }
 
 /* ─── Statistiques de trophées ───────────────────────────────────────
