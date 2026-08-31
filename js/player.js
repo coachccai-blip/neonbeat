@@ -116,8 +116,9 @@ export function state() {
     shuffle: !!storage.get('plShuffle'),
     repeat: repeat(),
     // Le morceau suivant, déjà en mémoire et programmé pour enchaîner sans
-    // le moindre accès réseau ni silence.
-    pret: nxt ? nxt.id : null
+    // le moindre accès réseau ni silence — et son titre, pour l'afficher.
+    pret: nxt ? nxt.id : null,
+    pretTitle: nxt ? (liste.find((x) => x.id === nxt.id) || {}).title || null : null
   };
 }
 

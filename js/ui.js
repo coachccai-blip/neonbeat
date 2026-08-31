@@ -6,6 +6,7 @@ import { travelTime, notesOnScreen, clampSpeed, TRAVEL_MIN, TRAVEL_MAX } from '.
 import { t } from './i18n.js';
 import * as audio from './audio.js';
 import { avatarFile, DEFAULT_AVATAR } from './avatars.js';
+import { GRADES } from './engine.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -266,6 +267,15 @@ export function renderPlayer(st, surEcranEcoute) {
   // « une seule » se distingue de « toutes » par le petit 1 du symbole.
   $('pb-repeat').textContent = st.repeat === 'one' ? '🔂' : '🔁';
   $('pb-repeat').classList.toggle('is-on', st.repeat !== 'off');
+  // « À suivre » : le lecteur sait déjà quel morceau est prêt à enchaîner —
+  // autant le dire. Sur l'écran d'écoute seulement, la barre compacte n'a
+  // pas la place.
+  const nxt = $('pb-next');
+  if (nxt) {
+    const montrer = surEcranEcoute && st.playing && st.pretTitle && st.repeat !== 'one';
+    nxt.hidden = !montrer;
+    if (montrer) nxt.textContent = `${t('listen_next')} · ${st.pretTitle}`;
+  }
   bar.classList.toggle('is-compact', !surEcranEcoute);
 }
 
@@ -557,6 +567,36 @@ export function renderResults(track, res, ranking, myId, celebrate = true, teams
     el.style.animationDelay = `${120 + i * 70}ms`;
     el.classList.add('pop-in');
   });
+
+  const extraEl = $('res-extra');
+  if (extraEl) {
+    const morceaux = [];
+    if ((res.feverMax || 1) > 1) {
+      morceaux.push(`<span class="chip chip-fever">${esc(t('res_fever', { n: res.feverMax }))}</span>`);
+    }
+    // L'écart avec le record personnel — la vraie question en fin de partie.
+    if (!res.failed && res.prevScore != null) {
+      const delta = res.score - res.prevScore;
+      morceaux.push(delta > 0
+        ? `<span class="chip chip-up">${esc(t('res_vs_up', { delta: delta.toLocaleString('fr-FR') }))}</span>`
+        : `<span class="chip">${esc(t('res_vs_down', { score: res.prevScore.toLocaleString('fr-FR'), delta: (-delta).toLocaleString('fr-FR') }))}</span>`);
+    } else if (!res.failed && res.prevScore == null) {
+      morceaux.push(`<span class="chip chip-up">${esc(t('res_first'))}</span>`);
+    }
+    // Le prochain palier de précision, tant que le SS n'est pas là.
+    if (!res.failed && res.grade !== 'SS') {
+      const cible = [...GRADES].reverse().find(([, min]) => min > res.precision);
+      if (cible) {
+        morceaux.push(`<span class="chip chip-goal">${esc(t('res_goal', {
+          grade: cible[0],
+          need: (cible[1] * 100).toFixed(cible[1] >= 0.999 ? 2 : 1),
+          got: (res.precision * 100).toFixed(1)
+        }))}</span>`);
+      }
+    }
+    extraEl.innerHTML = morceaux.join('');
+    extraEl.hidden = !morceaux.length;
+  }
 
   const timingEl = $('res-timing');
   if (timingEl) {

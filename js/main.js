@@ -1757,6 +1757,10 @@ function onGameFinished(res) {
   res.ssplus = !res.failed && res.grade === 'SS' &&
     ['SUDDEN', 'MIRROR', 'FADE', 'NIGHTCORE'].every((m) => (res.mods || []).includes(m));
   if (S.selectedTrack) {
+    // L'ancien record se lit AVANT la sauvegarde : l'écran de résultats
+    // affiche l'écart (« +12 430 sur ton ancien record » / « à 8 210 »).
+    const avant = storage.bestFor(S.selectedTrack.id, res.diffName, res.keysMode || '4');
+    res.prevScore = avant ? avant.score : null;
     recordInfo = storage.saveScore(S.selectedTrack.id, res.diffName, {
       score: res.score,
       grade: res.failed ? 'D' : res.grade,
