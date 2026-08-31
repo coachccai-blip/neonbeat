@@ -14,7 +14,7 @@ import { DEFAULT_SKIN, laneColors } from './skins.js';
 const JUDGE_Y = 0.82;            // ligne de jugement à 18 % du bas
 // Les couleurs viennent désormais du skin actif (js/skins.js) ; il ne reste
 // ici que le mappage des touches, qui ne dépend que du mode de jeu.
-const LANE_KEYS = { 4: ['Z', 'E', 'I', 'O'], 2: ['E', 'I'] };
+const LANE_KEYS = { 4: ['Z', 'E', 'I', 'O'], 2: ['E', 'I'], 6: ['S', 'D', 'F', 'J', 'K', 'L'] };
 const JUDGE_COLORS = { PERFECT: '#22e0c8', GREAT: '#7ce0ff', GOOD: '#ffb020', MISS: '#ff4d4d' };
 // Le fever n'a plus de plafond : au-delà de ×5 la palette recommence, et
 // à partir de ×10 tout vire à l'or blanc — un niveau « hors barème » se

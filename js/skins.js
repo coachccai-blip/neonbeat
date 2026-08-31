@@ -107,6 +107,22 @@ export function skinById(id) {
 }
 
 /** Couleurs de couloirs du skin, pour le mode de touches demandé. */
+/** Moyenne de deux couleurs hex — sert aux couloirs médians du 6 keys. */
+function mixHex(a, b) {
+  const va = parseInt(a.slice(1), 16), vb = parseInt(b.slice(1), 16);
+  const c = (sh) => Math.round((((va >> sh) & 255) + ((vb >> sh) & 255)) / 2);
+  return '#' + ((c(16) << 16) | (c(8) << 8) | c(0)).toString(16).padStart(6, '0');
+}
+
 export function laneColors(skin, lanes) {
-  return lanes === 2 ? skin.lanes2 : skin.lanes4;
+  if (lanes === 2) return skin.lanes2;
+  if (lanes === 6) {
+    // Six teintes déduites des quatre : les couloirs médians prennent un
+    // mélange de leurs voisins. Chaque skin reste cohérent sans qu'on ait à
+    // écrire dix palettes de plus, et la géographie 4K se retrouve (les
+    // extrêmes gardent leur couleur).
+    const [c0, c1, c2, c3] = skin.lanes4;
+    return [c0, mixHex(c0, c1), c1, c2, mixHex(c2, c3), c3];
+  }
+  return skin.lanes4;
 }

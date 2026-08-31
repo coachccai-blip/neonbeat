@@ -3,7 +3,7 @@
 import * as storage from './storage.js';
 import * as audio from './audio.js';
 import * as ui from './ui.js';
-import { loadIndex, loadTrack, getDifficulty, density, to2Keys } from './chart.js';
+import { loadIndex, loadTrack, getDifficulty, density, to2Keys, to6Keys } from './chart.js';
 import { Engine, feverBounds, perfectCombo } from './engine.js';
 import { Renderer } from './render.js';
 import { Input } from './input.js';
@@ -600,7 +600,7 @@ function localScoreList() {
   for (const [key, entry] of Object.entries(storage.allScores())) {
     const [trackId, diff, k2] = key.split('|');
     if (!trackId || !diff) continue;
-    list.push({ trackId, diff, keys: k2 === '2K' ? '2' : '4', entry });
+    list.push({ trackId, diff, keys: k2 === '2K' ? '2' : k2 === '6K' ? '6' : '4', entry });
   }
   return list;
 }
@@ -1102,7 +1102,9 @@ function maxComboOf(track, diffName, keysMode) {
   if (!def || !def.notes) return 0;
   // Le combo est pondéré par le fever : ce n'est plus le nombre de notes,
   // mais ce que rapporte la chaîne complète en les enchaînant toutes.
-  return perfectCombo((keysMode === '2' ? to2Keys(def.notes) : def.notes).length);
+  const notes = keysMode === '2' ? to2Keys(def.notes)
+              : keysMode === '6' ? to6Keys(def.notes) : def.notes;
+  return perfectCombo(notes.length);
 }
 
 /**
@@ -1324,13 +1326,14 @@ class Game {
     this.mult = multiplierFor(this.mods);
 
     this.keysMode = storage.get('keys') || '4';
-    this.laneCount = this.keysMode === '2' ? 2 : 4;
+    this.laneCount = this.keysMode === '2' ? 2 : this.keysMode === '6' ? 6 : 4;
 
     let notes = this.diff.notes;
     if (this.mods.includes('MIRROR')) {
       notes = notes.map(([lane, t, d]) => [3 - lane, t, d]);
     }
     if (this.keysMode === '2') notes = to2Keys(notes);
+    if (this.keysMode === '6') notes = to6Keys(notes);
     this.engine = new Engine(notes);
     this.renderer = new Renderer($('game-canvas'));
     this.renderer.setSkin(activeSkin());
@@ -1945,7 +1948,9 @@ function simulerLesBots(track, diffName) {
   if (!def) { for (const b of S.bots) b.run = null; return; }
   const niveau = (track.difficulties || track.levels || []).find((d) => d.name === diffName);
   let notes = def.notes;
-  if ((storage.get('keys') || '4') === '2') notes = to2Keys(notes);
+  const km = storage.get('keys') || '4';
+  if (km === '2') notes = to2Keys(notes);
+  if (km === '6') notes = to6Keys(notes);
   for (const b of S.bots) {
     b.run = bots.simuler(notes, b.level, (niveau && niveau.level) || 5,
       (Date.now() ^ b.id.length * 2654435761 ^ b.level * 40503) >>> 0);

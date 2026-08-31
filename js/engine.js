@@ -126,9 +126,12 @@ export class Engine {
     // Une file par couloir : le moteur n'inspecte jamais tout le tableau, il
     // avance un curseur. Sans ça, une chart de 2000 notes coûte 2000
     // itérations par frame et le framerate s'effondre en fin de morceau.
-    this.byLane = [[], [], [], []];
+    // Le nombre de couloirs vient de la chart elle-même (4 d'office, 6 en
+    // mode 6 keys) : le moteur n'a pas à connaître le mode de jeu.
+    const nLanes = Math.max(4, 1 + this.notes.reduce((m, n) => (n.lane > m ? n.lane : m), 0));
+    this.byLane = Array.from({ length: nLanes }, () => []);
     for (const n of this.notes) this.byLane[n.lane].push(n);
-    this.cursor = [0, 0, 0, 0];
+    this.cursor = new Array(nLanes).fill(0);
 
     this.counts = { PERFECT: 0, GREAT: 0, GOOD: 0, MISS: 0 };
     this.weightSum = 0;
@@ -150,7 +153,7 @@ export class Engine {
     this.comboMax = 0;
     this.life = 70;
     this.failed = false;
-    this.holding = [null, null, null, null];
+    this.holding = new Array(this.byLane.length).fill(null);
     this.events = [];            // pour le rendu : flashs et libellés
     this.deltaSum = 0;           // somme des écarts signés (s) — stats early/late
     this.deltaCount = 0;

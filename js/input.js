@@ -9,9 +9,11 @@
 // Mapping par LETTRE (event.key) et non par position physique (event.code) :
 // « Z » désigne ainsi la touche marquée Z, sur AZERTY comme sur QWERTY.
 // 4 keys : Z E I O (ou D F J K). 2 keys : E I (tout le bloc gauche/droit marche).
+// 6 keys : S D F J K L — six lettres à la même place sur AZERTY et QWERTY.
 const KEY_MAPS = {
   4: { z: 0, e: 1, i: 2, o: 3, d: 0, f: 1, j: 2, k: 3 },
-  2: { z: 0, e: 0, d: 0, f: 0, i: 1, o: 1, j: 1, k: 1 }
+  2: { z: 0, e: 0, d: 0, f: 0, i: 1, o: 1, j: 1, k: 1 },
+  6: { s: 0, d: 1, f: 2, j: 3, k: 4, l: 5 }
 };
 
 export class Input {

@@ -88,7 +88,9 @@ alter table public.scores
   add constraint combo_plausible     check (combo >= 0 and combo <= 200000),
   add constraint precision_plausible check (precision >= 0 and precision <= 1),
   add constraint grade_connu         check (grade in ('SS','S+','S','A','B','C','D')),
-  add constraint mode_connu          check (keys in ('2','4')),
+  -- v1.53 : le mode 6 keys arrive — sans le « 6 » ici, chaque publication
+  -- d'un score 6 keys serait rejetée par la base.
+  add constraint mode_connu          check (keys in ('2','4','6')),
   add constraint nom_court           check (char_length(name) between 1 and 12),
   add constraint avatar_court        check (avatar is null or char_length(avatar) <= 24);
 

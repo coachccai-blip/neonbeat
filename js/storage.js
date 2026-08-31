@@ -30,7 +30,7 @@ const DEFAULTS = {
   lastTrack: null,
   lastDiff: 'NORMAL',
   lang: 'fr',
-  keys: '4',          // mode de jeu : '4' (ZEIO) ou '2' (EI)
+  keys: '4',          // mode de jeu : '4' (ZEIO), '2' (EI) ou '6' (SDFJKL)
   mods: []            // effets actifs : 'MIRROR' | 'FADE' | 'SUDDEN' | 'NIGHTCORE'
 };
 
@@ -201,10 +201,11 @@ function writeScores() {
  * Enregistre un résultat. Retourne { record: bool, best } — record = vrai si
  * le score bat le meilleur local pour ce morceau + difficulté.
  */
-/* Le mode 2 keys a ses propres records : clé suffixée « |2K ».
-   Les scores 4 keys gardent la clé historique (aucune migration). */
+/* Les modes 2 et 6 keys ont leurs propres records : clé suffixée « |2K »
+   ou « |6K ». Les scores 4 keys gardent la clé historique (aucune migration). */
 function scoreKey(trackId, diffName, keysMode) {
-  return trackId + '|' + diffName + (keysMode === '2' ? '|2K' : '');
+  return trackId + '|' + diffName +
+    (keysMode === '2' ? '|2K' : keysMode === '6' ? '|6K' : '');
 }
 
 export function saveScore(trackId, diffName, entry, keysMode = '4') {

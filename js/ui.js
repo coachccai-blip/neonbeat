@@ -330,14 +330,16 @@ export function drawQr(canvas, text) {
   }
 }
 
-/* ─── Mode de touches (4 keys / 2 keys) ─── */
+/* ─── Mode de touches (4 / 2 / 6 keys) ─── */
+
+const KEYS_HINTS = { '4': 'Z E I O', '2': 'E I', '6': 'S D F J K L' };
 
 export function renderKeysSeg(container, active, onPick) {
   container.innerHTML = '';
-  for (const k of ['4', '2']) {
+  for (const k of ['4', '2', '6']) {
     const b = document.createElement('button');
     b.className = 'seg-btn' + (k === active ? ' is-on' : '');
-    b.innerHTML = `${k} KEYS<small>${k === '4' ? 'Z E I O' : 'E I'}</small>`;
+    b.innerHTML = `${k} KEYS<small>${KEYS_HINTS[k]}</small>`;
     b.addEventListener('click', () => {
       container.querySelectorAll('.seg-btn').forEach((x) => x.classList.remove('is-on'));
       b.classList.add('is-on');

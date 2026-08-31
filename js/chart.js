@@ -79,3 +79,67 @@ export function to2Keys(raw) {
   }
   return out;
 }
+
+/**
+ * Étale une chart 4 couloirs sur 6 couloirs (mode « 6 keys »).
+ *
+ * Contrairement au 2 keys qui FUSIONNE, ici aucune note n'est perdue : le
+ * défi vient de la lecture, plus large, pas d'un contenu différent. Chaque
+ * couloir 4K a sa région préférée (0→gauche, 3→droite) pour que la
+ * géographie du morceau reste reconnaissable, et un tirage DÉTERMINISTE
+ * (germé sur la taille de la chart) répartit les notes dans la région —
+ * la même chart donne toujours le même étalement, sinon les records ne se
+ * compareraient pas d'une partie à l'autre.
+ *
+ * Deux passes par note : d'abord en évitant de marteler un couloir
+ * fraîchement joué (les répétitions 4K deviennent des alternances), puis,
+ * si tout est trop proche, n'importe quel couloir libre — on préfère un
+ * martèlement à une note disparue.
+ */
+export function to6Keys(raw) {
+  const REGIONS = [[0, 1], [1, 2], [3, 4], [4, 5]];
+  const laneEnd = new Array(6).fill(-1e9);   // occupé par un hold jusqu'à…
+  const lastAt = new Array(6).fill(-1e9);    // dernière note posée
+  let g = (0x9e3779b9 ^ raw.length) >>> 0;   // mulberry32, germe fixe
+  const rng = () => {
+    g = (g + 0x6D2B79F5) >>> 0;
+    let x = Math.imul(g ^ (g >>> 15), g | 1);
+    x = (x + Math.imul(x ^ (x >>> 7), x | 61)) ^ x;
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+  };
+  const out = [];
+  let i = 0;
+  while (i < raw.length) {
+    const t = raw[i][1];
+    let j = i;
+    while (j < raw.length && raw[j][1] === t) j++;
+    const accord = raw.slice(i, j);
+    i = j;
+    const pris = new Set();
+    for (const [lane, , dur] of accord) {
+      const region = REGIONS[lane] || [2, 3];
+      const prefs = rng() < 0.5 ? [region[0], region[1]] : [region[1], region[0]];
+      const centre = (region[0] + region[1]) / 2;
+      const secours = [0, 1, 2, 3, 4, 5]
+        .filter((l) => l !== region[0] && l !== region[1])
+        .sort((a, b) => Math.abs(a - centre) - Math.abs(b - centre));
+      const essayer = (avecEcart) => {
+        for (const c of [...prefs, ...secours]) {
+          if (pris.has(c)) continue;
+          if (t < laneEnd[c]) continue;
+          if (avecEcart && t - lastAt[c] < 0.16) continue;
+          return c;
+        }
+        return -1;
+      };
+      let c = essayer(true);
+      if (c < 0) c = essayer(false);
+      if (c < 0) continue;      // 6 couloirs occupés à la fois : impossible en pratique
+      pris.add(c);
+      lastAt[c] = t;
+      laneEnd[c] = t + dur + (dur > 0 ? 0.05 : 0);
+      out.push([c, t, dur]);
+    }
+  }
+  return out;
+}
