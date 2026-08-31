@@ -97,6 +97,45 @@ export const SKINS = [
     note: 'outline',
     line: '#d9b6ff',
     glow: 1.45
+  },
+
+  // v1.56 : quatre habillages du panthéon, adossés aux défis de Perséphone,
+  // Poséidon, Némésis et Cerbère — ces défis offrent donc l'avatar ET le skin.
+  {
+    id: 'floral',                    // Perséphone : le printemps qui remonte
+    unlock: 'floraison',
+    lanes4: ['#ff8ac2', '#7be37c', '#ffe9f2', '#ff4b96'],
+    lanes2: ['#ff8ac2', '#ff4b96'],
+    note: 'gloss',
+    line: '#ffd8ea',
+    glow: 1.2
+  },
+  {
+    id: 'abysse',                    // Poséidon : la fosse océane
+    unlock: 'vague',
+    lanes4: ['#39e6c8', '#1f8fff', '#a8f4ff', '#155bd6'],
+    lanes2: ['#39e6c8', '#155bd6'],
+    note: 'chrome',
+    line: '#c9f3ff',
+    glow: 1.3
+  },
+  {
+    id: 'lame',                      // Némésis : l'acier et le sang
+    unlock: 'vengeance',
+    lanes4: ['#e6ecf5', '#ff2d55', '#98a4bd', '#c21237'],
+    lanes2: ['#e6ecf5', '#ff2d55'],
+    note: 'outline',
+    line: '#ffccd5',
+    glow: 1.2
+  },
+  {
+    id: 'enfers',                    // Cerbère : braises et ombre violette
+    unlock: 'gardien',
+    lanes4: ['#ff6a3d', '#d92638', '#ffb35c', '#9a3dff'],
+    lanes2: ['#ff6a3d', '#9a3dff'],
+    note: 'gloss',
+    line: '#ffb8a0',
+    glow: 1.35
   }
 ];
 

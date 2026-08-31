@@ -527,7 +527,8 @@ function announceTrophies(stats) {
     setTimeout(() => {
       audio.gradeJingle('S', false);
       let msg = t('trophy_new', { name: t('trophy_' + id) });
-      if (skin) msg = t('trophy_new_skin', { name: t('trophy_' + id), skin: t('skin_' + skin.id) });
+      if (skin && av) msg = t('trophy_new_both', { name: t('trophy_' + id), avatar: t('av_' + av.id), skin: t('skin_' + skin.id) });
+      else if (skin) msg = t('trophy_new_skin', { name: t('trophy_' + id), skin: t('skin_' + skin.id) });
       else if (av) msg = t('trophy_new_avatar', { name: t('trophy_' + id), avatar: t('av_' + av.id) });
       ui.toast(msg, 5200);
     }, 900 + i * 5600);

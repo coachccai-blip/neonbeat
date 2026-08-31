@@ -831,9 +831,13 @@ export function renderTrophies(d, onPickSkin) {
     const pct = Math.round((100 * tr.current) / tr.target);
     const skin = d.skinFor[tr.id];
     const avatar = (d.avatarFor || {})[tr.id];
-    // Un trophée offre au plus une récompense : skin OU avatar.
-    const reward = skin ? ` <em>· ${esc(t('skin_' + skin))}</em>`
-      : avatar ? ` <em>· ${esc(t('av_' + avatar))}</em>` : '';
+    // Un défi peut offrir un avatar, un skin — ou les deux (v1.56 : ceux de
+    // Perséphone, Poséidon, Némésis et Cerbère).
+    const recompenses = [
+      avatar ? t('av_' + avatar) : null,
+      skin ? t('skin_' + skin) : null
+    ].filter(Boolean);
+    const reward = recompenses.length ? ` <em>· ${esc(recompenses.join(' + '))}</em>` : '';
     return `
       <div class="trophy${tr.done ? ' is-done' : ''}">
         <span class="ti">${tr.icon}</span>
