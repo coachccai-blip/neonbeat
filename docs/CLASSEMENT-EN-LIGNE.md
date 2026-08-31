@@ -43,7 +43,7 @@ pas de « script de migration » séparé.
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════
---  NEONBEAT — classement en ligne (v1.36)
+--  NEONBEAT — classement en ligne (v1.53)
 --  Script COMPLET et REJOUABLE : il crée ce qui manque et met à jour
 --  ce qui existe. Le lancer deux fois de suite ne change rien.
 --  Supabase → SQL Editor → New query → coller → Run.
