@@ -338,12 +338,19 @@ export class Engine {
 
   results() {
     const precision = this.precision;
+    // ALL PERFECT ⇒ SS, par construction et sans passer par la précision :
+    // si chaque note du morceau a été jugée PERFECT, aucun calcul de poids
+    // ne doit pouvoir en décider autrement. L'égalité avec `total` est le
+    // garde-fou : une partie abandonnée après trois PERFECT n'a pas tout
+    // joué, elle ne se qualifie pas.
+    const allPerfect = !this.failed && this.counts.PERFECT === this.total &&
+      !this.counts.GREAT && !this.counts.GOOD && !this.counts.MISS && this.total > 0;
     return {
       score: this.score,
       precision,
       comboMax: this.comboMax,
       counts: { ...this.counts },
-      grade: this.failed ? 'D' : gradeFor(precision),
+      grade: this.failed ? 'D' : allPerfect ? 'SS' : gradeFor(precision),
       failed: this.failed,
       total: this.total,
       feverMax: this.feverMax,

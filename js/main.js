@@ -1501,7 +1501,16 @@ class Game {
     const t = this.songTime() - (age + this.userOffset) * this.rate;
     const j = this.engine.release(lane, t);
     this.renderer.pressed[lane] = false;
-    if (j === 'GOOD') this.renderer.label('GOOD');
+    // Relâchement anticipé d'une note longue : c'est LE moyen sournois de
+    // perdre un all-perfect sans s'en rendre compte (le combo survit, la
+    // frappe avait affiché PERFECT). Le GOOD se montre donc franchement :
+    // libellé ET flash sur le couloir, comme n'importe quel jugement.
+    // (On lit la valeur de retour — vider la file d'événements ici
+    // avalerait les MISS et montées de fever destinés à la boucle.)
+    if (j === 'GOOD') {
+      this.renderer.label('GOOD');
+      this.renderer.flash(lane, 'GOOD');
+    }
   }
 
   loop() {
